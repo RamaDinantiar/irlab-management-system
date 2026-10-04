@@ -107,10 +107,20 @@ class LabClass extends Model
         return $this->hasMany(Meeting::class, 'class_id')->orderBy('number');
     }
 
-    /** Asisten pengampu kelas ini? */
+    /** Asisten pengampu kelas ini? Admin = superset (FR-ADM-11). */
     public function isTaughtBy(User $user): bool
     {
-        return $this->assistants()->whereKey($user->id)->exists();
+        return $user->isAdmin() || $this->assistants()->whereKey($user->id)->exists();
+    }
+
+    /**
+     * Kelas yang diampu user; Admin melihat semua kelas (FR-ADM-11).
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeTaughtBy(Builder $query, User $user): void
+    {
+        $query->when(! $user->isAdmin(), fn ($q) => $q->whereHas('assistants', fn ($a) => $a->whereKey($user->id)));
     }
 
     /**

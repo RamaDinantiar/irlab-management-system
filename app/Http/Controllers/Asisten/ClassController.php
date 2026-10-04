@@ -40,7 +40,7 @@ class ClassController extends Controller
         $myClasses = $semester
             ? LabClass::forSemester($semester)
                 ->where(fn ($query) => $query
-                    ->whereHas('assistants', fn ($q) => $q->whereKey($user->id))
+                    ->taughtBy($user)
                     ->orWhere('proposed_by', $user->id))
                 ->with(['course', 'room', 'assistants', 'semester'])
                 ->withCount('enrollments')

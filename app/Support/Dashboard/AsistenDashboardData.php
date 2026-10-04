@@ -6,6 +6,7 @@ use App\Enums\ApprovalStatus;
 use App\Enums\Position;
 use App\Models\LabClass;
 use App\Models\Semester;
+use App\Models\TaskTarget;
 use App\Models\User;
 use App\Support\CourseColor;
 use Carbon\CarbonImmutable;
@@ -19,7 +20,7 @@ use Carbon\CarbonImmutable;
  *  - pendingReports, nextShift, week (shift)  → modul Report & Shift (Rilis 3)
  *  - pendingGrading, gradingQueue              → modul Grade (Rilis 2)
  *  - week (sesi kelas)                         → ✅ data asli (modul Kelas & Jadwal)
- *  - alerts                                    → Task, Tukar Shift, Report, Generate
+ *  - alerts                                    → ✅ due-soon asli; lainnya Tukar Shift, Report, Generate
  *  - activities                                → Submission, Enrollment, Program
  * Setelah semua bagian asli, hapus `isSample`.
  */
@@ -159,7 +160,7 @@ class AsistenDashboardData
     private static function alerts(User $user): array
     {
         $alerts = [
-            ['key' => 'due-soon', 'label' => 'tugas mendekati tenggat', 'count' => 3, 'href' => '/asisten/task', 'tone' => 'warning'],
+            ['key' => 'due-soon', 'label' => 'tugas mendekati tenggat', 'count' => self::dueSoon($user), 'href' => '/asisten/task', 'tone' => 'warning'],
             ['key' => 'shift-swaps', 'label' => 'permintaan tukar shift', 'count' => 1, 'href' => '/asisten/schedule', 'tone' => 'info'],
         ];
 
@@ -172,6 +173,17 @@ class AsistenDashboardData
         }
 
         return $alerts;
+    }
+
+    /**
+     * Tugas terbit di kelas yang diampu dengan tenggat dalam 24 jam ke depan.
+     */
+    private static function dueSoon(User $user): int
+    {
+        return TaskTarget::whereBetween('due_at', [now(), now()->addDay()])
+            ->whereHas('task', fn ($q) => $q->where('status', 'published'))
+            ->whereHas('labClass', fn ($q) => $q->taughtBy($user))
+            ->count();
     }
 
     /**

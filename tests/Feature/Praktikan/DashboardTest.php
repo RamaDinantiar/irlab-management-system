@@ -6,6 +6,9 @@ use App\Models\Course;
 use App\Models\Enrollment;
 use App\Models\LabClass;
 use App\Models\Semester;
+use App\Models\Submission;
+use App\Models\Task;
+use App\Models\TaskTarget;
 use App\Models\User;
 use App\Support\Dashboard\PraktikanDashboardData;
 use Carbon\CarbonImmutable;
@@ -34,6 +37,8 @@ class DashboardTest extends TestCase
                 'name' => 'Kelas A', 'day_of_week' => $day, 'start_time' => '07:20', 'end_time' => '09:50',
             ]);
             Enrollment::factory()->for($class, 'labClass')->for($this->student)->create();
+            $task = Task::factory()->create(['course_id' => $course->id, 'semester_id' => $semester->id, 'title' => "Post-Test {$name}"]);
+            TaskTarget::factory()->for($task)->create(['class_id' => $class->id, 'open_at' => now()->subHour(), 'due_at' => now()->addDays($day)]);
         }
     }
 
@@ -70,12 +75,13 @@ class DashboardTest extends TestCase
 
     public function test_pending_tasks_counts_only_unsubmitted_tasks()
     {
-        $data = PraktikanDashboardData::for($this->student);
+        $this->assertSame(2, PraktikanDashboardData::for($this->student)['pendingTasks']);
 
-        $this->assertSame(
-            collect($data['upcomingTasks'])->where('status', 'not_submitted')->count(),
-            $data['pendingTasks'],
-        );
+        Submission::factory()->create(['task_target_id' => TaskTarget::first()->id, 'user_id' => $this->student->id]);
+
+        $data = PraktikanDashboardData::for($this->student);
+        $this->assertSame(1, $data['pendingTasks']);
+        $this->assertSame('submitted', $data['upcomingTasks'][0]['status']);
     }
 
     public function test_next_class_is_the_upcoming_session_of_an_enrolled_class()

@@ -32,8 +32,7 @@ class SessionController extends Controller
         $semester = Semester::current();
 
         $meetings = $semester
-            ? Meeting::whereHas('labClass', fn ($q) => $q->forSemester($semester)
-                ->whereHas('assistants', fn ($a) => $a->whereKey($request->user()->id)))
+            ? Meeting::whereHas('labClass', fn ($q) => $q->forSemester($semester)->taughtBy($request->user()))
                 ->whereBetween('date', [today()->subDays(1), today()->addDays(7)])
                 ->with(['labClass.course', 'labClass.room'])
                 ->orderBy('date')->get()

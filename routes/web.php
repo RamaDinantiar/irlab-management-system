@@ -35,7 +35,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     foreach (Role::cases() as $role) {
         Route::prefix($role->value)
             ->name($role->value.'.')
-            ->middleware('role:'.$role->value)
+            // FR-ADM-11: Admin memiliki akses ke semua menu Asisten untuk seluruh kelas.
+            ->middleware($role === Role::Asisten ? 'role:asisten,admin' : 'role:'.$role->value)
             ->group(function () use ($role) {
                 Route::get('dashboard', match ($role) {
                     Role::Praktikan => PraktikanDashboardController::class,

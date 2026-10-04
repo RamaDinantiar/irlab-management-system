@@ -24,20 +24,9 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
+import { toLocalInput } from '@/lib/task';
 import type { MeetingRow, SelectOption } from '@/types';
 import type { RouteFormDefinition } from '@/wayfinder';
-
-/** "2026-10-07T13:00:00+07:00" → "2026-10-07T13:00" untuk <input type="datetime-local">. */
-function toLocalInput(iso: string | null): string {
-    if (!iso) {
-        return '';
-    }
-
-    const date = new Date(iso);
-    const wib = new Date(date.getTime() + 7 * 3600_000);
-
-    return wib.toISOString().slice(0, 16);
-}
 
 /** FR-AC-04: tambah/ubah pertemuan + unggah modul PDF + tanggal rilis. */
 export function MeetingFormDialog({

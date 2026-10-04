@@ -39,7 +39,7 @@ const programs = (base: string, withMaintenance: boolean): NavItem[] => [
         : []),
 ];
 
-/** Menu Asisten; dipakai juga oleh Admin dengan prefix /admin (FR-ADM-11). */
+/** Menu Asisten; dipakai juga oleh Admin (FR-ADM-11). */
 const asistenItems = (p: string): NavItem[] => [
     { title: 'Schedule', href: `${p}/schedule`, icon: CalendarDays },
     { title: 'Class', href: `${p}/class`, icon: BookOpen },
@@ -157,7 +157,8 @@ export const navigation: Record<Role, NavGroup[]> = {
                 },
             ],
         },
-        { label: 'Akademik', items: asistenItems('/admin') },
+        // FR-ADM-11: halaman akademik bersama Asisten (Admin melihat semua kelas).
+        { label: 'Akademik', items: asistenItems('/asisten') },
     ],
 };
 

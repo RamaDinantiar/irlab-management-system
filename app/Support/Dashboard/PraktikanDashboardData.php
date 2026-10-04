@@ -5,6 +5,7 @@ namespace App\Support\Dashboard;
 use App\Enums\ApprovalStatus;
 use App\Models\LabClass;
 use App\Models\Semester;
+use App\Models\TaskTarget;
 use App\Models\User;
 use App\Support\CourseColor;
 use Carbon\CarbonImmutable;
@@ -19,7 +20,7 @@ use Illuminate\Database\Eloquent\Collection;
  *  - hasClasses, week, nextClass        → ✅ data asli (Kelas & Enrollment)
  *  - nextClass.module                   → Pertemuan & Modul (Rilis 2)
  *  - nextClass.seat                     → Seats (Rilis 3)
- *  - pendingTasks, upcomingTasks        → Task & Submission (Rilis 2)
+ *  - pendingTasks, upcomingTasks        → ✅ data asli (Task & Submission)
  *  - courseProgress, recentFeedback     → Grade (Rilis 2)
  *  - announcements                      → Pengumuman (Rilis 3)
  *  - openProgram                        → Program (Rilis 4)
@@ -41,19 +42,13 @@ class PraktikanDashboardData
             return self::empty($weekStart, $now);
         }
 
-        $upcomingTasks = [
-            ['id' => 'tk-1', 'title' => 'Post-Test Modul 04', 'course' => 'Machine Learning', 'type' => 'posttest', 'dueAt' => $now->addHours(5)->toIso8601String(), 'status' => 'not_submitted', 'href' => '/praktikan/task/post-test'],
-            ['id' => 'tk-2', 'title' => 'Laporan Modul 03', 'course' => 'Deep Learning', 'type' => 'report', 'dueAt' => $now->addDays(2)->toIso8601String(), 'status' => 'not_submitted', 'href' => '/praktikan/task/laporan'],
-            ['id' => 'tk-3', 'title' => 'Pre-Test Modul 05', 'course' => 'Information Retrieval', 'type' => 'pretest', 'dueAt' => $now->addDays(3)->toIso8601String(), 'status' => 'submitted', 'href' => '/praktikan/task/pre-test'],
-            ['id' => 'tk-4', 'title' => 'Laporan Modul 02', 'course' => 'Mobile Programming', 'type' => 'report', 'dueAt' => $now->addDays(4)->toIso8601String(), 'status' => 'not_submitted', 'href' => '/praktikan/task/laporan'],
-            ['id' => 'tk-5', 'title' => 'Post-Test Modul 03', 'course' => 'Deep Learning', 'type' => 'posttest', 'dueAt' => $now->addDays(6)->toIso8601String(), 'status' => 'not_submitted', 'href' => '/praktikan/task/post-test'],
-        ];
+        [$upcomingTasks, $pendingTasks] = self::tasks($user, $now);
 
         return [
             'isSample' => true,
             'hasClasses' => true,
             'nextClass' => self::nextClass($classes, $weekStart, $now),
-            'pendingTasks' => collect($upcomingTasks)->where('status', 'not_submitted')->count(),
+            'pendingTasks' => $pendingTasks,
             'openProgram' => [
                 'title' => 'Workshop: Intro to Retrieval-Augmented Generation',
                 'type' => 'Workshop',
@@ -108,6 +103,47 @@ class PraktikanDashboardData
             'recentFeedback' => [],
             'announcements' => [],
         ];
+    }
+
+    /**
+     * FR-PD-3: maks. 5 tugas terbuka dengan tenggat terdekat + jumlah yang belum
+     * dikumpulkan (tugas terbuka, termasuk yang menerima keterlambatan).
+     *
+     * @return array{0: list<array<string, mixed>>, 1: int}
+     */
+    private static function tasks(User $user, CarbonImmutable $now): array
+    {
+        $targets = TaskTarget::query()
+            ->whereNotNull('open_at')->where('open_at', '<=', $now)
+            ->whereHas('task', fn ($q) => $q->where('status', 'published')->where('semester_id', Semester::current()?->id))
+            ->whereHas('labClass.enrollments', fn ($q) => $q->where('user_id', $user->id))
+            ->with(['task.course', 'submissions' => fn ($q) => $q->where('user_id', $user->id)->where('is_current', true)])
+            ->get()
+            ->filter(fn (TaskTarget $target) => $target->state($now) === 'open');
+
+        $pending = $targets->filter(fn (TaskTarget $target) => $target->submissions->isEmpty())->count();
+
+        $upcoming = $targets
+            ->filter(fn (TaskTarget $target) => $target->due_at && $target->due_at->isAfter($now))
+            ->sortBy('due_at')
+            ->take(5)
+            ->map(function (TaskTarget $target) {
+                $current = $target->submissions->first();
+
+                return [
+                    'id' => "tk-{$target->id}",
+                    'title' => $target->task->title,
+                    'course' => $target->task->course->name,
+                    'type' => $target->task->type->value,
+                    'dueAt' => $target->due_at->toIso8601String(),
+                    'status' => $current ? ($current->is_late ? 'late' : 'submitted') : 'not_submitted',
+                    'href' => '/praktikan/tasks/'.$target->id,
+                ];
+            })
+            ->values()
+            ->all();
+
+        return [$upcoming, $pending];
     }
 
     /**

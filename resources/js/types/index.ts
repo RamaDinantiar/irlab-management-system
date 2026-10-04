@@ -7,3 +7,4 @@ export type * from './course';
 export type * from './class';
 export type * from './user';
 export type * from './meeting';
+export type * from './task';

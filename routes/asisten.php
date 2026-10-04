@@ -5,6 +5,7 @@ use App\Http\Controllers\Asisten\ClassController;
 use App\Http\Controllers\Asisten\ClassDetailController;
 use App\Http\Controllers\Asisten\MeetingController;
 use App\Http\Controllers\Asisten\SessionController;
+use App\Http\Controllers\Asisten\TaskController;
 use App\Http\Controllers\Asisten\ClassProposalController;
 use App\Http\Controllers\Asisten\CourseProposalController;
 use Illuminate\Support\Facades\Route;
@@ -42,3 +43,12 @@ Route::post('class-proposals', [ClassProposalController::class, 'store'])->name(
 Route::put('class-proposals/{class}', [ClassProposalController::class, 'update'])->name('class-proposals.update');
 Route::post('classes/{class}/token', [ClassAccessController::class, 'regenerateToken'])->name('classes.token');
 Route::post('classes/{class}/lock', [ClassAccessController::class, 'lock'])->name('classes.lock');
+
+// FR-AT: Task Management (Asisten & Admin).
+Route::get('task/{type?}', [TaskController::class, 'index'])->where('type', 'laporan|post-test|pre-test')->name('tasks.index');
+Route::get('tasks/create', [TaskController::class, 'create'])->name('tasks.create');
+Route::post('tasks', [TaskController::class, 'store'])->name('tasks.store');
+Route::get('tasks/{task}/edit', [TaskController::class, 'edit'])->name('tasks.edit');
+Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
+Route::post('tasks/{task}/duplicate', [TaskController::class, 'duplicate'])->name('tasks.duplicate');
+Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
