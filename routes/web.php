@@ -1,0 +1,72 @@
+<?php
+
+use App\Enums\Role;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Asisten\DashboardController as AsistenDashboardController;
+use App\Http\Controllers\Auth\ChangePasswordController;
+use App\Http\Controllers\Praktikan\DashboardController as PraktikanDashboardController;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Route;
+
+// Landing page publik dikerjakan terpisah (PRD Bagian 0) — beranda aplikasi = login.
+Route::redirect('/', '/login')->name('home');
+
+Route::middleware('auth')->group(function () {
+    // FR-AUTH-05: ganti password sementara pada login pertama.
+    Route::get('password/change', [ChangePasswordController::class, 'edit'])->name('password.change');
+    Route::put('password/change', [ChangePasswordController::class, 'update'])->name('password.change.update');
+
+    // FR-AUTH-06: dipanggil frontend selama pengguna aktif agar sesi 30 menit tidak habis.
+    Route::post('session/keep-alive', fn () => response()->noContent())->name('session.keep-alive');
+});
+
+Route::middleware(['auth', 'verified'])->group(function () {
+    // Role-based routing setelah login (FR-AUTH-02).
+    Route::get('dashboard', fn (Request $request) => redirect()->route(
+        $request->user()->role->dashboardRoute(),
+    ))->name('dashboard');
+
+    foreach (Role::cases() as $role) {
+        Route::prefix($role->value)
+            ->name($role->value.'.')
+            ->middleware('role:'.$role->value)
+            ->group(function () use ($role) {
+                Route::get('dashboard', match ($role) {
+                    Role::Praktikan => PraktikanDashboardController::class,
+                    Role::Asisten => AsistenDashboardController::class,
+                    Role::Admin => AdminDashboardController::class,
+                })->name('dashboard');
+
+                // Route modul per peran, mis. routes/admin.php.
+                if (file_exists($routes = __DIR__."/{$role->value}.php")) {
+                    require $routes;
+                }
+
+                // Sementara: menu yang halamannya belum dibangun → "Segera hadir".
+                Route::inertia('{page}', 'coming-soon')->where('page', '.*')->name('placeholder');
+            });
+    }
+});
+
+require __DIR__.'/settings.php';
+
+// Alat bantu pengembangan — HANYA di lingkungan lokal (APP_ENV=local).
+if (app()->isLocal()) {
+    // Katalog komponen UI untuk dicocokkan dengan Figma.
+    Route::inertia('dev/komponen', 'dev/components')->name('dev.components');
+
+    // Masuk cepat sebagai akun demo seeder, mis. /dev/login-as/asisten?to=/asisten/grade.
+    Route::get('dev/login-as/{role}', function (Request $request, Role $role) {
+        $user = User::where('role', $role)->where('email', 'like', '%@irlab.test')->firstOrFail();
+        Auth::login($user);
+        $request->session()->regenerate();
+
+        $to = $request->query('to');
+
+        return is_string($to) && str_starts_with($to, '/') && ! str_starts_with($to, '//')
+            ? redirect($to)
+            : redirect()->route($role->dashboardRoute());
+    })->name('dev.login-as');
+}

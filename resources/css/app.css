@@ -1,0 +1,183 @@
+@import 'tailwindcss';
+
+@import 'tw-animate-css';
+
+@source '../views';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme {
+    /* Tipografi — Figma "Project Lab IR" + PRD 7.1 */
+    --font-sans:
+        'Space Grotesk', ui-sans-serif, system-ui, sans-serif,
+        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+        'Noto Color Emoji';
+    --font-mono:
+        'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+    --text-display: 2.625rem; /* 42px — judul halaman login */
+    --text-display--line-height: 1.2;
+    --text-h1: 2rem; /* 32px — sapaan dashboard */
+    --text-h1--line-height: 1.2;
+    --text-h2: 1.5rem; /* 24px — judul kartu/seksi */
+    --text-h2--line-height: 1.2;
+    --text-h3: 1.25rem; /* 20px — judul kartu kecil, menu sidebar */
+    --text-h3--line-height: 1.2;
+
+    /* Palet brand — diambil dari frame Figma (Foundation/Primary) */
+    --color-primary-50: #e8f3f6; /* Light — latar halaman */
+    --color-primary-100: #e5f4f9; /* header tabel, panel info */
+    --color-primary-200: #b8d9e2; /* Light :active — border kartu */
+    --color-primary-500: #1a86a0; /* Normal */
+    --color-primary-600: #177990; /* Normal :hover — latar sidebar (teks 14px putih ≥ 4.5:1) */
+    --color-primary-700: #146578; /* Dark — judul, teks link */
+    --color-primary-800: #123a52; /* awal gradient panel login */
+    --color-primary-900: #092f38; /* Darker */
+
+    /* Status semantik — PRD 7.2, varian teks digelapkan agar lolos WCAG AA */
+    --color-success: #15803d;
+    --color-success-soft: #dcfce7;
+    --color-warning: #b45309;
+    --color-warning-soft: #fef3c7;
+    --color-danger: #b91c1c; /* PRD #dc2626 hanya 4.1:1 di atas danger-soft */
+    --color-danger-soft: #fee2e2;
+
+    --radius-lg: var(--radius);
+    --radius-md: var(--radius);
+    --radius-sm: var(--radius);
+
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+
+    --color-card: var(--card);
+    --color-card-foreground: var(--card-foreground);
+
+    --color-popover: var(--popover);
+    --color-popover-foreground: var(--popover-foreground);
+
+    --color-primary: var(--primary);
+    --color-primary-foreground: var(--primary-foreground);
+
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+
+    --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
+
+    --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--destructive-foreground);
+
+    --color-border: var(--border);
+    --color-input: var(--input);
+    --color-ring: var(--ring);
+
+    --color-chart-1: var(--chart-1);
+    --color-chart-2: var(--chart-2);
+    --color-chart-3: var(--chart-3);
+    --color-chart-4: var(--chart-4);
+    --color-chart-5: var(--chart-5);
+
+    --color-sidebar: var(--sidebar);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-ring: var(--sidebar-ring);
+}
+
+:root {
+    --background: var(--color-primary-50);
+    --foreground: #000000;
+    --card: #ffffff;
+    --card-foreground: #000000;
+    --popover: #ffffff;
+    --popover-foreground: #000000;
+    --primary: var(--color-primary-500);
+    --primary-foreground: #ffffff;
+    --secondary: var(--color-primary-50);
+    --secondary-foreground: var(--color-primary-700);
+    --muted: #f3f4f6;
+    --muted-foreground: #6b7280;
+    --accent: var(--color-primary-50);
+    --accent-foreground: var(--color-primary-700);
+    --destructive: var(--color-danger);
+    --destructive-foreground: var(--color-danger);
+    --border: var(--color-primary-200);
+    --input: #cccccc;
+    --ring: var(--color-primary-500);
+    --chart-1: var(--color-primary-500);
+    --chart-2: var(--color-primary-700);
+    --chart-3: var(--color-primary-200);
+    --chart-4: #f59e0b;
+    --chart-5: #dc2626;
+    --radius: 0px; /* Figma: sudut tajam */
+    --sidebar: var(--color-primary-600);
+    --sidebar-foreground: #ffffff;
+    --sidebar-primary: #ffffff;
+    --sidebar-primary-foreground: var(--color-primary-700);
+    --sidebar-accent: rgb(255 255 255 / 0.12);
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: var(--color-primary-700);
+    --sidebar-ring: #ffffff;
+}
+
+.dark {
+    --background: oklch(0.145 0 0);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.145 0 0);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.145 0 0);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.985 0 0);
+    --primary-foreground: oklch(0.205 0 0);
+    --secondary: oklch(0.269 0 0);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.269 0 0);
+    --muted-foreground: oklch(0.708 0 0);
+    --accent: oklch(0.269 0 0);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.396 0.141 25.723);
+    --destructive-foreground: oklch(0.637 0.237 25.331);
+    --border: oklch(0.269 0 0);
+    --input: oklch(0.269 0 0);
+    --ring: oklch(0.439 0 0);
+    --chart-1: oklch(0.488 0.243 264.376);
+    --chart-2: oklch(0.696 0.17 162.48);
+    --chart-3: oklch(0.769 0.188 70.08);
+    --chart-4: oklch(0.627 0.265 303.9);
+    --chart-5: oklch(0.645 0.246 16.439);
+    --sidebar: oklch(0.205 0 0);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.985 0 0);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.269 0 0);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(0.269 0 0);
+    --sidebar-ring: oklch(0.439 0 0);
+}
+
+@keyframes toast-progress {
+    from {
+        transform: scaleX(1);
+    }
+
+    to {
+        transform: scaleX(0);
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+
+    body {
+        @apply bg-background text-foreground;
+    }
+}
