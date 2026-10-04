@@ -1,4 +1,4 @@
-import { Form, Head } from '@inertiajs/react';
+import { Form, Head, Link } from '@inertiajs/react';
 import { LayoutGrid, Pencil, Plus } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
@@ -114,7 +114,7 @@ function RoomFormDialog({
     );
 }
 
-/** Admin › Ruang & Denah (FR-ADM-05) — versi awal tanpa editor denah. */
+/** Admin › Ruang & Denah (FR-ADM-05). */
 export default function RoomsIndex({
     rooms,
     errors,
@@ -128,7 +128,7 @@ export default function RoomsIndex({
             <div className="flex flex-col gap-6 p-4 md:p-6 lg:p-8">
                 <PageHeader
                     title="Ruang & Denah"
-                    description="Ruang lab yang dipakai kelas praktikum. Editor denah kursi tersedia bersama modul Seats."
+                    description="Ruang lab yang dipakai kelas praktikum beserta denah kursinya (kursi, meja asisten, lorong)."
                     actions={
                         <RoomFormDialog
                             trigger={
@@ -158,9 +158,19 @@ export default function RoomsIndex({
                                 </p>
                                 <p className="font-mono text-sm">
                                     Grid {room.rows} × {room.cols} ·{' '}
-                                    {room.classesCount} kelas
+                                    {room.classesCount} kelas ·{' '}
+                                    {room.seatsCount} kursi
                                 </p>
                                 <div className="mt-auto flex flex-wrap gap-2">
+                                    <Button size="sm" asChild>
+                                        <Link
+                                            href={RoomController.layout.url(
+                                                room.id,
+                                            )}
+                                        >
+                                            <LayoutGrid /> Edit Denah
+                                        </Link>
+                                    </Button>
                                     <RoomFormDialog
                                         room={room}
                                         trigger={

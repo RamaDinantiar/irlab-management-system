@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
- * Ruang lab (PRD 6.1). Denah kursi (FR-ADM-05) ditambahkan di modul Seats.
+ * Ruang lab (PRD 6.1) dengan denah kursi (FR-ADM-05).
  *
  * @property int $id
  * @property string $name
@@ -28,5 +28,13 @@ class Room extends Model
     public function classes(): HasMany
     {
         return $this->hasMany(LabClass::class);
+    }
+
+    /**
+     * @return HasMany<Seat, $this>
+     */
+    public function seats(): HasMany
+    {
+        return $this->hasMany(Seat::class);
     }
 }

@@ -5,6 +5,7 @@ namespace App\Support\Dashboard;
 use App\Enums\ApprovalStatus;
 use App\Models\Grade;
 use App\Models\LabClass;
+use App\Models\Meeting;
 use App\Models\Semester;
 use App\Models\TaskTarget;
 use App\Models\User;
@@ -20,8 +21,7 @@ use Illuminate\Database\Eloquent\Collection;
  * SEMENTARA BERISI DATA CONTOH. Ganti tiap bagian dengan query asli begitu
  * modulnya dibangun, tanpa mengubah bentuk array yang dikembalikan:
  *  - hasClasses, week, nextClass        → ✅ data asli (Kelas & Enrollment)
- *  - nextClass.module                   → Pertemuan & Modul (Rilis 2)
- *  - nextClass.seat                     → Seats (Rilis 3)
+ *  - nextClass.module, nextClass.seat   → ✅ data asli (Pertemuan, Seats)
  *  - pendingTasks, upcomingTasks        → ✅ data asli (Task & Submission)
  *  - courseProgress, recentFeedback     → ✅ data asli (Grade)
  *  - announcements                      → Pengumuman (Rilis 3)
@@ -214,7 +214,11 @@ class PraktikanDashboardData
             ? LabClass::forSemester($semester)
                 ->where('approval_status', ApprovalStatus::Approved)
                 ->whereHas('enrollments', fn ($query) => $query->where('user_id', $user->id))
-                ->with(['course', 'room', 'assistants'])
+                ->with([
+                    'course', 'room', 'assistants',
+                    'seatContracts' => fn ($query) => $query->where('user_id', $user->id)->with('seat'),
+                    'meetings' => fn ($query) => $query->whereBetween('date', [now()->startOfWeek()->subDay(), now()->addWeeks(2)]),
+                ])
                 ->get()
             : new Collection;
     }
@@ -258,12 +262,10 @@ class PraktikanDashboardData
                 return [
                     'course' => $class->course->name,
                     'className' => $class->name,
-                    // Diisi modul Pertemuan & Modul.
-                    'module' => null,
+                    'module' => $class->meetings->first(fn (Meeting $m) => $m->date->isSameDay($startsAt))?->module_title,
                     'room' => $class->room->name,
                     'assistant' => $class->assistants->pluck('name')->join(', ') ?: '—',
-                    // Diisi modul Seats.
-                    'seat' => null,
+                    'seat' => $class->seatContracts->first()?->seat->label,
                     'startsAt' => $startsAt,
                     'endsAt' => $endsAt,
                 ];

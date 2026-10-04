@@ -32,4 +32,5 @@ export type RoomRow = {
     rows: number;
     cols: number;
     classesCount: number;
+    seatsCount: number;
 };

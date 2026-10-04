@@ -18,7 +18,7 @@ use Inertia\Response;
 
 /**
  * Asisten › detail kelas (FR-AC-02): tab Anggota, Pertemuan & Modul, Presensi,
- * Pengaturan. Tab Kursi ditambahkan modul Seats.
+ * Pengaturan. Denah kursi kelas ada di menu Seats.
  */
 class ClassDetailController extends Controller
 {
@@ -131,6 +131,8 @@ class ClassDetailController extends Controller
 
         $enrollment->forceFill(['removed_reason' => $validated['reason'], 'removed_by' => $request->user()->id])->save();
         $enrollment->delete();
+        // Kursi dilepas agar bisa dipakai praktikan lain.
+        $class->seatContracts()->where('user_id', $enrollment->user_id)->delete();
 
         AuditLog::record('enrollment.removed', $class, ['user_id' => $enrollment->user_id], ['reason' => $validated['reason']]);
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$enrollment->user->name} dikeluarkan dari {$class->name}."]);

@@ -4,6 +4,7 @@ use App\Http\Controllers\Praktikan\ClassController;
 use App\Http\Controllers\Praktikan\EnrollmentController;
 use App\Http\Controllers\Praktikan\GradeController;
 use App\Http\Controllers\Praktikan\ScheduleController;
+use App\Http\Controllers\Praktikan\SeatController;
 use App\Http\Controllers\Praktikan\TaskController;
 use Illuminate\Support\Facades\Route;
 
@@ -25,3 +26,8 @@ Route::post('tasks/{target}/submissions', [TaskController::class, 'submit'])->mi
 
 // FR-PG: nilai & feedback (read-only).
 Route::get('grade', [GradeController::class, 'index'])->name('grades.index');
+
+// FR-PST: kontrak kursi (US-P04).
+Route::get('seats', [SeatController::class, 'index'])->name('seats.index');
+Route::get('seats/{class}/contract', [SeatController::class, 'create'])->name('seats.create');
+Route::post('classes/{class}/seat-contracts', [SeatController::class, 'store'])->middleware('throttle:20,1')->name('seats.store');

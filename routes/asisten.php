@@ -7,6 +7,7 @@ use App\Http\Controllers\Asisten\ClassProposalController;
 use App\Http\Controllers\Asisten\CourseProposalController;
 use App\Http\Controllers\Asisten\GradeController;
 use App\Http\Controllers\Asisten\MeetingController;
+use App\Http\Controllers\Asisten\SeatController;
 use App\Http\Controllers\Asisten\SessionController;
 use App\Http\Controllers\Asisten\TaskController;
 use Illuminate\Support\Facades\Route;
@@ -61,3 +62,6 @@ Route::post('grading/{target}/publish', [GradeController::class, 'publish'])->na
 Route::get('grading/{target}/review', [GradeController::class, 'review'])->name('grading.review');
 Route::get('submissions/{submission}/zip', [GradeController::class, 'zipFile'])->name('submissions.zip');
 Route::get('classes/{class}/grades/export', [GradeController::class, 'export'])->name('classes.grades.export');
+
+// Seat Mapping (read-only).
+Route::get('seats', [SeatController::class, 'index'])->name('seats.index');

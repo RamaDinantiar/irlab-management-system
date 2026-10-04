@@ -63,6 +63,7 @@ const asistenItems = (p: string): NavItem[] => [
         icon: AppWindow,
         children: programs(`${p}/program`, true),
     },
+    { title: 'Seats', href: `${p}/seats`, icon: Armchair },
 ];
 
 export const navigation: Record<Role, NavGroup[]> = {

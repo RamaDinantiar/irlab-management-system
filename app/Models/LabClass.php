@@ -124,6 +124,14 @@ class LabClass extends Model
     }
 
     /**
+     * @return HasMany<SeatContract, $this>
+     */
+    public function seatContracts(): HasMany
+    {
+        return $this->hasMany(SeatContract::class, 'class_id');
+    }
+
+    /**
      * Keanggotaan aktif (yang dikeluarkan ter-soft-delete).
      *
      * @return HasMany<Enrollment, $this>
