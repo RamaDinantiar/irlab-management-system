@@ -217,7 +217,7 @@ class PraktikanDashboardData
                 ->with([
                     'course', 'room', 'assistants',
                     'seatContracts' => fn ($query) => $query->where('user_id', $user->id)->with('seat'),
-                    'meetings' => fn ($query) => $query->whereBetween('date', [now()->startOfWeek()->subDay(), now()->addWeeks(2)]),
+                    'meetings' => fn ($query) => $query->whereDateBetween('date', [now()->startOfWeek()->subDay(), now()->addWeeks(2)]),
                 ])
                 ->get()
             : new Collection;

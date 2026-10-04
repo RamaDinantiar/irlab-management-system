@@ -2,14 +2,17 @@
 
 namespace App\Support\Dashboard;
 
-use App\Enums\ApprovalStatus;
-use App\Enums\Position;
+use App\Models\Enrollment;
+use App\Models\HonorRecap;
 use App\Models\LabClass;
-use App\Models\Semester;
+use App\Models\Shift;
+use App\Models\ShiftSwap;
+use App\Models\Submission;
+use App\Models\SupervisionReport;
 use App\Models\TaskTarget;
 use App\Models\User;
-use App\Support\CourseColor;
 use App\Support\Grading\GradingQueue;
+use App\Support\Schedule\AssistantWeek;
 use Carbon\CarbonImmutable;
 
 /**
@@ -18,26 +21,15 @@ use Carbon\CarbonImmutable;
  *
  * SEMENTARA BERISI DATA CONTOH. Ganti tiap bagian dengan query asli begitu
  * modulnya dibangun, tanpa mengubah bentuk array yang dikembalikan:
- *  - pendingReports, nextShift, week (shift)  → modul Report & Shift (Rilis 3)
+ *  - pendingReports, nextShift, week (shift)  → ✅ data asli (Report & Shift)
  *  - pendingGrading, gradingQueue              → ✅ data asli (modul Grade)
  *  - week (sesi kelas)                         → ✅ data asli (modul Kelas & Jadwal)
- *  - alerts                                    → ✅ due-soon asli; lainnya Tukar Shift, Report, Generate
- *  - activities                                → Submission, Enrollment, Program
+ *  - alerts                                    → ✅ data asli
+ *  - activities                                → ✅ data asli (Submission, Enrollment)
  * Setelah semua bagian asli, hapus `isSample`.
  */
 class AsistenDashboardData
 {
-    /**
-     * Shift ngawas contoh per minggu (modul Shift belum ada).
-     * day: 1 = Senin … 7 = Minggu (ISO-8601).
-     *
-     * @var list<array{0: int, 1: string, 2: string, 3: 'class'|'shift', 4: string, 5: string, 6: string, 7: string}>
-     */
-    private const SAMPLE_WEEK = [
-        [3, '13:00', '16:00', 'shift', 'Ngawas Lab', 'Shift siang', 'Lab IR 1', 'teal'],
-        [6, '08:00', '12:00', 'shift', 'Ngawas Lab', 'Shift pagi', 'Lab IR 2', 'teal'],
-    ];
-
     /**
      * @return array<string, mixed>
      */
@@ -50,13 +42,15 @@ class AsistenDashboardData
         // Kartu Figma "Pre/Post-Test belum dinilai" hanya menghitung pre/post-test.
         $pendingGrading = GradingQueue::pendingTests($user);
 
-        $events = self::weekEvents($user, $weekStart, $now);
+        $events = AssistantWeek::events($user, $weekStart, $now);
 
         return [
             'isSample' => true,
-            'pendingReports' => 1,
+            'pendingReports' => Shift::where('user_id', $user->id)->whereDate('date', '<=', $now->toDateString())
+                ->whereDate('date', '>=', $now->subDays(7)->toDateString())->unreported()->get()
+                ->filter(fn (Shift $s) => $s->endsAt()->isPast())->count(),
             'pendingGrading' => $pendingGrading,
-            'nextShift' => self::nextShift($weekStart, $now),
+            'nextShift' => AssistantWeek::nextShift($user, $now),
             'alerts' => self::alerts($user),
             'week' => [
                 'start' => $weekStart->toDateString(),
@@ -64,85 +58,39 @@ class AsistenDashboardData
                 'events' => $events,
             ],
             'gradingQueue' => $gradingQueue,
-            'activities' => [
-                ['id' => 'ac-1', 'type' => 'submission', 'message' => 'Rina Praktikan mengumpulkan Post-Test Modul 04 (Machine Learning · Kelas A)', 'at' => $now->subMinutes(12)->toIso8601String()],
-                ['id' => 'ac-2', 'type' => 'enrollment', 'message' => '3 praktikan bergabung ke Deep Learning · Kelas B', 'at' => $now->subHours(2)->toIso8601String()],
-                ['id' => 'ac-3', 'type' => 'program', 'message' => 'Pendaftar baru Workshop "Intro to RAG": 5 orang', 'at' => $now->subHours(5)->toIso8601String()],
-                ['id' => 'ac-4', 'type' => 'submission', 'message' => 'Bagas Pratama mengumpulkan Laporan Modul 02 (Mobile Programming · Kelas C) — terlambat 2 jam', 'at' => $now->subDay()->toIso8601String()],
-            ],
+            'activities' => self::activities($user),
         ];
     }
 
     /**
-     * Sesi kelas yang diampu (asli) + shift ngawas (contoh) minggu ini.
+     * Aktivitas terbaru di kelas yang diampu: submission & praktikan bergabung.
      *
-     * @return list<array<string, mixed>>
+     * @return list<array{id: string, type: string, message: string, at: string}>
      */
-    private static function weekEvents(User $user, CarbonImmutable $weekStart, CarbonImmutable $now): array
+    private static function activities(User $user): array
     {
-        $semester = Semester::current();
+        $classIds = LabClass::taughtBy($user)->whereHas('semester', fn ($q) => $q->where('status', 'active'))->select('id');
 
-        $classes = $semester
-            ? LabClass::forSemester($semester)
-                ->where('approval_status', ApprovalStatus::Approved)
-                ->whereHas('assistants', fn ($query) => $query->whereKey($user->id))
-                ->with(['course', 'room'])
-                ->get()
-                ->map(fn (LabClass $class) => [
-                    'id' => "class-{$class->id}",
-                    'type' => 'class',
-                    'title' => $class->course->name,
-                    'subtitle' => $class->name,
-                    'room' => $class->room->name,
-                    'day' => $class->day_of_week,
-                    'start' => $class->startClock(),
-                    'end' => $class->endClock(),
-                    'color' => CourseColor::for($class->course_id),
-                ])
-            : collect();
+        $submissions = Submission::where('is_current', true)
+            ->whereHas('target', fn ($q) => $q->whereIn('class_id', $classIds))
+            ->with(['user:id,name', 'target.task:id,title', 'target.labClass.course'])
+            ->latest('submitted_at')->limit(6)->get()
+            ->map(fn (Submission $s) => [
+                'id' => "sub-{$s->id}",
+                'type' => 'submission',
+                'message' => "{$s->user->name} mengumpulkan {$s->target->task->title} ({$s->target->labClass->course->name} · {$s->target->labClass->name})".($s->is_late ? ' — terlambat' : ''),
+                'at' => $s->submitted_at->toIso8601String(),
+            ]);
 
-        $shifts = collect(self::SAMPLE_WEEK)->map(fn (array $row, int $index) => [
-            'id' => "shift-{$index}",
-            'type' => 'shift',
-            'title' => $row[4],
-            'subtitle' => $row[5],
-            'room' => $row[6],
-            'day' => $row[0],
-            'start' => $row[1],
-            'end' => $row[2],
-            'color' => $row[7],
-        ]);
+        $enrollments = Enrollment::whereIn('class_id', $classIds)->with(['user:id,name', 'labClass.course'])->latest('joined_at')->limit(4)->get()
+            ->map(fn (Enrollment $e) => [
+                'id' => "enr-{$e->id}",
+                'type' => 'enrollment',
+                'message' => "{$e->user->name} bergabung ke {$e->labClass->course->name} · {$e->labClass->name}",
+                'at' => $e->joined_at->toIso8601String(),
+            ]);
 
-        return $classes->concat($shifts)->map(function (array $event) use ($weekStart, $now) {
-            [$startsAt, $endsAt] = self::bounds($weekStart, $event['day'], $event['start'], $event['end']);
-
-            return [...$event, 'running' => $now->betweenIncluded($startsAt, $endsAt)];
-        })->values()->all();
-    }
-
-    /**
-     * Shift ngawas berikutnya (minggu ini atau minggu depan).
-     *
-     * @return array{title: string, room: string, startsAt: string, endsAt: string}|null
-     */
-    private static function nextShift(CarbonImmutable $weekStart, CarbonImmutable $now): ?array
-    {
-        return collect([$weekStart, $weekStart->addWeek()])
-            ->flatMap(fn (CarbonImmutable $week) => collect(self::SAMPLE_WEEK)
-                ->where(3, 'shift')
-                ->map(function (array $row) use ($week) {
-                    [$startsAt, $endsAt] = self::bounds($week, $row[0], $row[1], $row[2]);
-
-                    return ['title' => "{$row[4]} · {$row[5]}", 'room' => $row[6], 'startsAt' => $startsAt, 'endsAt' => $endsAt];
-                }))
-            ->filter(fn (array $shift) => $shift['endsAt']->isAfter($now))
-            ->sortBy('startsAt')
-            ->map(fn (array $shift) => [
-                ...$shift,
-                'startsAt' => $shift['startsAt']->toIso8601String(),
-                'endsAt' => $shift['endsAt']->toIso8601String(),
-            ])
-            ->first();
+        return $submissions->concat($enrollments)->sortByDesc('at')->take(6)->values()->all();
     }
 
     /**
@@ -154,15 +102,15 @@ class AsistenDashboardData
     {
         $alerts = [
             ['key' => 'due-soon', 'label' => 'tugas mendekati tenggat', 'count' => self::dueSoon($user), 'href' => '/asisten/task', 'tone' => 'warning'],
-            ['key' => 'shift-swaps', 'label' => 'permintaan tukar shift', 'count' => 1, 'href' => '/asisten/schedule', 'tone' => 'info'],
+            ['key' => 'shift-swaps', 'label' => 'permintaan tukar shift', 'count' => ShiftSwap::where('to_user_id', $user->id)->where('status', 'pending')->count(), 'href' => '/asisten/schedule', 'tone' => 'info'],
         ];
 
-        if ($user->position === Position::Sekretaris) {
-            $alerts[] = ['key' => 'to-verify', 'label' => 'laporan ngawas menunggu verifikasi', 'count' => 4, 'href' => '/asisten/report', 'tone' => 'warning'];
+        if ($user->canVerifyReports()) {
+            $alerts[] = ['key' => 'to-verify', 'label' => 'laporan ngawas menunggu verifikasi', 'count' => SupervisionReport::where('status', 'submitted')->where('user_id', '!=', $user->id)->count(), 'href' => '/asisten/report?tab=verify', 'tone' => 'warning'];
         }
 
-        if ($user->position === Position::Bendahara) {
-            $alerts[] = ['key' => 'honor', 'label' => 'rekap honor menunggu persetujuan', 'count' => 1, 'href' => '/asisten/generate', 'tone' => 'warning'];
+        if ($user->canApproveHonor()) {
+            $alerts[] = ['key' => 'honor', 'label' => 'rekap honor menunggu persetujuan', 'count' => HonorRecap::where('status', 'draft')->distinct()->count('month'), 'href' => '/asisten/generate?scope=all', 'tone' => 'warning'];
         }
 
         return $alerts;

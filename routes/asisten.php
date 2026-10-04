@@ -5,10 +5,15 @@ use App\Http\Controllers\Asisten\ClassController;
 use App\Http\Controllers\Asisten\ClassDetailController;
 use App\Http\Controllers\Asisten\ClassProposalController;
 use App\Http\Controllers\Asisten\CourseProposalController;
+use App\Http\Controllers\Asisten\GenerateController;
 use App\Http\Controllers\Asisten\GradeController;
 use App\Http\Controllers\Asisten\MeetingController;
+use App\Http\Controllers\Asisten\ReportController;
+use App\Http\Controllers\Asisten\ScheduleController;
 use App\Http\Controllers\Asisten\SeatController;
 use App\Http\Controllers\Asisten\SessionController;
+use App\Http\Controllers\Asisten\ShiftController;
+use App\Http\Controllers\Asisten\ShiftSwapController;
 use App\Http\Controllers\Asisten\TaskController;
 use Illuminate\Support\Facades\Route;
 
@@ -65,3 +70,28 @@ Route::get('classes/{class}/grades/export', [GradeController::class, 'export'])-
 
 // Seat Mapping (read-only).
 Route::get('seats', [SeatController::class, 'index'])->name('seats.index');
+
+// FR-AS: Schedule, shift & tukar shift (US-A05).
+Route::get('schedule', [ScheduleController::class, 'index'])->name('schedule');
+Route::get('shifts/{shift}/swap-candidates', [ShiftSwapController::class, 'candidates'])->name('shifts.swap-candidates');
+Route::post('shift-swaps', [ShiftSwapController::class, 'store'])->name('shift-swaps.store');
+Route::post('shift-swaps/{shiftSwap}/respond', [ShiftSwapController::class, 'respond'])->name('shift-swaps.respond');
+Route::delete('shift-swaps/{shiftSwap}', [ShiftSwapController::class, 'destroy'])->name('shift-swaps.destroy');
+Route::post('shifts/generate', [ShiftController::class, 'generate'])->name('shifts.generate');
+Route::post('shifts', [ShiftController::class, 'store'])->name('shifts.store');
+Route::delete('shifts/{shift}', [ShiftController::class, 'destroy'])->name('shifts.destroy');
+
+// FR-AR: Laporan Ngawas (US-A03).
+Route::get('report', [ReportController::class, 'index'])->name('reports.index');
+Route::post('reports', [ReportController::class, 'store'])->name('reports.store');
+Route::post('reports/{report}', [ReportController::class, 'update'])->name('reports.update'); // multipart (foto)
+Route::delete('reports/{report}', [ReportController::class, 'destroy'])->name('reports.destroy');
+Route::post('reports/{report}/verify', [ReportController::class, 'verify'])->name('reports.verify');
+Route::post('reports/{report}/return', [ReportController::class, 'return'])->name('reports.return');
+Route::post('reports/{report}/unlock', [ReportController::class, 'unlock'])->name('reports.unlock');
+
+// FR-AGN: Generate rekap bulanan + honor (US-A04).
+Route::get('generate', [GenerateController::class, 'index'])->name('generate.index');
+Route::post('exports', [GenerateController::class, 'store'])->middleware('throttle:10,1')->name('exports.store');
+Route::get('exports/{export}', [GenerateController::class, 'show'])->name('exports.show');
+Route::post('honor-recaps/approve', [GenerateController::class, 'approveHonor'])->name('honor-recaps.approve');

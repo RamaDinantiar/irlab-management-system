@@ -64,15 +64,15 @@ class UserTest extends TestCase
     public function test_the_index_filters_and_paginates()
     {
         User::factory()->count(30)->create();
-        User::factory()->asisten()->create(['name' => 'Dimas Asisten']);
+        User::factory()->asisten()->create(['name' => 'Dimas Qwertyasisten']);
 
         $this->get(route('admin.users.index'))
             ->assertInertia(fn (Assert $page) => $page->has('users.data', 25)->where('users.total', 32));
 
         $this->get(route('admin.users.index', ['role' => 'asisten']))
-            ->assertInertia(fn (Assert $page) => $page->has('users.data', 1)->where('users.data.0.name', 'Dimas Asisten'));
+            ->assertInertia(fn (Assert $page) => $page->has('users.data', 1)->where('users.data.0.name', 'Dimas Qwertyasisten'));
 
-        $this->get(route('admin.users.index', ['search' => 'Dimas']))
+        $this->get(route('admin.users.index', ['search' => 'Qwerty']))
             ->assertInertia(fn (Assert $page) => $page->has('users.data', 1));
     }
 

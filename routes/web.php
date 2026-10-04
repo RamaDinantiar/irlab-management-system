@@ -62,9 +62,12 @@ if (app()->isLocal()) {
     // Katalog komponen UI untuk dicocokkan dengan Figma.
     Route::inertia('dev/komponen', 'dev/components')->name('dev.components');
 
-    // Masuk cepat sebagai akun demo seeder, mis. /dev/login-as/asisten?to=/asisten/grade.
+    // Masuk cepat sebagai akun demo seeder, mis. /dev/login-as/asisten?to=/asisten/grade
+    // (?as=yozika untuk akun demo tertentu, mis. Bendahara).
     Route::get('dev/login-as/{role}', function (Request $request, Role $role) {
-        $user = User::where('role', $role)->where('email', 'like', '%@irlab.test')->firstOrFail();
+        $user = User::where('role', $role)
+            ->where('email', 'like', ($request->filled('as') ? preg_replace('/[^a-z]/', '', (string) $request->query('as')) : '%').'@irlab.test')
+            ->firstOrFail();
         Auth::login($user);
         $request->session()->regenerate();
 

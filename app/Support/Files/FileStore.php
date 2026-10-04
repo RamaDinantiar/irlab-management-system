@@ -6,6 +6,7 @@ use App\Models\StoredFile;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use ZipArchive;
@@ -59,6 +60,29 @@ class FileStore
             'size' => $upload->getSize(),
             'sha256' => hash_file('sha256', $upload->getRealPath()),
             'uploaded_by' => $uploader?->id,
+        ]);
+    }
+
+    /**
+     * File buatan sistem (ekspor rekap) — tidak melalui validasi unggahan.
+     */
+    public function storeGenerated(string $localPath, string $name, string $mime, string $purpose, ?Model $owner): StoredFile
+    {
+        $disk = config('lab.files.disk');
+        $path = $purpose.'/'.now()->format('Y/m').'/'.Str::uuid().'.'.pathinfo($name, PATHINFO_EXTENSION);
+        Storage::disk($disk)->put($path, fopen($localPath, 'r'));
+
+        return StoredFile::create([
+            'owner_type' => $owner?->getMorphClass(),
+            'owner_id' => $owner?->getKey(),
+            'purpose' => $purpose,
+            'disk' => $disk,
+            'path' => $path,
+            'original_name' => $name,
+            'mime' => $mime,
+            'size' => filesize($localPath),
+            'sha256' => hash_file('sha256', $localPath),
+            'uploaded_by' => null,
         ]);
     }
 

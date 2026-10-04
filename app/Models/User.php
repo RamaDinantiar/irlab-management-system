@@ -87,6 +87,18 @@ class User extends Authenticatable implements MustVerifyEmail
         return $this->hasMany(Enrollment::class);
     }
 
+    /** FR-AR-05: Sekretaris memverifikasi laporan ngawas (Admin juga boleh). */
+    public function canVerifyReports(): bool
+    {
+        return $this->isAdmin() || $this->position === Position::Sekretaris;
+    }
+
+    /** FR-AGN-03: Bendahara menyetujui rekap honor (Admin juga boleh). */
+    public function canApproveHonor(): bool
+    {
+        return $this->isAdmin() || $this->position === Position::Bendahara;
+    }
+
     public function isAdmin(): bool
     {
         return $this->role === Role::Admin;

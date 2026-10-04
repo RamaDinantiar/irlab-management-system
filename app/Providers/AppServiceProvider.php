@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
+use Illuminate\Database\Query\Builder as QueryBuilder;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -26,6 +27,13 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        // Rentang tanggal inklusif yang aman untuk kolom `date` di MySQL maupun SQLite
+        // (SQLite menyimpan cast date sebagai "Y-m-d 00:00:00").
+        QueryBuilder::macro('whereDateBetween', function (string $column, array $range) {
+            /** @var QueryBuilder $this */
+            return $this->whereDate($column, '>=', $range[0])->whereDate($column, '<=', $range[1]);
+        });
 
         // Catat apakah sesi dibuat dengan Remember Me. Frontend memakainya untuk
         // tidak memaksa logout idle pada perangkat yang dipilih untuk diingat.

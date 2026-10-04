@@ -9,3 +9,4 @@ export type * from './user';
 export type * from './meeting';
 export type * from './task';
 export type * from './seat';
+export type * from './operations';

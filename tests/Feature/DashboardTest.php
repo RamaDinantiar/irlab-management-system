@@ -70,7 +70,7 @@ class DashboardTest extends TestCase
     {
         $this->actingAs(User::factory()->asisten()->create());
 
-        $this->get('/asisten/report')
+        $this->get('/asisten/program/workshop')
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('coming-soon'));
     }
