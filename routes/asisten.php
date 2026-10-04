@@ -3,11 +3,12 @@
 use App\Http\Controllers\Asisten\ClassAccessController;
 use App\Http\Controllers\Asisten\ClassController;
 use App\Http\Controllers\Asisten\ClassDetailController;
+use App\Http\Controllers\Asisten\ClassProposalController;
+use App\Http\Controllers\Asisten\CourseProposalController;
+use App\Http\Controllers\Asisten\GradeController;
 use App\Http\Controllers\Asisten\MeetingController;
 use App\Http\Controllers\Asisten\SessionController;
 use App\Http\Controllers\Asisten\TaskController;
-use App\Http\Controllers\Asisten\ClassProposalController;
-use App\Http\Controllers\Asisten\CourseProposalController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -52,3 +53,11 @@ Route::get('tasks/{task}/edit', [TaskController::class, 'edit'])->name('tasks.ed
 Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
 Route::post('tasks/{task}/duplicate', [TaskController::class, 'duplicate'])->name('tasks.duplicate');
 Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+
+// FR-AG: Grade (inline batch, publikasi, split-screen, ekspor).
+Route::get('grade/{type?}', [GradeController::class, 'index'])->where('type', 'laporan|post-test|pre-test')->name('grades.index');
+Route::patch('grades/batch', [GradeController::class, 'batch'])->name('grades.batch');
+Route::post('grading/{target}/publish', [GradeController::class, 'publish'])->name('grading.publish');
+Route::get('grading/{target}/review', [GradeController::class, 'review'])->name('grading.review');
+Route::get('submissions/{submission}/zip', [GradeController::class, 'zipFile'])->name('submissions.zip');
+Route::get('classes/{class}/grades/export', [GradeController::class, 'export'])->name('classes.grades.export');

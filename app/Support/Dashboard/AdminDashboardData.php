@@ -6,7 +6,9 @@ use App\Enums\ApprovalStatus;
 use App\Models\Course;
 use App\Models\LabClass;
 use App\Models\Semester;
+use App\Models\User;
 use App\Support\ClassDays;
+use App\Support\Grading\GradingQueue;
 use Carbon\CarbonImmutable;
 
 /**
@@ -21,7 +23,7 @@ use Carbon\CarbonImmutable;
  *  - counts (lainnya)                → Pengguna (Rilis 1)
  *  - approvals                       → ✅ data asli (Mata Kuliah & Kelas)
  *  - reportCompliance                → Report Ngawas (Rilis 3)
- *  - gradingQueue                    → Grade (Rilis 2)
+ *  - gradingQueue                    → ✅ data asli (modul Grade)
  *  - activePrograms                  → Program (Rilis 4)
  *  - auditLogs                       → Audit Log (Rilis 1)
  * Setelah semua bagian asli, hapus `isSample`.
@@ -55,7 +57,7 @@ class AdminDashboardData
     /**
      * @return array<string, mixed>
      */
-    public static function for(?CarbonImmutable $now = null): array
+    public static function for(?CarbonImmutable $now = null, ?User $admin = null): array
     {
         $now ??= CarbonImmutable::now();
 
@@ -79,12 +81,7 @@ class AdminDashboardData
                 'target' => 90,
             ],
             'approvals' => $active ? self::approvals($active) : [],
-            'gradingQueue' => [
-                ['id' => 'gq-1', 'course' => 'Machine Learning', 'className' => 'Kelas A', 'task' => 'Post-Test Modul 04', 'type' => 'posttest', 'graded' => 18, 'submitted' => 40, 'href' => '/admin/grade/post-test'],
-                ['id' => 'gq-2', 'course' => 'Mobile Programming', 'className' => 'Kelas C', 'task' => 'Laporan Modul 02', 'type' => 'report', 'graded' => 10, 'submitted' => 30, 'href' => '/admin/grade/laporan'],
-                ['id' => 'gq-3', 'course' => 'Information Retrieval', 'className' => 'Kelas B', 'task' => 'Pre-Test Modul 05', 'type' => 'pretest', 'graded' => 12, 'submitted' => 28, 'href' => '/admin/grade/pre-test'],
-                ['id' => 'gq-4', 'course' => 'Deep Learning', 'className' => 'Kelas A', 'task' => 'Pre-Test Modul 03', 'type' => 'pretest', 'graded' => 30, 'submitted' => 32, 'href' => '/admin/grade/pre-test'],
-            ],
+            'gradingQueue' => $admin ? GradingQueue::for($admin) : [],
             'activePrograms' => [
                 ['id' => 'pg-1', 'type' => 'Workshop', 'title' => 'Intro to Retrieval-Augmented Generation', 'status' => 'Pendaftaran dibuka', 'registered' => 27, 'quota' => 40, 'href' => '/admin/program/workshop'],
                 ['id' => 'pg-2', 'type' => 'Rekrutmen', 'title' => 'Rekrutmen Asisten 2026', 'status' => 'Tahap: Tes Coding', 'registered' => 58, 'quota' => null, 'href' => '/admin/program/recruitment'],

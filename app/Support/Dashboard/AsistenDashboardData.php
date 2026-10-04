@@ -9,6 +9,7 @@ use App\Models\Semester;
 use App\Models\TaskTarget;
 use App\Models\User;
 use App\Support\CourseColor;
+use App\Support\Grading\GradingQueue;
 use Carbon\CarbonImmutable;
 
 /**
@@ -18,7 +19,7 @@ use Carbon\CarbonImmutable;
  * SEMENTARA BERISI DATA CONTOH. Ganti tiap bagian dengan query asli begitu
  * modulnya dibangun, tanpa mengubah bentuk array yang dikembalikan:
  *  - pendingReports, nextShift, week (shift)  → modul Report & Shift (Rilis 3)
- *  - pendingGrading, gradingQueue              → modul Grade (Rilis 2)
+ *  - pendingGrading, gradingQueue              → ✅ data asli (modul Grade)
  *  - week (sesi kelas)                         → ✅ data asli (modul Kelas & Jadwal)
  *  - alerts                                    → ✅ due-soon asli; lainnya Tukar Shift, Report, Generate
  *  - activities                                → Submission, Enrollment, Program
@@ -45,17 +46,9 @@ class AsistenDashboardData
         $now ??= CarbonImmutable::now();
         $weekStart = $now->startOfWeek(CarbonImmutable::MONDAY);
 
-        $gradingQueue = [
-            ['id' => 'gq-1', 'course' => 'Machine Learning', 'className' => 'Kelas A', 'task' => 'Post-Test Modul 04', 'type' => 'posttest', 'graded' => 18, 'submitted' => 40, 'href' => '/asisten/grade/post-test'],
-            ['id' => 'gq-2', 'course' => 'Deep Learning', 'className' => 'Kelas A', 'task' => 'Pre-Test Modul 03', 'type' => 'pretest', 'graded' => 30, 'submitted' => 32, 'href' => '/asisten/grade/pre-test'],
-            ['id' => 'gq-3', 'course' => 'Mobile Programming', 'className' => 'Kelas C', 'task' => 'Laporan Modul 02', 'type' => 'report', 'graded' => 10, 'submitted' => 30, 'href' => '/asisten/grade/laporan'],
-            ['id' => 'gq-4', 'course' => 'Database System', 'className' => 'Kelas A', 'task' => 'Post-Test Modul 05', 'type' => 'posttest', 'graded' => 28, 'submitted' => 28, 'href' => '/asisten/grade/post-test'],
-        ];
-
+        $gradingQueue = GradingQueue::for($user);
         // Kartu Figma "Pre/Post-Test belum dinilai" hanya menghitung pre/post-test.
-        $pendingGrading = collect($gradingQueue)
-            ->whereIn('type', ['pretest', 'posttest'])
-            ->sum(fn (array $item) => $item['submitted'] - $item['graded']);
+        $pendingGrading = GradingQueue::pendingTests($user);
 
         $events = self::weekEvents($user, $weekStart, $now);
 

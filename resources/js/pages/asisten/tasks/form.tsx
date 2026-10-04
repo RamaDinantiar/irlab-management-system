@@ -875,22 +875,25 @@ export default function TaskForm({
 
                                 {!readOnly && (
                                     <div className="sticky bottom-0 z-10 -mx-4 flex flex-wrap justify-end gap-2 border-t bg-background/95 px-4 py-3 backdrop-blur md:-mx-6 md:px-6 lg:-mx-8 lg:px-8">
-                                        <Button
-                                            type="submit"
-                                            variant="outline"
-                                            disabled={processing}
-                                            onClick={() =>
-                                                intent.current &&
-                                                (intent.current.value = 'draft')
-                                            }
-                                        >
-                                            {processing ? (
-                                                <Spinner />
-                                            ) : (
-                                                <Save />
-                                            )}{' '}
-                                            Simpan Draft
-                                        </Button>
+                                        {task?.status !== 'published' && (
+                                            <Button
+                                                type="submit"
+                                                variant="outline"
+                                                disabled={processing}
+                                                onClick={() =>
+                                                    intent.current &&
+                                                    (intent.current.value =
+                                                        'draft')
+                                                }
+                                            >
+                                                {processing ? (
+                                                    <Spinner />
+                                                ) : (
+                                                    <Save />
+                                                )}{' '}
+                                                Simpan Draft
+                                            </Button>
+                                        )}
                                         <Button
                                             type="submit"
                                             disabled={processing}
@@ -906,7 +909,7 @@ export default function TaskForm({
                                                 <Send />
                                             )}{' '}
                                             {task?.status === 'published'
-                                                ? 'Simpan & Tetap Terbit'
+                                                ? 'Simpan Perubahan'
                                                 : 'Terbitkan'}
                                         </Button>
                                     </div>

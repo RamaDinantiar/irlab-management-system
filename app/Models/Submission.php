@@ -8,6 +8,7 @@ use Database\Factories\SubmissionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
@@ -71,6 +72,14 @@ class Submission extends Model implements HasFiles
     }
 
     /**
+     * @return HasOne<Grade, $this>
+     */
+    public function grade(): HasOne
+    {
+        return $this->hasOne(Grade::class);
+    }
+
+    /**
      * Pemilik submission + asisten pengampu kelasnya.
      */
     public function fileVisibleTo(User $user): bool
@@ -79,7 +88,7 @@ class Submission extends Model implements HasFiles
             return true;
         }
 
-        return $user->role === Role::Asisten && $this->target->labClass->isTaughtBy($user);
+        return in_array($user->role, [Role::Asisten, Role::Admin], true) && $this->target->labClass->isTaughtBy($user);
     }
 
     /** "Terlambat 2 jam 15 menit". */

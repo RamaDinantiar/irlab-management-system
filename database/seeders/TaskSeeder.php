@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Enums\TaskType;
 use App\Models\Course;
+use App\Models\Grade;
 use App\Models\LabClass;
 use App\Models\Meeting;
 use App\Models\Semester;
@@ -96,9 +97,43 @@ class TaskSeeder extends Seeder
                             $path = tempnam(sys_get_temp_dir(), 'sub');
                             file_put_contents($path, self::PDF);
                             $files->store(new UploadedFile($path, "Jawaban-{$enrollment->user_id}.pdf", null, null, true), ['pdf'], 'submission', $submission, $enrollment->user);
+
+                            $this->grade($submission, $task, $class, $i);
                         }
                     });
                 }
             });
+    }
+
+    /**
+     * Tugas lama sudah dinilai & dipublikasikan; laporan terbaru sebagian
+     * masih Draft/belum dinilai agar antrean penilaian terisi.
+     */
+    private function grade(Submission $submission, Task $task, LabClass $class, int $i): void
+    {
+        $published = str_starts_with($task->title, 'Post-Test Modul 05');
+        $draft = str_starts_with($task->title, 'Laporan Modul 05') && $i % 3 === 0;
+
+        if (! $published && ! $draft) {
+            return;
+        }
+
+        $feedback = [
+            "Analisis sudah tepat. Perhatikan penamaan variabel:\n\n```python\nlearning_rate = 0.01\n```",
+            'Penjelasan konsep baik, namun kesimpulan kurang didukung data hasil percobaan.',
+            null,
+            'Kode berjalan, tetapi belum menangani kasus data kosong.',
+        ][$i % 4];
+
+        Grade::create([
+            'submission_id' => $submission->id,
+            'score' => 62 + (($i * 13 + 11) % 37),
+            'feedback' => $feedback,
+            'graded_by' => $class->assistants()->value('users.id'),
+            'graded_at' => now()->subDays($published ? 4 : 1),
+            'status' => $published ? 'published' : 'draft',
+            'published_at' => $published ? now()->subDays(3) : null,
+            'version' => 1,
+        ]);
     }
 }

@@ -3,11 +3,13 @@
 namespace App\Support\Dashboard;
 
 use App\Enums\ApprovalStatus;
+use App\Models\Grade;
 use App\Models\LabClass;
 use App\Models\Semester;
 use App\Models\TaskTarget;
 use App\Models\User;
 use App\Support\CourseColor;
+use App\Support\Grading\FinalScore;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Collection;
 
@@ -21,7 +23,7 @@ use Illuminate\Database\Eloquent\Collection;
  *  - nextClass.module                   → Pertemuan & Modul (Rilis 2)
  *  - nextClass.seat                     → Seats (Rilis 3)
  *  - pendingTasks, upcomingTasks        → ✅ data asli (Task & Submission)
- *  - courseProgress, recentFeedback     → Grade (Rilis 2)
+ *  - courseProgress, recentFeedback     → ✅ data asli (Grade)
  *  - announcements                      → Pengumuman (Rilis 3)
  *  - openProgram                        → Program (Rilis 4)
  * Setelah semua bagian asli, hapus `isSample`.
@@ -64,18 +66,9 @@ class PraktikanDashboardData
             ],
             // FR-PD-3: maksimal 5 tugas dengan tenggat terdekat.
             'upcomingTasks' => $upcomingTasks,
-            'courseProgress' => [
-                ['id' => 'cp-1', 'course' => 'Machine Learning', 'className' => 'Kelas A', 'submitted' => 7, 'total' => 9, 'score' => 84.5, 'href' => '/praktikan/grade'],
-                ['id' => 'cp-2', 'course' => 'Deep Learning', 'className' => 'Kelas A', 'submitted' => 5, 'total' => 8, 'score' => 78.0, 'href' => '/praktikan/grade'],
-                ['id' => 'cp-3', 'course' => 'Information Retrieval', 'className' => 'Kelas A', 'submitted' => 6, 'total' => 6, 'score' => 91.2, 'href' => '/praktikan/grade'],
-                ['id' => 'cp-4', 'course' => 'Mobile Programming', 'className' => 'Kelas A', 'submitted' => 2, 'total' => 6, 'score' => null, 'href' => '/praktikan/grade'],
-            ],
+            'courseProgress' => self::courseProgress($user, $classes, $now),
             // FR-PD-5: 3 nilai terakhir yang dipublikasikan.
-            'recentFeedback' => [
-                ['id' => 'fb-1', 'task' => 'Post-Test Modul 03', 'course' => 'Machine Learning', 'score' => 90, 'maxScore' => 100, 'excerpt' => 'Struktur kode rapi. Perhatikan normalisasi fitur sebelum training.', 'grader' => 'Dimas Asisten', 'gradedAt' => $now->subHours(3)->toIso8601String(), 'href' => '/praktikan/grade'],
-                ['id' => 'fb-2', 'task' => 'Laporan Modul 02', 'course' => 'Deep Learning', 'score' => 78, 'maxScore' => 100, 'excerpt' => 'Analisis loss curve kurang mendalam; tambahkan perbandingan learning rate.', 'grader' => 'Yozika Arvio', 'gradedAt' => $now->subDays(2)->toIso8601String(), 'href' => '/praktikan/grade'],
-                ['id' => 'fb-3', 'task' => 'Pre-Test Modul 04', 'course' => 'Information Retrieval', 'score' => 95, 'maxScore' => 100, 'excerpt' => 'Implementasi TF-IDF tepat dan efisien.', 'grader' => 'Daniswara A.', 'gradedAt' => $now->subDays(4)->toIso8601String(), 'href' => '/praktikan/grade'],
-            ],
+            'recentFeedback' => self::recentFeedback($user),
             // FR-PD-6: global & per kelas, yang di-pin di atas.
             'announcements' => [
                 ['id' => 'an-1', 'title' => 'Lab tutup Jumat, 9 Okt (maintenance jaringan)', 'body' => 'Praktikum hari Jumat dipindah ke Sabtu pagi. Cek jadwal terbaru di menu Schedule.', 'scope' => 'global', 'className' => null, 'pinned' => true, 'publishedAt' => $now->subDay()->toIso8601String()],
@@ -144,6 +137,68 @@ class PraktikanDashboardData
             ->all();
 
         return [$upcoming, $pending];
+    }
+
+    /**
+     * FR-PD-4: progres per mata kuliah — tugas terkumpul / tugas yang sudah
+     * dibuka + nilai akhir sementara dari nilai terpublikasi (A6).
+     *
+     * @param  Collection<int, LabClass>  $classes
+     * @return list<array<string, mixed>>
+     */
+    private static function courseProgress(User $user, Collection $classes, CarbonImmutable $now): array
+    {
+        $targets = TaskTarget::whereIn('class_id', $classes->pluck('id'))
+            ->whereNotNull('open_at')->where('open_at', '<=', $now)
+            ->whereHas('task', fn ($q) => $q->where('status', 'published'))
+            ->withExists(['submissions as submitted' => fn ($q) => $q->where('user_id', $user->id)->where('is_current', true)])
+            ->get()
+            ->groupBy('class_id');
+
+        $grades = Grade::where('status', 'published')
+            ->whereHas('submission', fn ($q) => $q->where('user_id', $user->id)->where('is_current', true))
+            ->with('submission.target.task')
+            ->get()
+            ->groupBy('submission.target.class_id');
+
+        return $classes->map(function (LabClass $class) use ($targets, $grades) {
+            $mine = $targets->get($class->id, collect());
+
+            return [
+                'id' => "cp-{$class->id}",
+                'course' => $class->course->name,
+                'className' => $class->name,
+                'submitted' => $mine->where('submitted', true)->count(),
+                'total' => $mine->count(),
+                'score' => FinalScore::compute($class->course, $grades->get($class->id, []))['final'],
+                'href' => '/praktikan/grade?class='.$class->id,
+            ];
+        })->values()->all();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private static function recentFeedback(User $user): array
+    {
+        return Grade::where('status', 'published')
+            ->whereHas('submission', fn ($q) => $q->where('user_id', $user->id)->where('is_current', true))
+            ->with(['submission.target.task.course', 'grader'])
+            ->latest('published_at')
+            ->take(3)
+            ->get()
+            ->map(fn (Grade $grade) => [
+                'id' => "fb-{$grade->id}",
+                'task' => $grade->submission->target->task->title,
+                'course' => $grade->submission->target->task->course->name,
+                'score' => (float) $grade->score,
+                'maxScore' => $grade->submission->target->task->max_score,
+                'excerpt' => str($grade->feedback ?? 'Tidak ada catatan.')->replaceMatches('/```[\s\S]*?```/', '[kode]')->squish()->limit(120)->toString(),
+                'grader' => $grade->grader?->name ?? 'Asisten',
+                'gradedAt' => $grade->published_at->toIso8601String(),
+                'href' => '/praktikan/grade?class='.$grade->submission->target->class_id,
+            ])
+            ->all();
     }
 
     /**

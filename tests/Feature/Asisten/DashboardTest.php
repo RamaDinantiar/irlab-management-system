@@ -3,9 +3,14 @@
 namespace Tests\Feature\Asisten;
 
 use App\Enums\Position;
+use App\Enums\TaskType;
 use App\Models\Course;
+use App\Models\Grade;
 use App\Models\LabClass;
 use App\Models\Semester;
+use App\Models\Submission;
+use App\Models\Task;
+use App\Models\TaskTarget;
 use App\Models\User;
 use App\Support\Dashboard\AsistenDashboardData;
 use Carbon\CarbonImmutable;
@@ -33,12 +38,30 @@ class DashboardTest extends TestCase
             );
     }
 
-    public function test_pending_grading_counts_only_pre_and_post_tests()
+    public function test_pending_grading_counts_only_ungraded_pre_and_post_tests()
     {
-        $data = AsistenDashboardData::for(User::factory()->asisten()->make());
+        $asisten = User::factory()->asisten()->create();
+        $course = Course::factory()->for(Semester::factory()->active())->create();
+        $class = LabClass::factory()->for($course)->create(['semester_id' => $course->semester_id]);
+        $class->assistants()->attach($asisten);
 
-        // Figma: "24 Pre/Post-Test belum dinilai" — laporan praktikum tidak dihitung.
-        $this->assertSame(24, $data['pendingGrading']);
+        $submit = function (TaskType $type, int $count) use ($course, $class) {
+            $target = TaskTarget::factory()->for(Task::factory()->create(['course_id' => $course->id, 'type' => $type]))
+                ->create(['class_id' => $class->id, 'open_at' => now()->subDay()]);
+
+            return Submission::factory()->count($count)->for($target, 'target')->create();
+        };
+
+        $posttests = $submit(TaskType::Posttest, 3);
+        $submit(TaskType::Pretest, 2);
+        $submit(TaskType::Report, 4); // laporan tidak dihitung (Figma)
+        Grade::factory()->for($posttests->first())->create();
+
+        $data = AsistenDashboardData::for($asisten);
+
+        $this->assertSame(4, $data['pendingGrading']);
+        $this->assertSame(4, $data['gradingQueue'][0]['submitted'] - $data['gradingQueue'][0]['graded']);
+        $this->assertCount(3, $data['gradingQueue']);
     }
 
     public function test_position_specific_alerts()

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Praktikan\ClassController;
 use App\Http\Controllers\Praktikan\EnrollmentController;
+use App\Http\Controllers\Praktikan\GradeController;
 use App\Http\Controllers\Praktikan\ScheduleController;
 use App\Http\Controllers\Praktikan\TaskController;
 use Illuminate\Support\Facades\Route;
@@ -21,3 +22,6 @@ Route::post('enrollments', [EnrollmentController::class, 'store'])->name('enroll
 Route::get('task/{type?}', [TaskController::class, 'index'])->where('type', 'laporan|post-test|pre-test')->name('tasks.index');
 Route::get('tasks/{target}', [TaskController::class, 'show'])->name('tasks.show');
 Route::post('tasks/{target}/submissions', [TaskController::class, 'submit'])->middleware('throttle:20,1')->name('tasks.submit');
+
+// FR-PG: nilai & feedback (read-only).
+Route::get('grade', [GradeController::class, 'index'])->name('grades.index');
