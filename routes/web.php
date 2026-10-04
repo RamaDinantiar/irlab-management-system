@@ -4,6 +4,7 @@ use App\Enums\Role;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Asisten\DashboardController as AsistenDashboardController;
 use App\Http\Controllers\Auth\ChangePasswordController;
+use App\Http\Controllers\FileController;
 use App\Http\Controllers\Praktikan\DashboardController as PraktikanDashboardController;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -17,6 +18,9 @@ Route::middleware('auth')->group(function () {
     // FR-AUTH-05: ganti password sementara pada login pertama.
     Route::get('password/change', [ChangePasswordController::class, 'edit'])->name('password.change');
     Route::put('password/change', [ChangePasswordController::class, 'update'])->name('password.change.update');
+
+    // NFR-F04: unduhan file lewat signed URL (15 menit) + cek hak akses.
+    Route::get('files/{file}', [FileController::class, 'show'])->middleware('signed')->name('files.show');
 
     // FR-AUTH-06: dipanggil frontend selama pengguna aktif agar sesi 30 menit tidak habis.
     Route::post('session/keep-alive', fn () => response()->noContent())->name('session.keep-alive');

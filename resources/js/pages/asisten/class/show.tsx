@@ -1,13 +1,10 @@
-import { Form, Head, Link } from '@inertiajs/react';
-import { ArrowLeft, UserMinus, Users } from 'lucide-react';
+import { Form } from '@inertiajs/react';
+import { UserMinus, Users } from 'lucide-react';
 import { useState } from 'react';
-import ClassAccessController from '@/actions/App/Http/Controllers/Asisten/ClassAccessController';
-import MemberController from '@/actions/App/Http/Controllers/Asisten/MemberController';
-import { ClassAccess } from '@/components/classes/class-access';
+import ClassDetailController from '@/actions/App/Http/Controllers/Asisten/ClassDetailController';
+import { ClassDetailLayout } from '@/components/classes/class-detail-layout';
 import { EmptyState } from '@/components/empty-state';
 import InputError from '@/components/input-error';
-import { PageHeader } from '@/components/page-header';
-import { StatusBadge } from '@/components/status-badge';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -31,7 +28,6 @@ import {
 } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import { formatDate } from '@/lib/datetime';
-import { formatSchedule } from '@/lib/days';
 import type { ClassRow } from '@/types';
 
 type Member = {
@@ -75,7 +71,7 @@ function RemoveMemberDialog({
                     </DialogDescription>
                 </DialogHeader>
                 <Form
-                    {...MemberController.destroy.form({
+                    {...ClassDetailController.removeMember.form({
                         class: klass.id,
                         enrollment: member.id,
                     })}
@@ -135,158 +131,95 @@ export default function AsistenClassShow({
     members: Member[];
 }) {
     return (
-        <>
-            <Head title={`${klass.course?.name} · ${klass.name}`} />
-            <div className="flex flex-col gap-6 p-4 md:p-6 lg:p-8">
-                <Link
-                    href="/asisten/class"
-                    className="inline-flex w-fit items-center gap-1.5 text-sm font-medium text-primary-700 hover:underline"
-                >
-                    <ArrowLeft className="size-4" aria-hidden /> Semua kelas
-                </Link>
-                <PageHeader
-                    title={`${klass.course?.name} · ${klass.name}`}
-                    description={`${formatSchedule(klass.dayOfWeek, klass.startTime, klass.endTime)} · ${klass.room?.name} · ${klass.membersCount}/${klass.quota} praktikan`}
-                    actions={
-                        <ClassAccess
-                            klass={klass}
-                            tokenAction={ClassAccessController.regenerateToken.form(
-                                klass.id,
-                            )}
-                            lockAction={ClassAccessController.lock.form(
-                                klass.id,
-                            )}
-                        />
+        <ClassDetailLayout klass={klass} title="Anggota">
+            {members.length === 0 ? (
+                <EmptyState
+                    icon={Users}
+                    title="Belum ada anggota"
+                    description={
+                        klass.joinToken
+                            ? `Bagikan kode ${klass.joinToken} ke praktikan agar mereka dapat bergabung.`
+                            : 'Token dibuat setelah kelas disetujui Admin.'
                     }
                 />
-
-                <nav
-                    aria-label="Bagian kelas"
-                    className="flex flex-wrap gap-1 border-b border-primary-200"
-                >
-                    <span
-                        aria-current="page"
-                        className="border-b-2 border-primary-700 px-4 py-2 text-sm font-bold text-primary-700"
-                    >
-                        Anggota ({members.length})
-                    </span>
-                    {[
-                        'Pertemuan & Modul',
-                        'Presensi',
-                        'Kursi',
-                        'Pengaturan',
-                    ].map((tab) => (
-                        <span
-                            key={tab}
-                            className="px-4 py-2 text-sm text-muted-foreground"
-                            title="Segera hadir bersama modulnya"
-                        >
-                            {tab}
-                        </span>
-                    ))}
-                </nav>
-
-                {klass.isLocked && (
-                    <p className="flex items-center gap-2 text-sm">
-                        <StatusBadge status="locked" /> Praktikan baru tidak
-                        dapat bergabung; anggota lama tidak terpengaruh.
-                    </p>
-                )}
-
-                {members.length === 0 ? (
-                    <EmptyState
-                        icon={Users}
-                        title="Belum ada anggota"
-                        description={
-                            klass.joinToken
-                                ? `Bagikan kode ${klass.joinToken} ke praktikan agar mereka dapat bergabung.`
-                                : 'Token dibuat setelah kelas disetujui Admin.'
-                        }
-                    />
-                ) : (
-                    <>
-                        <div className="hidden border md:block">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead>NIM</TableHead>
-                                        <TableHead>Nama</TableHead>
-                                        <TableHead>Jurusan</TableHead>
-                                        <TableHead>Bergabung</TableHead>
-                                        <TableHead className="text-right">
-                                            Aksi
-                                        </TableHead>
+            ) : (
+                <>
+                    <div className="hidden border md:block">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>NIM</TableHead>
+                                    <TableHead>Nama</TableHead>
+                                    <TableHead>Jurusan</TableHead>
+                                    <TableHead>Bergabung</TableHead>
+                                    <TableHead className="text-right">
+                                        Aksi
+                                    </TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {members.map((member) => (
+                                    <TableRow key={member.id}>
+                                        <TableCell className="font-mono font-bold text-primary-700">
+                                            {member.nim ?? '—'}
+                                        </TableCell>
+                                        <TableCell>
+                                            <span className="block font-bold">
+                                                {member.name}
+                                            </span>
+                                            <span className="text-xs text-muted-foreground">
+                                                {member.email}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell className="text-sm">
+                                            {member.major ?? '—'}
+                                            {member.cohortYear &&
+                                                ` · ${member.cohortYear}`}
+                                        </TableCell>
+                                        <TableCell className="font-mono text-sm">
+                                            {formatDate(
+                                                member.joinedAt.slice(0, 10),
+                                            )}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            {klass.canEdit && (
+                                                <RemoveMemberDialog
+                                                    klass={klass}
+                                                    member={member}
+                                                />
+                                            )}
+                                        </TableCell>
                                     </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {members.map((member) => (
-                                        <TableRow key={member.id}>
-                                            <TableCell className="font-mono font-bold text-primary-700">
-                                                {member.nim ?? '—'}
-                                            </TableCell>
-                                            <TableCell>
-                                                <span className="block font-bold">
-                                                    {member.name}
-                                                </span>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {member.email}
-                                                </span>
-                                            </TableCell>
-                                            <TableCell className="text-sm">
-                                                {member.major ?? '—'}
-                                                {member.cohortYear &&
-                                                    ` · ${member.cohortYear}`}
-                                            </TableCell>
-                                            <TableCell className="font-mono text-sm">
-                                                {formatDate(
-                                                    member.joinedAt.slice(
-                                                        0,
-                                                        10,
-                                                    ),
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                {klass.canEdit && (
-                                                    <RemoveMemberDialog
-                                                        klass={klass}
-                                                        member={member}
-                                                    />
-                                                )}
-                                            </TableCell>
-                                        </TableRow>
-                                    ))}
-                                </TableBody>
-                            </Table>
-                        </div>
-                        <ul className="grid gap-3 md:hidden">
-                            {members.map((member) => (
-                                <li
-                                    key={member.id}
-                                    className="flex items-start justify-between gap-3 border bg-card p-4"
-                                >
-                                    <div>
-                                        <p className="font-mono text-sm font-bold text-primary-700">
-                                            {member.nim}
-                                        </p>
-                                        <p className="font-bold">
-                                            {member.name}
-                                        </p>
-                                        <p className="text-xs text-muted-foreground">
-                                            {member.major}
-                                        </p>
-                                    </div>
-                                    {klass.canEdit && (
-                                        <RemoveMemberDialog
-                                            klass={klass}
-                                            member={member}
-                                        />
-                                    )}
-                                </li>
-                            ))}
-                        </ul>
-                    </>
-                )}
-            </div>
-        </>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </div>
+                    <ul className="grid gap-3 md:hidden">
+                        {members.map((member) => (
+                            <li
+                                key={member.id}
+                                className="flex items-start justify-between gap-3 border bg-card p-4"
+                            >
+                                <div>
+                                    <p className="font-mono text-sm font-bold text-primary-700">
+                                        {member.nim}
+                                    </p>
+                                    <p className="font-bold">{member.name}</p>
+                                    <p className="text-xs text-muted-foreground">
+                                        {member.major}
+                                    </p>
+                                </div>
+                                {klass.canEdit && (
+                                    <RemoveMemberDialog
+                                        klass={klass}
+                                        member={member}
+                                    />
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                </>
+            )}
+        </ClassDetailLayout>
     );
 }

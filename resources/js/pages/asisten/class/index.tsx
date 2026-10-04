@@ -11,7 +11,7 @@ import {
 import ClassAccessController from '@/actions/App/Http/Controllers/Asisten/ClassAccessController';
 import ClassProposalController from '@/actions/App/Http/Controllers/Asisten/ClassProposalController';
 import CourseProposalController from '@/actions/App/Http/Controllers/Asisten/CourseProposalController';
-import MemberController from '@/actions/App/Http/Controllers/Asisten/MemberController';
+import ClassDetailController from '@/actions/App/Http/Controllers/Asisten/ClassDetailController';
 import { ClassAccess } from '@/components/classes/class-access';
 import { ClassFormDialog } from '@/components/classes/class-form-dialog';
 import { CourseFormDialog } from '@/components/courses/course-form-dialog';
@@ -171,7 +171,7 @@ export default function AsistenClassIndex({
                                         {klass.approvalStatus ===
                                             'approved' && (
                                             <Link
-                                                href={MemberController.index.url(
+                                                href={ClassDetailController.members.url(
                                                     klass.id,
                                                 )}
                                                 prefetch

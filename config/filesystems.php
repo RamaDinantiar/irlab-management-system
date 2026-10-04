@@ -30,6 +30,16 @@ return [
 
     'disks' => [
 
+        // PRD 8.1 NFR-F03: file lab (modul, lampiran, submission) di luar web
+        // root, tidak pernah disajikan langsung — hanya lewat FileController.
+        'lab' => [
+            'driver' => 'local',
+            'root' => storage_path('app/private/lab'),
+            'serve' => false,
+            'throw' => true,
+            'visibility' => 'private',
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

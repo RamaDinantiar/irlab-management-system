@@ -98,6 +98,22 @@ class LabClass extends Model
     }
 
     /**
+     * Pertemuan 1–n (FR-AC-04).
+     *
+     * @return HasMany<Meeting, $this>
+     */
+    public function meetings(): HasMany
+    {
+        return $this->hasMany(Meeting::class, 'class_id')->orderBy('number');
+    }
+
+    /** Asisten pengampu kelas ini? */
+    public function isTaughtBy(User $user): bool
+    {
+        return $this->assistants()->whereKey($user->id)->exists();
+    }
+
+    /**
      * Keanggotaan aktif (yang dikeluarkan ter-soft-delete).
      *
      * @return HasMany<Enrollment, $this>

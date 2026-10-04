@@ -45,7 +45,7 @@ export default function AsistenDashboard({
                         className="flex flex-wrap gap-2"
                     >
                         <Button asChild>
-                            <Link href="/asisten/class" prefetch>
+                            <Link href="/asisten/sessions" prefetch>
                                 <Play /> Mulai Sesi Kelas
                             </Link>
                         </Button>

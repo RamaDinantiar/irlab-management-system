@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Asisten;
 
 use App\Actions\LabClass\ManageClassAccess;
+use App\Http\Controllers\Asisten\Concerns\AuthorizesClassAssistant;
 use App\Http\Controllers\Controller;
 use App\Models\LabClass;
 use Illuminate\Http\RedirectResponse;
@@ -14,9 +15,11 @@ use Inertia\Inertia;
  */
 class ClassAccessController extends Controller
 {
+    use AuthorizesClassAssistant;
+
     public function regenerateToken(Request $request, LabClass $class, ManageClassAccess $access): RedirectResponse
     {
-        $this->authorizeAssistant($request, $class);
+        $this->authorizeAssistant($request, $class, write: true);
         $token = $access->regenerateToken($class);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => "Token baru {$class->name}: {$token}. Token lama tidak berlaku."]);
@@ -26,17 +29,10 @@ class ClassAccessController extends Controller
 
     public function lock(Request $request, LabClass $class, ManageClassAccess $access): RedirectResponse
     {
-        $this->authorizeAssistant($request, $class);
+        $this->authorizeAssistant($request, $class, write: true);
         $access->setLocked($class, $request->boolean('locked'));
 
         return back();
     }
 
-    private function authorizeAssistant(Request $request, LabClass $class): void
-    {
-        abort_unless(
-            $class->isEditable() && $class->assistants()->whereKey($request->user()->id)->exists(),
-            403,
-        );
-    }
 }

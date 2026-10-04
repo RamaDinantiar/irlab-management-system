@@ -140,5 +140,7 @@ class DatabaseSeeder extends Seeder
             'code' => 'IF-3104', 'name' => 'Natural Language Processing', 'credits' => 3,
             'weight_pretest' => 20, 'weight_posttest' => 30, 'weight_report' => 50,
         ])->assistants()->attach($michael);
+
+        $this->call(MeetingSeeder::class);
     }
 }
