@@ -7,6 +7,7 @@ use App\Models\Announcement;
 use App\Models\Grade;
 use App\Models\LabClass;
 use App\Models\Meeting;
+use App\Models\Program;
 use App\Models\Semester;
 use App\Models\TaskTarget;
 use App\Models\User;
@@ -19,15 +20,14 @@ use Illuminate\Database\Eloquent\Collection;
  * Data Dashboard Praktikan (PRD FR-PD). Kontrak bentuk data ini dipakai halaman
  * React `praktikan/dashboard` — lihat resources/js/types/dashboard.ts.
  *
- * SEMENTARA BERISI DATA CONTOH. Ganti tiap bagian dengan query asli begitu
- * modulnya dibangun, tanpa mengubah bentuk array yang dikembalikan:
+ * Seluruh bagian sudah memakai data asli (sumber per bagian):
  *  - hasClasses, week, nextClass        → ✅ data asli (Kelas & Enrollment)
  *  - nextClass.module, nextClass.seat   → ✅ data asli (Pertemuan, Seats)
  *  - pendingTasks, upcomingTasks        → ✅ data asli (Task & Submission)
  *  - courseProgress, recentFeedback     → ✅ data asli (Grade)
  *  - announcements                      → ✅ data asli (Pengumuman)
- *  - openProgram                        → Program (Rilis 4)
- * Setelah semua bagian asli, hapus `isSample`.
+ *  - openProgram                        → ✅ data asli (Program)
+ * `isSample` dipertahankan (false) agar kontrak tipe frontend tetap stabil.
  */
 class PraktikanDashboardData
 {
@@ -48,18 +48,11 @@ class PraktikanDashboardData
         [$upcomingTasks, $pendingTasks] = self::tasks($user, $now);
 
         return [
-            'isSample' => true,
+            'isSample' => false,
             'hasClasses' => true,
             'nextClass' => self::nextClass($classes, $weekStart, $now),
             'pendingTasks' => $pendingTasks,
-            'openProgram' => [
-                'title' => 'Workshop: Intro to Retrieval-Augmented Generation',
-                'type' => 'Workshop',
-                'closesAt' => $now->addDays(6)->setTime(23, 59)->toIso8601String(),
-                'quota' => 40,
-                'registered' => 27,
-                'href' => '/praktikan/program/workshop',
-            ],
+            'openProgram' => self::openProgram(),
             'week' => [
                 'start' => $weekStart->toDateString(),
                 'today' => $now->dayOfWeekIso,
@@ -86,6 +79,28 @@ class PraktikanDashboardData
     }
 
     /**
+     * FR-PD-7: satu program yang sedang membuka pendaftaran (tutup paling dekat).
+     *
+     * @return array<string, mixed>|null
+     */
+    private static function openProgram(): ?array
+    {
+        $program = Program::catalog()->where('status', 'open')
+            ->withCount(['registrations' => fn ($q) => $q->where('status', '!=', 'cancelled')])
+            ->get()->filter->isAcceptingRegistrations()
+            ->sortBy(fn (Program $p) => $p->closes_at?->timestamp ?? PHP_INT_MAX)->first();
+
+        return $program ? [
+            'title' => $program->title,
+            'type' => $program->type->label(),
+            'closesAt' => $program->closes_at?->toIso8601String(),
+            'quota' => $program->quota,
+            'registered' => $program->registrations_count,
+            'href' => '/praktikan/programs/'.$program->id,
+        ] : null;
+    }
+
+    /**
      * Praktikan yang belum tergabung ke kelas mana pun (FR-PD: empty state).
      *
      * @return array<string, mixed>
@@ -93,7 +108,7 @@ class PraktikanDashboardData
     private static function empty(CarbonImmutable $weekStart, CarbonImmutable $now): array
     {
         return [
-            'isSample' => true,
+            'isSample' => false,
             'hasClasses' => false,
             'nextClass' => null,
             'pendingTasks' => 0,

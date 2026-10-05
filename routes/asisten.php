@@ -9,6 +9,7 @@ use App\Http\Controllers\Asisten\CourseProposalController;
 use App\Http\Controllers\Asisten\GenerateController;
 use App\Http\Controllers\Asisten\GradeController;
 use App\Http\Controllers\Asisten\MeetingController;
+use App\Http\Controllers\Asisten\ProgramController;
 use App\Http\Controllers\Asisten\ReportController;
 use App\Http\Controllers\Asisten\ScheduleController;
 use App\Http\Controllers\Asisten\SeatController;
@@ -100,3 +101,17 @@ Route::get('generate', [GenerateController::class, 'index'])->name('generate.ind
 Route::post('exports', [GenerateController::class, 'store'])->middleware('throttle:10,1')->name('exports.store');
 Route::get('exports/{export}', [GenerateController::class, 'show'])->name('exports.show');
 Route::post('honor-recaps/approve', [GenerateController::class, 'approveHonor'])->name('honor-recaps.approve');
+
+// FR-APR: Program (Workshop, Quick Tutor, Rekrutmen, Maintenance).
+Route::redirect('program', '/asisten/program/workshop');
+Route::get('program/{type}', [ProgramController::class, 'index'])->where('type', 'workshop|quick-tutor|recruitment|maintenance')->name('programs.index');
+Route::post('programs', [ProgramController::class, 'store'])->name('programs.store');
+Route::get('programs/{program}', [ProgramController::class, 'show'])->name('programs.show');
+Route::post('programs/{program}', [ProgramController::class, 'update'])->name('programs.update'); // multipart (poster)
+Route::delete('programs/{program}', [ProgramController::class, 'destroy'])->name('programs.destroy');
+Route::put('programs/{program}/fields', [ProgramController::class, 'updateFields'])->name('programs.fields');
+Route::put('programs/{program}/stages', [ProgramController::class, 'updateStages'])->name('programs.stages');
+Route::post('programs/{program}/status', [ProgramController::class, 'status'])->name('programs.status');
+Route::get('programs/{program}/export', [ProgramController::class, 'export'])->name('programs.export');
+Route::post('program-registrations/{registration}/attendance', [ProgramController::class, 'attendance'])->name('program-registrations.attendance');
+Route::post('program-registrations/{registration}/review', [ProgramController::class, 'review'])->name('program-registrations.review');

@@ -54,9 +54,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 if (file_exists($routes = __DIR__."/{$role->value}.php")) {
                     require $routes;
                 }
-
-                // Sementara: menu yang halamannya belum dibangun → "Segera hadir".
-                Route::inertia('{page}', 'coming-soon')->where('page', '.*')->name('placeholder');
             });
     }
 });

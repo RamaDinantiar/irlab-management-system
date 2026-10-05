@@ -1,5 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
 import {
+    AppWindow,
     Armchair,
     Bell,
     BookOpenCheck,
@@ -37,6 +38,7 @@ export const NOTIFICATION_ICONS: Record<NotificationKind, LucideIcon> = {
     approval: ShieldCheck,
     class: School,
     announcement: Megaphone,
+    program: AppWindow,
     info: Info,
 };
 

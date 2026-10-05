@@ -5,6 +5,7 @@ namespace App\Support\Dashboard;
 use App\Models\Enrollment;
 use App\Models\HonorRecap;
 use App\Models\LabClass;
+use App\Models\ProgramRegistration;
 use App\Models\Shift;
 use App\Models\ShiftSwap;
 use App\Models\Submission;
@@ -19,14 +20,13 @@ use Carbon\CarbonImmutable;
  * Data Dashboard Asisten (PRD FR-AD). Kontrak bentuk data ini dipakai halaman
  * React `asisten/dashboard` — lihat resources/js/types/dashboard.ts.
  *
- * SEMENTARA BERISI DATA CONTOH. Ganti tiap bagian dengan query asli begitu
- * modulnya dibangun, tanpa mengubah bentuk array yang dikembalikan:
+ * Seluruh bagian sudah memakai data asli (sumber per bagian):
  *  - pendingReports, nextShift, week (shift)  → ✅ data asli (Report & Shift)
  *  - pendingGrading, gradingQueue              → ✅ data asli (modul Grade)
  *  - week (sesi kelas)                         → ✅ data asli (modul Kelas & Jadwal)
  *  - alerts                                    → ✅ data asli
- *  - activities                                → ✅ data asli (Submission, Enrollment)
- * Setelah semua bagian asli, hapus `isSample`.
+ *  - activities                                → ✅ data asli (Submission, Enrollment, Program)
+ * `isSample` dipertahankan (false) agar kontrak tipe frontend tetap stabil.
  */
 class AsistenDashboardData
 {
@@ -45,7 +45,7 @@ class AsistenDashboardData
         $events = AssistantWeek::events($user, $weekStart, $now);
 
         return [
-            'isSample' => true,
+            'isSample' => false,
             'pendingReports' => Shift::where('user_id', $user->id)->whereDate('date', '<=', $now->toDateString())
                 ->whereDate('date', '>=', $now->subDays(7)->toDateString())->unreported()->get()
                 ->filter(fn (Shift $s) => $s->endsAt()->isPast())->count(),
@@ -90,7 +90,15 @@ class AsistenDashboardData
                 'at' => $e->joined_at->toIso8601String(),
             ]);
 
-        return $submissions->concat($enrollments)->sortByDesc('at')->take(6)->values()->all();
+        $programs = ProgramRegistration::with(['user:id,name', 'program:id,title'])->latest()->limit(3)->get()
+            ->map(fn (ProgramRegistration $r) => [
+                'id' => "prg-{$r->id}",
+                'type' => 'program',
+                'message' => "{$r->user->name} mendaftar {$r->program->title}",
+                'at' => $r->created_at->toIso8601String(),
+            ]);
+
+        return $submissions->concat($enrollments)->concat($programs)->sortByDesc('at')->take(6)->values()->all();
     }
 
     /**

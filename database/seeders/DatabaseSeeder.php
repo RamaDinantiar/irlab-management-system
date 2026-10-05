@@ -141,6 +141,6 @@ class DatabaseSeeder extends Seeder
             'weight_pretest' => 20, 'weight_posttest' => 30, 'weight_report' => 50,
         ])->assistants()->attach($michael);
 
-        $this->call([MeetingSeeder::class, TaskSeeder::class, SeatSeeder::class, OperationsSeeder::class, AnnouncementSeeder::class]);
+        $this->call([MeetingSeeder::class, TaskSeeder::class, SeatSeeder::class, OperationsSeeder::class, AnnouncementSeeder::class, ProgramSeeder::class]);
     }
 }

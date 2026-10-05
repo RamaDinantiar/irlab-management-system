@@ -66,12 +66,11 @@ class DashboardTest extends TestCase
         $this->get('/admin/users')->assertForbidden();
     }
 
-    public function test_unbuilt_menu_pages_render_the_coming_soon_page()
+    public function test_every_menu_page_exists_and_unknown_pages_are_404()
     {
         $this->actingAs(User::factory()->asisten()->create());
 
-        $this->get('/asisten/program/workshop')
-            ->assertOk()
-            ->assertInertia(fn (Assert $page) => $page->component('coming-soon'));
+        $this->get('/asisten/program/workshop')->assertOk();
+        $this->get('/asisten/halaman-tidak-ada')->assertNotFound();
     }
 }

@@ -26,6 +26,7 @@ export type NotificationKind =
     | 'approval'
     | 'class'
     | 'announcement'
+    | 'program'
     | 'info';
 
 export type NotificationItem = {

@@ -7,6 +7,7 @@ use App\Enums\Role;
 use App\Models\AuditLog;
 use App\Models\Course;
 use App\Models\LabClass;
+use App\Models\Program;
 use App\Models\Semester;
 use App\Models\Shift;
 use App\Models\SupervisionReport;
@@ -20,8 +21,7 @@ use Illuminate\Support\Str;
  * Data Dashboard Admin (PRD FR-ADM-01). Kontrak bentuk data ini dipakai halaman
  * React `admin/dashboard` — lihat resources/js/types/dashboard.ts.
  *
- * SEMENTARA BERISI DATA CONTOH. Ganti tiap bagian dengan query asli begitu
- * modulnya dibangun, tanpa mengubah bentuk array yang dikembalikan:
+ * Seluruh bagian sudah memakai data asli (sumber per bagian):
  *  - semester                        → ✅ data asli (modul Semester)
  *  - counts.courses                  → ✅ data asli (modul Mata Kuliah)
  *  - counts.classes                  → ✅ data asli (modul Kelas)
@@ -29,9 +29,9 @@ use Illuminate\Support\Str;
  *  - approvals                       → ✅ data asli (Mata Kuliah & Kelas)
  *  - reportCompliance                → ✅ data asli (Report Ngawas)
  *  - gradingQueue                    → ✅ data asli (modul Grade)
- *  - activePrograms                  → Program (Rilis 4)
+ *  - activePrograms                  → ✅ data asli (Program)
  *  - auditLogs                       → ✅ data asli (Audit Log)
- * Setelah semua bagian asli, hapus `isSample`.
+ * `isSample` dipertahankan (false) agar kontrak tipe frontend tetap stabil.
  */
 class AdminDashboardData
 {
@@ -69,7 +69,7 @@ class AdminDashboardData
         $active = Semester::current();
 
         return [
-            'isSample' => true,
+            'isSample' => false,
             'semester' => self::semester($active, $now),
             'counts' => [
                 'praktikan' => User::where('role', Role::Praktikan)->where('is_active', true)->count(),
@@ -81,11 +81,18 @@ class AdminDashboardData
             'reportCompliance' => self::compliance($now),
             'approvals' => $active ? self::approvals($active) : [],
             'gradingQueue' => $admin ? GradingQueue::for($admin) : [],
-            'activePrograms' => [
-                ['id' => 'pg-1', 'type' => 'Workshop', 'title' => 'Intro to Retrieval-Augmented Generation', 'status' => 'Pendaftaran dibuka', 'registered' => 27, 'quota' => 40, 'href' => '/admin/program/workshop'],
-                ['id' => 'pg-2', 'type' => 'Rekrutmen', 'title' => 'Rekrutmen Asisten 2026', 'status' => 'Tahap: Tes Coding', 'registered' => 58, 'quota' => null, 'href' => '/admin/program/recruitment'],
-                ['id' => 'pg-3', 'type' => 'Quick Tutor', 'title' => 'Struktur Data untuk UTS', 'status' => 'Berjalan', 'registered' => 18, 'quota' => 20, 'href' => '/admin/program/quick-tutor'],
-            ],
+            'activePrograms' => Program::whereIn('status', ['open', 'closed'])->where('type', '!=', 'maintenance')
+                ->withCount(['registrations' => fn ($q) => $q->where('status', '!=', 'cancelled')])->with('stages')
+                ->orderByRaw("CASE status WHEN 'open' THEN 0 ELSE 1 END")->latest('starts_at')->limit(4)->get()
+                ->map(fn (Program $p) => [
+                    'id' => "pg-{$p->id}",
+                    'type' => $p->type->label(),
+                    'title' => $p->title,
+                    'status' => Program::STATUS_LABELS[$p->status],
+                    'registered' => $p->registrations_count,
+                    'quota' => $p->quota,
+                    'href' => '/asisten/programs/'.$p->id,
+                ])->values()->all(),
             'auditLogs' => AuditLog::with('user:id,name')->latest('id')->limit(5)->get()->map(fn (AuditLog $log) => [
                 'id' => "au-{$log->id}",
                 'actor' => $log->user?->name ?? 'Sistem',

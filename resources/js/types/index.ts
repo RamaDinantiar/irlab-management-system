@@ -11,3 +11,4 @@ export type * from './task';
 export type * from './seat';
 export type * from './operations';
 export type * from './announcement';
+export * from './program';
