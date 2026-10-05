@@ -1,3 +1,4 @@
+import type { NotificationItem } from '@/types/announcement';
 import type { Auth } from '@/types/auth';
 import type { FlashToast } from '@/types/ui';
 import type { ImportResult, IssuedCredentials } from '@/types/user';
@@ -21,6 +22,8 @@ declare module '@inertiajs/core' {
             auth: Auth;
             /** Semester berstatus Aktif (FR-ADM-02); null bila belum ada. */
             activeSemester: { id: number; name: string } | null;
+            /** Lonceng: jumlah belum dibaca + 8 terbaru. */
+            notifications: { unread: number; items: NotificationItem[] } | null;
             sidebarOpen: boolean;
             [key: string]: unknown;
         };

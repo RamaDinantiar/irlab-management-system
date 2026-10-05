@@ -9,6 +9,7 @@ use App\Models\LabClass;
 use App\Models\Semester;
 use App\Models\User;
 use App\Support\JoinToken;
+use App\Support\Notifications\Notify;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Validation\ValidationException;
@@ -105,6 +106,7 @@ class JoinClass
         if ($members + 1 >= $class->quota) {
             $class->forceFill(['is_locked' => true])->save();
             AuditLog::record('class.auto_locked', $class, null, ['members' => $members + 1, 'quota' => $class->quota]);
+            Notify::send($class->assistants()->get(), 'class', 'Kelas penuh & terkunci', "{$class->course->name} · {$class->name} mencapai kuota {$class->quota} dan terkunci otomatis.", '/asisten/class/'.$class->id);
         }
 
         RateLimiter::clear('join-class:'.$user->id);

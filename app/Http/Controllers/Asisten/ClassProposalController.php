@@ -8,6 +8,7 @@ use App\Http\Requests\Asisten\ClassProposalRequest;
 use App\Models\AuditLog;
 use App\Models\LabClass;
 use App\Models\Semester;
+use App\Support\Notifications\Notify;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 
@@ -29,6 +30,7 @@ class ClassProposalController extends Controller
         $class->assistants()->attach($request->user());
 
         AuditLog::record('class.proposed', $class, null, $request->validated());
+        Notify::admins('approval', 'Pengajuan kelas baru', "{$request->user()->name} mengajukan {$class->course->name} · {$class->name}.", '/admin/classes?status=pending');
         Inertia::flash('toast', ['type' => 'success', 'message' => "Pengajuan {$class->name} dikirim. Token dibuat setelah Admin menyetujui."]);
 
         return to_route('asisten.class.index');
@@ -45,6 +47,10 @@ class ClassProposalController extends Controller
         }
 
         $class->save();
+
+        if ($class->wasChanged('approval_status')) {
+            Notify::admins('approval', 'Revisi pengajuan kelas', "{$request->user()->name} mengirim ulang {$class->course->name} · {$class->name}.", '/admin/classes?status=pending');
+        }
 
         AuditLog::record('class.updated', $class, $before, $request->validated());
         Inertia::flash('toast', ['type' => 'success', 'message' => $class->approval_status === ApprovalStatus::Pending

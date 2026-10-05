@@ -5,6 +5,7 @@ namespace App\Actions\Course;
 use App\Enums\ApprovalStatus;
 use App\Models\AuditLog;
 use App\Models\Course;
+use App\Support\Notifications\Notify;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -25,6 +26,7 @@ class ReviewCourse
         ])->save();
 
         AuditLog::record('course.approved', $course, ['approval_status' => 'pending'], ['approval_status' => 'approved']);
+        Notify::send($course->proposed_by ? [$course->proposed_by] : [], 'approval', 'Mata kuliah disetujui', "{$course->code} {$course->name} disetujui Admin. Anda dapat mengajukan kelas.", '/asisten/class');
     }
 
     public function reject(Course $course, string $reason): void
@@ -40,6 +42,7 @@ class ReviewCourse
             'approval_status' => 'rejected',
             'rejection_reason' => $reason,
         ]);
+        Notify::send($course->proposed_by ? [$course->proposed_by] : [], 'approval', 'Pengajuan mata kuliah ditolak', "{$course->code} {$course->name}: {$reason}", '/asisten/class');
     }
 
     private function ensurePending(Course $course): void

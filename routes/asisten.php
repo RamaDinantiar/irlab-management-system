@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Asisten\ClassAccessController;
+use App\Http\Controllers\Asisten\ClassAnnouncementController;
 use App\Http\Controllers\Asisten\ClassController;
 use App\Http\Controllers\Asisten\ClassDetailController;
 use App\Http\Controllers\Asisten\ClassProposalController;
@@ -28,6 +29,10 @@ Route::get('class/{class}', [ClassDetailController::class, 'members'])->name('cl
 Route::get('class/{class}/meetings', [ClassDetailController::class, 'meetings'])->name('class.meetings');
 Route::get('class/{class}/attendance', [ClassDetailController::class, 'attendance'])->name('class.attendance');
 Route::get('class/{class}/settings', [ClassDetailController::class, 'settings'])->name('class.settings');
+Route::get('class/{class}/announcements', [ClassDetailController::class, 'announcements'])->name('class.announcements');
+Route::post('classes/{class}/announcements', [ClassAnnouncementController::class, 'store'])->name('classes.announcements.store');
+Route::put('announcements/{announcement}', [ClassAnnouncementController::class, 'update'])->name('announcements.update');
+Route::delete('announcements/{announcement}', [ClassAnnouncementController::class, 'destroy'])->name('announcements.destroy');
 Route::put('classes/{class}/settings', [ClassDetailController::class, 'updateSettings'])->name('classes.settings.update');
 Route::delete('classes/{class}/members/{enrollment}', [ClassDetailController::class, 'removeMember'])->name('classes.members.destroy');
 

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Http\Controllers\NotificationController;
 use App\Models\Semester;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
@@ -51,6 +52,11 @@ class HandleInertiaRequests extends Middleware
             'activeSemester' => fn () => $request->user()
                 ? Semester::current()?->only(['id', 'name'])
                 : null,
+            // Lonceng notifikasi: jumlah belum dibaca + 8 terbaru.
+            'notifications' => fn () => $request->user() ? [
+                'unread' => $request->user()->unreadNotifications()->count(),
+                'items' => $request->user()->notifications()->limit(8)->get()->map(fn ($n) => NotificationController::row($n))->values(),
+            ] : null,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

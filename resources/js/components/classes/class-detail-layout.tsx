@@ -36,7 +36,11 @@ export function ClassDetailLayout({
             label: 'Presensi',
             href: ClassDetailController.attendance.url(klass.id),
         },
-        { label: 'Kursi', href: `/asisten/class/${klass.id}/seats` },
+        {
+            label: 'Pengumuman',
+            href: ClassDetailController.announcements.url(klass.id),
+        },
+        { label: 'Kursi', href: `/asisten/seats?class=${klass.id}` },
         {
             label: 'Pengaturan',
             href: ClassDetailController.settings.url(klass.id),

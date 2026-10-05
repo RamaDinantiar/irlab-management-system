@@ -3,6 +3,7 @@
 namespace App\Support\Dashboard;
 
 use App\Enums\ApprovalStatus;
+use App\Models\Announcement;
 use App\Models\Grade;
 use App\Models\LabClass;
 use App\Models\Meeting;
@@ -24,7 +25,7 @@ use Illuminate\Database\Eloquent\Collection;
  *  - nextClass.module, nextClass.seat   → ✅ data asli (Pertemuan, Seats)
  *  - pendingTasks, upcomingTasks        → ✅ data asli (Task & Submission)
  *  - courseProgress, recentFeedback     → ✅ data asli (Grade)
- *  - announcements                      → Pengumuman (Rilis 3)
+ *  - announcements                      → ✅ data asli (Pengumuman)
  *  - openProgram                        → Program (Rilis 4)
  * Setelah semua bagian asli, hapus `isSample`.
  */
@@ -70,10 +71,17 @@ class PraktikanDashboardData
             // FR-PD-5: 3 nilai terakhir yang dipublikasikan.
             'recentFeedback' => self::recentFeedback($user),
             // FR-PD-6: global & per kelas, yang di-pin di atas.
-            'announcements' => [
-                ['id' => 'an-1', 'title' => 'Lab tutup Jumat, 9 Okt (maintenance jaringan)', 'body' => 'Praktikum hari Jumat dipindah ke Sabtu pagi. Cek jadwal terbaru di menu Schedule.', 'scope' => 'global', 'className' => null, 'pinned' => true, 'publishedAt' => $now->subDay()->toIso8601String()],
-                ['id' => 'an-2', 'title' => 'Modul 05 sudah dapat diunduh', 'body' => 'Silakan pelajari sebelum pre-test minggu depan.', 'scope' => 'class', 'className' => 'Information Retrieval · Kelas A', 'pinned' => false, 'publishedAt' => $now->subHours(6)->toIso8601String()],
-            ],
+            'announcements' => Announcement::live()->visibleTo($user)->with('labClass.course')
+                ->orderByDesc('pinned')->orderByDesc('publish_at')->limit(4)->get()
+                ->map(fn (Announcement $a) => [
+                    'id' => "an-{$a->id}",
+                    'title' => $a->title,
+                    'body' => $a->body,
+                    'scope' => $a->scope,
+                    'className' => $a->labClass ? "{$a->labClass->course->name} · {$a->labClass->name}" : null,
+                    'pinned' => $a->pinned,
+                    'publishedAt' => $a->publish_at->toIso8601String(),
+                ])->values()->all(),
         ];
     }
 

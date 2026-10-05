@@ -6,6 +6,7 @@ use App\Enums\ApprovalStatus;
 use App\Models\AuditLog;
 use App\Models\LabClass;
 use App\Support\JoinToken;
+use App\Support\Notifications\Notify;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -27,6 +28,8 @@ class ReviewClass
         ])->save();
 
         AuditLog::record('class.approved', $class, ['approval_status' => 'pending'], ['approval_status' => 'approved']);
+        $class->loadMissing('course');
+        Notify::send($class->proposed_by ? [$class->proposed_by] : [], 'approval', 'Kelas disetujui', "{$class->course->name} · {$class->name} disetujui. Token kelas: {$class->join_token}.", '/asisten/class/'.$class->id.'/settings');
     }
 
     public function reject(LabClass $class, string $reason): void
@@ -39,6 +42,8 @@ class ReviewClass
             'approval_status' => 'rejected',
             'rejection_reason' => $reason,
         ]);
+        $class->loadMissing('course');
+        Notify::send($class->proposed_by ? [$class->proposed_by] : [], 'approval', 'Pengajuan kelas ditolak', "{$class->course->name} · {$class->name}: {$reason}", '/asisten/class');
     }
 
     private function ensurePending(LabClass $class): void

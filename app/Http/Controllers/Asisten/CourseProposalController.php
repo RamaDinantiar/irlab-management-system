@@ -8,6 +8,7 @@ use App\Http\Requests\Asisten\ProposeCourseRequest;
 use App\Models\AuditLog;
 use App\Models\Course;
 use App\Models\Semester;
+use App\Support\Notifications\Notify;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 
@@ -28,6 +29,7 @@ class CourseProposalController extends Controller
         $course->assistants()->attach($request->user());
 
         AuditLog::record('course.proposed', $course, null, $request->validated());
+        Notify::admins('approval', 'Pengajuan mata kuliah baru', "{$request->user()->name} mengajukan {$course->code} {$course->name}.", '/admin/courses?status=pending');
         Inertia::flash('toast', ['type' => 'success', 'message' => "Pengajuan {$course->name} dikirim. Menunggu persetujuan Admin."]);
 
         return to_route('asisten.class.index');

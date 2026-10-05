@@ -9,6 +9,8 @@ use App\Models\Meeting;
 use App\Models\Task;
 use App\Models\TaskTarget;
 use App\Support\Files\FileStore;
+use App\Support\Notifications\Notify;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -63,7 +65,7 @@ class SaveTask
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, array<string, mixed>>  $targets
+     * @param  Collection<int, array<string, mixed>>  $targets
      */
     private function syncTargets(Task $task, $targets): void
     {
@@ -90,11 +92,23 @@ class SaveTask
                 'window_minutes' => $task->type === TaskType::Pretest ? ($target['window_minutes'] ?? null) : null,
             ]);
 
-            if ($task->isPublished() && $record->published_at === null) {
+            $announce = $task->isPublished() && $record->published_at === null;
+            if ($announce) {
                 $record->published_at = now();
             }
 
             $record->save();
+
+            if ($announce) {
+                $class = $record->labClass()->with('course')->first();
+                Notify::send(
+                    $class->enrollments()->pluck('user_id')->all(),
+                    'task',
+                    "Tugas baru: {$task->title}",
+                    "{$class->course->name} · {$class->name}".($record->due_at ? ' — tenggat '.$record->due_at->locale('id')->translatedFormat('d M Y H:i') : ''),
+                    '/praktikan/tasks/'.$record->id,
+                );
+            }
         }
     }
 

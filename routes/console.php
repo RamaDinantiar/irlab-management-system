@@ -1,6 +1,8 @@
 <?php
 
+use App\Actions\Announcement\NotifyAnnouncements;
 use App\Actions\Shift\SwapShift;
+use App\Actions\Task\RemindDeadlines;
 use App\Models\Export;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -22,3 +24,16 @@ Artisan::command('exports:prune', function () {
 
 Schedule::command('shifts:expire-swaps')->hourly();
 Schedule::command('exports:prune')->daily();
+
+// Pengumuman terjadwal → notifikasi saat terbit.
+Artisan::command('announcements:notify', function (NotifyAnnouncements $notify) {
+    $this->info($notify().' pengumuman diberitahukan.');
+})->purpose('Kirim notifikasi pengumuman yang baru terbit');
+
+// A8: pengingat tenggat H-1 (in-app + email) untuk praktikan yang belum mengumpulkan.
+Artisan::command('tasks:remind-deadlines', function (RemindDeadlines $remind) {
+    $this->info($remind().' pengingat tenggat dikirim.');
+})->purpose('Kirim pengingat tenggat H-1');
+
+Schedule::command('announcements:notify')->everyFiveMinutes();
+Schedule::command('tasks:remind-deadlines')->hourly();

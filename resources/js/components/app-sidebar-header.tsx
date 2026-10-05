@@ -1,8 +1,8 @@
 import { usePage } from '@inertiajs/react';
-import { Bell, CalendarRange, ChevronDown } from 'lucide-react';
+import { CalendarRange, ChevronDown } from 'lucide-react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import { NotificationBell } from '@/components/notification-bell';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Button } from '@/components/ui/button';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -68,14 +68,7 @@ export function AppSidebarHeader({
                         {activeSemester.name}
                     </span>
                 )}
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    className="rounded-full"
-                    aria-label="Notifikasi"
-                >
-                    <Bell className="size-5" />
-                </Button>
+                <NotificationBell />
 
                 {auth.user && (
                     <DropdownMenu>

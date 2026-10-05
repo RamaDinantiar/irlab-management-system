@@ -124,6 +124,14 @@ class LabClass extends Model
     }
 
     /**
+     * @return HasMany<Announcement, $this>
+     */
+    public function announcements(): HasMany
+    {
+        return $this->hasMany(Announcement::class, 'class_id');
+    }
+
+    /**
      * @return HasMany<SeatContract, $this>
      */
     public function seatContracts(): HasMany

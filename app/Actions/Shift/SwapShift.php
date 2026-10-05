@@ -36,7 +36,7 @@ class SwapShift
             $this->fail('to_user_id', "{$to->name} memiliki shift lain pada jam tersebut.");
         }
 
-        $swap = ShiftSwap::create(['shift_id' => $shift->id, 'from_user_id' => $from->id, 'to_user_id' => $to->id, 'reason' => $reason]);
+        $swap = ShiftSwap::create(['shift_id' => $shift->id, 'from_user_id' => $from->id, 'to_user_id' => $to->id, 'reason' => $reason, 'status' => 'pending']);
         AuditLog::record('shift_swap.requested', $swap, null, ['shift_id' => $shift->id, 'to' => $to->id]);
         ShiftSwapChanged::dispatch($swap);
 

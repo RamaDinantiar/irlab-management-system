@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AnnouncementController;
 use App\Http\Controllers\Admin\ClassController;
 use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\RoomController;
@@ -30,6 +31,9 @@ Route::post('classes/{class}/lock', [ClassController::class, 'lock'])->name('cla
 Route::resource('rooms', RoomController::class)->only(['index', 'store', 'update', 'destroy']);
 Route::get('rooms/{room}/layout', [RoomController::class, 'layout'])->name('rooms.layout');
 Route::put('rooms/{room}/layout', [RoomController::class, 'saveLayout'])->name('rooms.layout.update');
+
+// FR-ADM-08: pengumuman.
+Route::resource('announcements', AnnouncementController::class)->only(['index', 'store', 'update', 'destroy']);
 
 // FR-ADM-06 / US-D03: koreksi kontrak kursi.
 Route::get('seat-contracts', [SeatContractController::class, 'index'])->name('seat-contracts.index');

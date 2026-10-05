@@ -6,11 +6,13 @@ use App\Http\Controllers\Asisten\Concerns\AuthorizesClassAssistant;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\LabClassResource;
 use App\Http\Resources\MeetingResource;
+use App\Models\Announcement;
 use App\Models\Attendance;
 use App\Models\AuditLog;
 use App\Models\Enrollment;
 use App\Models\LabClass;
 use App\Models\User;
+use App\Support\Announcements\AnnouncementData;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -18,7 +20,7 @@ use Inertia\Response;
 
 /**
  * Asisten › detail kelas (FR-AC-02): tab Anggota, Pertemuan & Modul, Presensi,
- * Pengaturan. Denah kursi kelas ada di menu Seats.
+ * Pengaturan, Pengumuman. Denah kursi kelas ada di menu Seats.
  */
 class ClassDetailController extends Controller
 {
@@ -138,6 +140,19 @@ class ClassDetailController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$enrollment->user->name} dikeluarkan dari {$class->name}."]);
 
         return back();
+    }
+
+    /**
+     * Tab Pengumuman kelas.
+     */
+    public function announcements(Request $request, LabClass $class): Response
+    {
+        $this->authorizeAssistant($request, $class);
+
+        return $this->render('asisten/class/announcements', $class, [
+            'announcements' => $class->announcements()->with(['labClass.course', 'author'])->orderByDesc('pinned')->orderByDesc('publish_at')->get()
+                ->map(fn (Announcement $a) => AnnouncementData::row($a)),
+        ]);
     }
 
     /**

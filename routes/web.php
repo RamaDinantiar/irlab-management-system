@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Asisten\DashboardController as AsistenDashboardController;
 use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\FileController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Praktikan\DashboardController as PraktikanDashboardController;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -31,6 +32,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', fn (Request $request) => redirect()->route(
         $request->user()->role->dashboardRoute(),
     ))->name('dashboard');
+
+    // Lonceng notifikasi + pengumuman (semua peran).
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/read-all', [NotificationController::class, 'readAll'])->name('notifications.read-all');
+    Route::get('notifications/{id}/read', [NotificationController::class, 'read'])->name('notifications.read');
 
     foreach (Role::cases() as $role) {
         Route::prefix($role->value)
