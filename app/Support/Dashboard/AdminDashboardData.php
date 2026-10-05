@@ -3,13 +3,18 @@
 namespace App\Support\Dashboard;
 
 use App\Enums\ApprovalStatus;
+use App\Enums\Role;
+use App\Models\AuditLog;
 use App\Models\Course;
 use App\Models\LabClass;
 use App\Models\Semester;
+use App\Models\Shift;
+use App\Models\SupervisionReport;
 use App\Models\User;
 use App\Support\ClassDays;
 use App\Support\Grading\GradingQueue;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Str;
 
 /**
  * Data Dashboard Admin (PRD FR-ADM-01). Kontrak bentuk data ini dipakai halaman
@@ -20,12 +25,12 @@ use Carbon\CarbonImmutable;
  *  - semester                        → ✅ data asli (modul Semester)
  *  - counts.courses                  → ✅ data asli (modul Mata Kuliah)
  *  - counts.classes                  → ✅ data asli (modul Kelas)
- *  - counts (lainnya)                → Pengguna (Rilis 1)
+ *  - counts (lainnya)                → ✅ data asli (Pengguna)
  *  - approvals                       → ✅ data asli (Mata Kuliah & Kelas)
- *  - reportCompliance                → Report Ngawas (Rilis 3)
+ *  - reportCompliance                → ✅ data asli (Report Ngawas)
  *  - gradingQueue                    → ✅ data asli (modul Grade)
  *  - activePrograms                  → Program (Rilis 4)
- *  - auditLogs                       → Audit Log (Rilis 1)
+ *  - auditLogs                       → ✅ data asli (Audit Log)
  * Setelah semua bagian asli, hapus `isSample`.
  */
 class AdminDashboardData
@@ -67,19 +72,13 @@ class AdminDashboardData
             'isSample' => true,
             'semester' => self::semester($active, $now),
             'counts' => [
-                'praktikan' => 186,
-                'asisten' => 14,
+                'praktikan' => User::where('role', Role::Praktikan)->where('is_active', true)->count(),
+                'asisten' => User::where('role', Role::Asisten)->where('is_active', true)->count(),
                 'classes' => $active ? LabClass::forSemester($active)->where('approval_status', ApprovalStatus::Approved)->count() : 0,
                 'courses' => $active ? Course::forSemester($active)->where('approval_status', ApprovalStatus::Approved)->count() : 0,
             ],
             // KPI PRD Bagian 1: laporan ngawas tercatat di hari yang sama ≥ 90%.
-            'reportCompliance' => [
-                'month' => $now->locale('id')->translatedFormat('F Y'),
-                'onTime' => 41,
-                'submitted' => 44,
-                'expected' => 46,
-                'target' => 90,
-            ],
+            'reportCompliance' => self::compliance($now),
             'approvals' => $active ? self::approvals($active) : [],
             'gradingQueue' => $admin ? GradingQueue::for($admin) : [],
             'activePrograms' => [
@@ -87,12 +86,37 @@ class AdminDashboardData
                 ['id' => 'pg-2', 'type' => 'Rekrutmen', 'title' => 'Rekrutmen Asisten 2026', 'status' => 'Tahap: Tes Coding', 'registered' => 58, 'quota' => null, 'href' => '/admin/program/recruitment'],
                 ['id' => 'pg-3', 'type' => 'Quick Tutor', 'title' => 'Struktur Data untuk UTS', 'status' => 'Berjalan', 'registered' => 18, 'quota' => 20, 'href' => '/admin/program/quick-tutor'],
             ],
-            'auditLogs' => [
-                ['id' => 'au-1', 'actor' => 'Admin Lab', 'action' => 'mengubah kontrak kursi', 'target' => 'Rina Praktikan · PC-12 → PC-07 (ML · Kelas A)', 'at' => $now->subMinutes(25)->toIso8601String()],
-                ['id' => 'au-2', 'actor' => 'Dimas Asisten', 'action' => 'memverifikasi laporan ngawas', 'target' => 'Shift Rabu, 30 Sep · Lab IR 1', 'at' => $now->subHours(4)->toIso8601String()],
-                ['id' => 'au-3', 'actor' => 'Admin Lab', 'action' => 'menetapkan jabatan', 'target' => 'Dimas Asisten → Sekretaris', 'at' => $now->subDay()->toIso8601String()],
-                ['id' => 'au-4', 'actor' => 'Admin Lab', 'action' => 'mengimpor akun', 'target' => '42 praktikan dari praktikan-ganjil-2026.xlsx', 'at' => $now->subDays(3)->toIso8601String()],
-            ],
+            'auditLogs' => AuditLog::with('user:id,name')->latest('id')->limit(5)->get()->map(fn (AuditLog $log) => [
+                'id' => "au-{$log->id}",
+                'actor' => $log->user?->name ?? 'Sistem',
+                'action' => str_replace(['.', '_'], ' ', $log->action),
+                'target' => $log->auditable_type ? Str::headline(class_basename($log->auditable_type)).' #'.$log->auditable_id : '—',
+                'at' => $log->created_at->toIso8601String(),
+            ])->values()->all(),
+        ];
+    }
+
+    /**
+     * KPI PRD Bagian 1: laporan ngawas bulan ini — sesi yang seharusnya
+     * dilaporkan (sesi kelas unik + shift jaga lab yang sudah lewat), yang
+     * sudah dilaporkan, dan yang dibuat di hari yang sama dengan shift.
+     *
+     * @return array{month: string, onTime: int, submitted: int, expected: int, target: int}
+     */
+    private static function compliance(CarbonImmutable $now): array
+    {
+        $range = [$now->startOfMonth()->toDateString(), $now->subDay()->toDateString()];
+        $shifts = Shift::whereDateBetween('date', $range)->get(['class_id', 'user_id', 'date']);
+        $expected = $shifts->map(fn (Shift $s) => $s->class_id ? "c{$s->class_id}@{$s->date->toDateString()}" : "u{$s->user_id}@{$s->date->toDateString()}")->unique()->count();
+
+        $reports = SupervisionReport::whereDateBetween('date', $range)->where('status', '!=', 'draft')->get(['date', 'created_at']);
+
+        return [
+            'month' => $now->locale('id')->translatedFormat('F Y'),
+            'onTime' => $reports->filter(fn (SupervisionReport $r) => $r->created_at->isSameDay($r->date))->count(),
+            'submitted' => $reports->count(),
+            'expected' => max($expected, $reports->count()),
+            'target' => 90,
         ];
     }
 

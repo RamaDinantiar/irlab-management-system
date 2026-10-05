@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
@@ -20,6 +21,14 @@ class HonorRate extends Model
     protected function casts(): array
     {
         return ['effective_from' => 'date'];
+    }
+
+    /**
+     * @return BelongsTo<User, $this>
+     */
+    public function setter(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'set_by');
     }
 
     /** Tarif yang berlaku pada tanggal tertentu (default Rp25.000 jika belum diatur). */

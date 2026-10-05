@@ -30,8 +30,8 @@
         <table><tr>
             <td style="width:56px"><div class="logo">IR</div></td>
             <td>
-                <h1>Laboratorium Information Retrieval</h1>
-                <p>Sistem Manajemen Laboratorium · {{ $semester }}</p>
+                <h1>{{ \App\Models\Setting::value('pdf_header_title') }}</h1>
+                <p>{{ \App\Models\Setting::value('pdf_header_subtitle') }} · {{ $semester }}</p>
             </td>
         </tr></table>
     </div>

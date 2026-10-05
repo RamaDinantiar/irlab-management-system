@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\Setting;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Query\Builder as QueryBuilder;
@@ -27,6 +28,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        // FR-ADM-10: pengaturan Admin menimpa default config.
+        if (! $this->app->runningUnitTests()) {
+            Setting::apply();
+        }
 
         // Rentang tanggal inklusif yang aman untuk kolom `date` di MySQL maupun SQLite
         // (SQLite menyimpan cast date sebagai "Y-m-d 00:00:00").

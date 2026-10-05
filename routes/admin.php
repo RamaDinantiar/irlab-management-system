@@ -1,11 +1,13 @@
 <?php
 
 use App\Http\Controllers\Admin\AnnouncementController;
+use App\Http\Controllers\Admin\AuditLogController;
 use App\Http\Controllers\Admin\ClassController;
 use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\RoomController;
 use App\Http\Controllers\Admin\SeatContractController;
 use App\Http\Controllers\Admin\SemesterController;
+use App\Http\Controllers\Admin\SystemSettingController;
 use App\Http\Controllers\Admin\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +33,12 @@ Route::post('classes/{class}/lock', [ClassController::class, 'lock'])->name('cla
 Route::resource('rooms', RoomController::class)->only(['index', 'store', 'update', 'destroy']);
 Route::get('rooms/{room}/layout', [RoomController::class, 'layout'])->name('rooms.layout');
 Route::put('rooms/{room}/layout', [RoomController::class, 'saveLayout'])->name('rooms.layout.update');
+
+// PRD 8.2 & FR-ADM-10.
+Route::get('audit-logs', [AuditLogController::class, 'index'])->name('audit-logs.index');
+Route::get('system-settings', [SystemSettingController::class, 'index'])->name('system-settings.index');
+Route::put('system-settings', [SystemSettingController::class, 'update'])->name('system-settings.update');
+Route::post('honor-rates', [SystemSettingController::class, 'storeRate'])->name('honor-rates.store');
 
 // FR-ADM-08: pengumuman.
 Route::resource('announcements', AnnouncementController::class)->only(['index', 'store', 'update', 'destroy']);
