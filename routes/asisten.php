@@ -35,6 +35,8 @@ Route::post('classes/{class}/announcements', [ClassAnnouncementController::class
 Route::put('announcements/{announcement}', [ClassAnnouncementController::class, 'update'])->name('announcements.update');
 Route::delete('announcements/{announcement}', [ClassAnnouncementController::class, 'destroy'])->name('announcements.destroy');
 Route::put('classes/{class}/settings', [ClassDetailController::class, 'updateSettings'])->name('classes.settings.update');
+Route::get('classes/{class}/members/export', [ClassDetailController::class, 'exportMembers'])->name('classes.members.export');
+Route::post('classes/{class}/members/import', [ClassDetailController::class, 'importMembers'])->name('classes.members.import');
 Route::delete('classes/{class}/members/{enrollment}', [ClassDetailController::class, 'removeMember'])->name('classes.members.destroy');
 
 // FR-AC-04: pertemuan & modul.

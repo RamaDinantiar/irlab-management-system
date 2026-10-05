@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Asisten;
 
+use App\Actions\Enrollment\ImportMembers;
 use App\Http\Controllers\Asisten\Concerns\AuthorizesClassAssistant;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\LabClassResource;
@@ -10,13 +11,18 @@ use App\Models\Announcement;
 use App\Models\Attendance;
 use App\Models\AuditLog;
 use App\Models\Enrollment;
+use App\Models\Grade;
 use App\Models\LabClass;
 use App\Models\User;
 use App\Support\Announcements\AnnouncementData;
+use App\Support\Grading\FinalScore;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
+use OpenSpout\Common\Entity\Row;
+use OpenSpout\Writer\XLSX\Writer;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Asisten › detail kelas (FR-AC-02): tab Anggota, Pertemuan & Modul, Presensi,
@@ -29,6 +35,12 @@ class ClassDetailController extends Controller
     public function members(Request $request, LabClass $class): Response
     {
         $this->authorizeAssistant($request, $class);
+
+        $seats = $class->seatContracts()->with('seat:id,label')->get()->keyBy('user_id');
+        $grades = Grade::where('status', 'published')
+            ->whereHas('submission', fn ($q) => $q->where('is_current', true)->whereHas('target', fn ($t) => $t->where('class_id', $class->id)))
+            ->with('submission.target.task')->get()->groupBy('submission.user_id');
+        $class->loadMissing('course');
 
         $members = $class->enrollments()
             ->with('user:id,nim,name,email,major,cohort_year')
@@ -43,6 +55,8 @@ class ClassDetailController extends Controller
                 'major' => $enrollment->user->major,
                 'cohortYear' => $enrollment->user->cohort_year,
                 'joinedAt' => $enrollment->joined_at->toIso8601String(),
+                'seat' => $seats->get($enrollment->user_id)?->seat->label,
+                'average' => FinalScore::compute($class->course, $grades->get($enrollment->user_id, []))['final'],
             ]);
 
         return $this->render('asisten/class/show', $class, ['members' => $members]);
@@ -138,6 +152,49 @@ class ClassDetailController extends Controller
 
         AuditLog::record('enrollment.removed', $class, ['user_id' => $enrollment->user_id], ['reason' => $validated['reason']]);
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$enrollment->user->name} dikeluarkan dari {$class->name}."]);
+
+        return back();
+    }
+
+    /**
+     * FR-AC-03: ekspor anggota (NIM, nama, jurusan, kursi, rata-rata nilai).
+     */
+    public function exportMembers(Request $request, LabClass $class): StreamedResponse
+    {
+        $this->authorizeAssistant($request, $class);
+        $class->load('course');
+        $seats = $class->seatContracts()->with('seat:id,label')->get()->keyBy('user_id');
+        $grades = Grade::where('status', 'published')
+            ->whereHas('submission', fn ($q) => $q->where('is_current', true)->whereHas('target', fn ($t) => $t->where('class_id', $class->id)))
+            ->with('submission.target.task')->get()->groupBy('submission.user_id');
+        $members = $class->enrollments()->with('user')->get()->sortBy(fn (Enrollment $e) => $e->user->nim);
+
+        return response()->streamDownload(function () use ($members, $seats, $grades, $class) {
+            $writer = new Writer;
+            $writer->openToFile('php://output');
+            $writer->addRow(Row::fromValues(['NIM', 'Nama', 'Email', 'Jurusan', 'Angkatan', 'Kursi', 'Rata-rata Nilai', 'Bergabung']));
+            foreach ($members as $e) {
+                $writer->addRow(Row::fromValues([
+                    $e->user->nim, $e->user->name, $e->user->email, $e->user->major, $e->user->cohort_year,
+                    $seats->get($e->user_id)?->seat->label, FinalScore::compute($class->course, $grades->get($e->user_id, []))['final'],
+                    $e->joined_at->format('Y-m-d'),
+                ]));
+            }
+            $writer->close();
+        }, str("{$class->course->code}-{$class->name}-anggota")->slug().'.xlsx', ['Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet']);
+    }
+
+    /**
+     * FR-AC-03: import praktikan ke kelas (kolom nim).
+     */
+    public function importMembers(Request $request, LabClass $class, ImportMembers $import): RedirectResponse
+    {
+        $this->authorizeAssistant($request, $class, write: true);
+        $request->validate(['file' => ['required', 'file', 'mimes:xlsx,csv,txt', 'max:2048']], [], ['file' => 'file']);
+
+        $result = $import($class, $request->file('file'));
+        Inertia::flash('importResult', $result);
+        Inertia::flash('toast', ['type' => $result['failed'] ? 'warning' : 'success', 'message' => "{$result['created']} dari {$result['total']} praktikan ditambahkan ke kelas."]);
 
         return back();
     }

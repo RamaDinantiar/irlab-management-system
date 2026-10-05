@@ -1,10 +1,11 @@
 import { Form } from '@inertiajs/react';
-import { UserMinus, Users } from 'lucide-react';
+import { Download, UserMinus, Users } from 'lucide-react';
 import { useState } from 'react';
 import ClassDetailController from '@/actions/App/Http/Controllers/Asisten/ClassDetailController';
 import { ClassDetailLayout } from '@/components/classes/class-detail-layout';
 import { EmptyState } from '@/components/empty-state';
 import InputError from '@/components/input-error';
+import { ImportUsersDialog } from '@/components/users/import-users-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -38,6 +39,8 @@ type Member = {
     major: string | null;
     cohortYear: number | null;
     joinedAt: string;
+    seat: string | null;
+    average: number | null;
 };
 
 /** FR-ENR-04: keluarkan praktikan dengan alasan; submission tetap tersimpan. */
@@ -120,8 +123,8 @@ function RemoveMemberDialog({
 }
 
 /**
- * Asisten › detail kelas (FR-AC-02/03). Tab Anggota; Pertemuan & Modul,
- * Presensi, dan Kursi menyusul bersama modulnya.
+ * Asisten › detail kelas › Anggota (FR-AC-03): NIM, nama, jurusan, kursi,
+ * rata-rata nilai; keluarkan, ekspor Excel, import praktikan.
  */
 export default function AsistenClassShow({
     klass,
@@ -132,6 +135,44 @@ export default function AsistenClassShow({
 }) {
     return (
         <ClassDetailLayout klass={klass} title="Anggota">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-sm text-muted-foreground">
+                    {members.length} praktikan ·{' '}
+                    {members.filter((m) => m.seat).length} sudah mengontrak
+                    kursi
+                </p>
+                <div className="flex flex-wrap gap-2">
+                    {klass.canEdit && (
+                        <ImportUsersDialog
+                            action={ClassDetailController.importMembers.form(
+                                klass.id,
+                            )}
+                            title="Import praktikan ke kelas"
+                            triggerLabel="Import ke Kelas"
+                            templateUrl={null}
+                            description={
+                                <>
+                                    CSV atau XLSX dengan kolom{' '}
+                                    <span className="font-mono">nim</span>. Akun
+                                    praktikan harus sudah dibuat Admin; baris
+                                    yang gagal dilaporkan.
+                                </>
+                            }
+                        />
+                    )}
+                    {members.length > 0 && (
+                        <Button variant="outline" asChild>
+                            <a
+                                href={ClassDetailController.exportMembers.url(
+                                    klass.id,
+                                )}
+                            >
+                                <Download /> Ekspor Excel
+                            </a>
+                        </Button>
+                    )}
+                </div>
+            </div>
             {members.length === 0 ? (
                 <EmptyState
                     icon={Users}
@@ -151,6 +192,8 @@ export default function AsistenClassShow({
                                     <TableHead>NIM</TableHead>
                                     <TableHead>Nama</TableHead>
                                     <TableHead>Jurusan</TableHead>
+                                    <TableHead>Kursi</TableHead>
+                                    <TableHead>Rata-rata Nilai</TableHead>
                                     <TableHead>Bergabung</TableHead>
                                     <TableHead className="text-right">
                                         Aksi
@@ -175,6 +218,12 @@ export default function AsistenClassShow({
                                             {member.major ?? '—'}
                                             {member.cohortYear &&
                                                 ` · ${member.cohortYear}`}
+                                        </TableCell>
+                                        <TableCell className="font-mono text-sm">
+                                            {member.seat ?? '—'}
+                                        </TableCell>
+                                        <TableCell className="font-mono text-sm font-bold">
+                                            {member.average ?? '—'}
                                         </TableCell>
                                         <TableCell className="font-mono text-sm">
                                             {formatDate(

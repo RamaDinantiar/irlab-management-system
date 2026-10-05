@@ -1,5 +1,6 @@
 import { Form, usePage } from '@inertiajs/react';
 import { Download, FileSpreadsheet, Upload } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import UserController from '@/actions/App/Http/Controllers/Admin/UserController';
 import InputError from '@/components/input-error';
@@ -18,9 +19,22 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import type { ImportResult } from '@/types';
+import type { RouteFormDefinition } from '@/wayfinder';
 
 /** PRD A1 / US-D04-1: import akun praktikan dari CSV/XLSX + laporan baris gagal. */
-export function ImportUsersDialog() {
+export function ImportUsersDialog({
+    action = UserController.import.form(),
+    title = 'Import akun praktikan',
+    description,
+    triggerLabel = 'Import Praktikan',
+    templateUrl = UserController.template.url(),
+}: {
+    action?: RouteFormDefinition<'post'>;
+    title?: string;
+    description?: ReactNode;
+    triggerLabel?: string;
+    templateUrl?: string | null;
+} = {}) {
     const [open, setOpen] = useState(false);
     const { flash } = usePage();
     const [result, setResult] = useState<ImportResult | null>(null);
@@ -36,30 +50,37 @@ export function ImportUsersDialog() {
             <Dialog open={open} onOpenChange={setOpen}>
                 <DialogTrigger asChild>
                     <Button variant="outline">
-                        <Upload /> Import Praktikan
+                        <Upload /> {triggerLabel}
                     </Button>
                 </DialogTrigger>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Import akun praktikan</DialogTitle>
+                        <DialogTitle>{title}</DialogTitle>
                         <DialogDescription>
-                            CSV atau XLSX (maks. 1.000 baris, 2 MB) dengan kolom{' '}
-                            <span className="font-mono">
-                                nim, nama, email, jurusan, angkatan
-                            </span>
-                            . Setiap akun mendapat password sementara lewat
-                            email.
+                            {description ?? (
+                                <>
+                                    CSV atau XLSX (maks. 1.000 baris, 2 MB)
+                                    dengan kolom{' '}
+                                    <span className="font-mono">
+                                        nim, nama, email, jurusan, angkatan
+                                    </span>
+                                    . Setiap akun mendapat password sementara
+                                    lewat email.
+                                </>
+                            )}
                         </DialogDescription>
                     </DialogHeader>
-                    <a
-                        href={UserController.template.url()}
-                        className="inline-flex w-fit items-center gap-1.5 text-sm font-bold text-primary-700 underline decoration-primary-200 underline-offset-4 hover:decoration-current"
-                    >
-                        <Download className="size-4" aria-hidden /> Unduh
-                        template CSV
-                    </a>
+                    {templateUrl && (
+                        <a
+                            href={templateUrl}
+                            className="inline-flex w-fit items-center gap-1.5 text-sm font-bold text-primary-700 underline decoration-primary-200 underline-offset-4 hover:decoration-current"
+                        >
+                            <Download className="size-4" aria-hidden /> Unduh
+                            template CSV
+                        </a>
+                    )}
                     <Form
-                        {...UserController.import.form()}
+                        {...action}
                         options={{ preserveScroll: true }}
                         onSuccess={() => setOpen(false)}
                         className="grid gap-4"

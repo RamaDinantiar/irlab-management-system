@@ -92,7 +92,10 @@ class ImportUsers
      *
      * @return array<int, array<string, string>>
      */
-    private function readRows(UploadedFile $file): array
+    /**
+     * @param  list<string>  $required  header wajib
+     */
+    public function readRows(UploadedFile $file, array $required = ['nim', 'email']): array
     {
         $reader = strtolower($file->getClientOriginalExtension()) === 'xlsx' ? new XlsxReader : new CsvReader;
         $reader->open($file->getRealPath());
@@ -139,9 +142,9 @@ class ImportUsers
             $reader->close();
         }
 
-        if ($headers === null || ! in_array('nim', $headers, true) || ! in_array('email', $headers, true)) {
+        if ($headers === null || array_diff($required, $headers) !== []) {
             throw ValidationException::withMessages([
-                'file' => 'Header tidak dikenali. Gunakan template: nim, nama, email, jurusan, angkatan.',
+                'file' => 'Header tidak dikenali. Kolom wajib: '.implode(', ', $required).'.',
             ]);
         }
 
