@@ -62,12 +62,6 @@ const initials = (name: string) =>
         .map((p) => p[0])
         .join('')
         .toUpperCase();
-name.replace(/^(Dr\.|Ir\.|Prof\.)\s*/g, '')
-    .split(' ')
-    .slice(0, 2)
-    .map((p) => p[0])
-    .join('')
-    .toUpperCase();
 
 function ProgramTile({ p, type }: { p: ProgramCard; type: ProgramTypeInfo }) {
     const pct = p.quota
