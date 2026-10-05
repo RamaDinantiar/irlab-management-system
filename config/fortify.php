@@ -162,6 +162,7 @@ return [
     'features' => [
         // Registrasi, 2FA, dan passkey sengaja dimatikan: akun dibuat lewat import
         // Admin (PRD A1); 2FA masuk fase pasca-MVP (PRD Bagian 9).
+        Features::registration(),
         Features::resetPasswords(),
         Features::emailVerification(),
     ],

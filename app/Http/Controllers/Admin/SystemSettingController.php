@@ -42,10 +42,15 @@ class SystemSettingController extends Controller
             'limit_image_mb' => ['required', 'integer', 'between:1,20'],
             'pdf_header_title' => ['required', 'string', 'max:100'],
             'pdf_header_subtitle' => ['required', 'string', 'max:150'],
-        ], [], [
+            'registration_open' => ['boolean'],
+            'registration_domains' => ['nullable', 'string', 'max:255', 'regex:/^\s*@?[a-z0-9.-]+\.[a-z]{2,}(\s*,\s*@?[a-z0-9.-]+\.[a-z]{2,})*\s*$/i'],
+        ], ['registration_domains.regex' => 'Format domain tidak valid, mis. itpln.ac.id (pisahkan dengan koma).'], [
             'idle_minutes' => 'durasi idle', 'limit_pdf_mb' => 'batas PDF', 'limit_zip_mb' => 'batas ZIP', 'limit_image_mb' => 'batas gambar',
-            'pdf_header_title' => 'judul kop', 'pdf_header_subtitle' => 'subjudul kop',
+            'pdf_header_title' => 'judul kop', 'pdf_header_subtitle' => 'subjudul kop', 'registration_domains' => 'domain email',
         ]);
+        $validated['registration_open'] = $request->has('registration_open') ? $request->boolean('registration_open') : (bool) Setting::value('registration_open');
+        $validated['registration_domains'] = collect(explode(',', $validated['registration_domains'] ?? (string) Setting::value('registration_domains')))
+            ->map(fn ($d) => strtolower(trim(ltrim(trim($d), '@'))))->filter()->unique()->join(', ');
 
         $before = Setting::current();
         Setting::put($validated, $request->user()->id);

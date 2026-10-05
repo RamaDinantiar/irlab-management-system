@@ -10,17 +10,24 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/login';
 import { request } from '@/routes/password';
+import { register } from '@/routes';
 
 type Props = {
     status?: string;
     canResetPassword: boolean;
+    canRegister: boolean;
 };
 
 /**
- * Figma "Masuk" (FR-AUTH-01). Tombol "Lanjut dengan Microsoft" dan link "Daftar"
- * sengaja tidak ada: SSO & registrasi mandiri di luar MVP (PRD A1, Bagian 9).
+ * Figma "Masuk" (FR-AUTH-01). Tombol "Lanjut dengan Microsoft" sengaja tidak
+ * ada (SSO di luar MVP). Link "Daftar" tampil bila Admin membuka pendaftaran
+ * mandiri (khusus email kampus).
  */
-export default function Login({ status, canResetPassword }: Props) {
+export default function Login({
+    status,
+    canResetPassword,
+    canRegister,
+}: Props) {
     const { url } = usePage();
     // FR-AUTH-06: dikirim timer idle setelah logout otomatis.
     const expired = new URL(url, 'http://localhost').searchParams.has(
@@ -128,6 +135,15 @@ export default function Login({ status, canResetPassword }: Props) {
                             {processing && <Spinner />}
                             Masuk
                         </Button>
+
+                        {canRegister && (
+                            <p className="text-center text-sm">
+                                Belum punya akun?{' '}
+                                <TextLink href={register()}>
+                                    Daftar dengan email kampus
+                                </TextLink>
+                            </p>
+                        )}
                     </>
                 )}
             </Form>

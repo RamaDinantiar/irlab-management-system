@@ -1,10 +1,11 @@
 import { Form, Head } from '@inertiajs/react';
-import { Clock, FileText, HardDrive, Wallet } from 'lucide-react';
+import { Clock, FileText, HardDrive, UserPlus, Wallet } from 'lucide-react';
 import type { ReactNode } from 'react';
 import SystemSettingController from '@/actions/App/Http/Controllers/Admin/SystemSettingController';
 import InputError from '@/components/input-error';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
@@ -16,6 +17,8 @@ type Settings = {
     limit_image_mb: number;
     pdf_header_title: string;
     pdf_header_subtitle: string;
+    registration_open: boolean;
+    registration_domains: string;
 };
 
 type Rate = {
@@ -139,6 +142,51 @@ export default function SystemSettings({
                                     max={240}
                                     error={errors.idle_minutes}
                                 />
+                            </Section>
+                            <Section
+                                icon={UserPlus}
+                                title="Pendaftaran Akun"
+                                description="Praktikan dapat mendaftar sendiri hanya dengan email kampus, lalu wajib memverifikasi email."
+                            >
+                                <label className="flex items-center gap-2 text-sm">
+                                    <input
+                                        type="hidden"
+                                        name="registration_open"
+                                        value="0"
+                                    />
+                                    <Checkbox
+                                        name="registration_open"
+                                        value="1"
+                                        defaultChecked={
+                                            settings.registration_open
+                                        }
+                                    />{' '}
+                                    Buka pendaftaran mandiri praktikan
+                                </label>
+                                <div className="grid gap-2">
+                                    <Label htmlFor="registration_domains">
+                                        Domain email yang diizinkan
+                                    </Label>
+                                    <Input
+                                        id="registration_domains"
+                                        name="registration_domains"
+                                        required
+                                        maxLength={255}
+                                        defaultValue={
+                                            settings.registration_domains
+                                        }
+                                        placeholder="itpln.ac.id"
+                                        className="max-w-sm font-mono"
+                                    />
+                                    <p className="text-xs text-muted-foreground">
+                                        Pisahkan dengan koma bila lebih dari
+                                        satu. Sub-domain tidak otomatis
+                                        diizinkan.
+                                    </p>
+                                    <InputError
+                                        message={errors.registration_domains}
+                                    />
+                                </div>
                             </Section>
                             <Section
                                 icon={HardDrive}
