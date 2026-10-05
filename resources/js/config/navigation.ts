@@ -170,11 +170,48 @@ export const roleLabels: Record<Role, string> = {
 };
 
 /**
+ * Halaman detail yang tidak ada di menu: [pola URL, URL induk di menu, label].
+ * Admin memakai halaman akademik /asisten/* (FR-ADM-11).
+ */
+const DETAIL_PAGES: [RegExp, string | null, string][] = [
+    [/^\/asisten\/programs\/\d+/, '/asisten/program', 'Kelola Program'],
+    [/^\/asisten\/grading\/\d+\/review/, '/asisten/grade', 'Mode Tinjauan'],
+    [/^\/asisten\/class\/\d+/, '/asisten/class', 'Detail Kelas'],
+    [/^\/asisten\/sessions(\/\d+)?/, '/asisten/class', 'Sesi Kelas'],
+    [/^\/asisten\/tasks\/create/, '/asisten/task', 'Buat Tugas'],
+    [/^\/asisten\/tasks\/\d+\/edit/, '/asisten/task', 'Ubah Tugas'],
+    [/^\/praktikan\/tasks\/\d+/, '/praktikan/task', 'Detail Tugas'],
+    [/^\/praktikan\/programs\/\d+/, '/praktikan/program', 'Detail Program'],
+    [
+        /^\/praktikan\/seats\/\d+\/contract/,
+        '/praktikan/seats',
+        'Formulir Kontrak',
+    ],
+    [/^\/admin\/rooms\/\d+\/layout/, '/admin/rooms', 'Editor Denah'],
+    [/^\/notifications/, null, 'Notifikasi & Pengumuman'],
+];
+
+/**
  * Jejak menu untuk URL saat ini, mis. ['Grade', 'Post-Test'] — dasar breadcrumb
- * otomatis (PRD 5.6).
+ * otomatis (PRD 5.6). Halaman detail mendapat induknya + label halaman.
  */
 export function findNavTrail(groups: NavGroup[], url: string): NavItem[] {
     const path = url.split('?')[0];
+    const detail = DETAIL_PAGES.find(([pattern]) => pattern.test(path));
+
+    if (detail) {
+        const [, parent, title] = detail;
+
+        return [
+            ...(parent ? findMenuTrail(groups, parent) : []),
+            { title, href: path },
+        ];
+    }
+
+    return findMenuTrail(groups, path);
+}
+
+function findMenuTrail(groups: NavGroup[], path: string): NavItem[] {
     const matches = (item: NavItem) =>
         typeof item.href === 'string' &&
         (path === item.href || path.startsWith(`${item.href}/`));

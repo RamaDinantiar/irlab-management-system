@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\ChangePasswordController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Praktikan\DashboardController as PraktikanDashboardController;
+use App\Http\Controllers\SearchController;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,6 +33,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', fn (Request $request) => redirect()->route(
         $request->user()->role->dashboardRoute(),
     ))->name('dashboard');
+
+    // Pencarian global topbar (sesuai peran).
+    Route::get('search', SearchController::class)->middleware('throttle:60,1')->name('search');
 
     // Lonceng notifikasi + pengumuman (semua peran).
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');

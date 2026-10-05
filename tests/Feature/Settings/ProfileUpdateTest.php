@@ -61,39 +61,22 @@ class ProfileUpdateTest extends TestCase
         $this->assertNotNull($user->refresh()->email_verified_at);
     }
 
-    public function test_user_can_delete_their_account()
+    public function test_users_cannot_delete_their_own_account()
     {
-        $user = User::factory()->create();
-
-        $response = $this
-            ->actingAs($user)
-            ->delete(route('profile.destroy'), [
-                'password' => 'password',
-            ]);
-
-        $response
-            ->assertSessionHasNoErrors()
-            ->assertRedirect(route('home'));
-
-        $this->assertGuest();
-        $this->assertNull($user->fresh());
+        // Akun dikelola Admin (nonaktifkan, bukan hapus) agar riwayat nilai & submission tetap utuh.
+        $this->actingAs(User::factory()->create())->delete('/settings/profile')->assertStatus(405);
     }
 
-    public function test_correct_password_must_be_provided_to_delete_account()
+    public function test_users_complete_study_program_but_cannot_change_their_nim()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['nim' => '202300123', 'major' => null]);
 
-        $response = $this
-            ->actingAs($user)
-            ->from(route('profile.edit'))
-            ->delete(route('profile.destroy'), [
-                'password' => 'wrong-password',
-            ]);
+        $this->actingAs($user)->patch(route('profile.update'), [
+            'name' => $user->name, 'email' => $user->email, 'major' => 'S1 Sistem Informasi', 'cohort_year' => 2023, 'nim' => '999',
+        ])->assertSessionHasNoErrors();
 
-        $response
-            ->assertSessionHasErrors('password')
-            ->assertRedirect(route('profile.edit'));
-
-        $this->assertNotNull($user->fresh());
+        $user->refresh();
+        $this->assertSame('S1 Sistem Informasi', $user->major);
+        $this->assertSame('202300123', $user->nim);
     }
 }

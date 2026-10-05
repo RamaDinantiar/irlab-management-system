@@ -1,6 +1,7 @@
 import { usePage } from '@inertiajs/react';
 import { CalendarRange, ChevronDown } from 'lucide-react';
 import { Breadcrumbs } from '@/components/breadcrumbs';
+import { GlobalSearch } from '@/components/global-search';
 import { NotificationBell } from '@/components/notification-bell';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
@@ -68,6 +69,7 @@ export function AppSidebarHeader({
                         {activeSemester.name}
                     </span>
                 )}
+                <GlobalSearch />
                 <NotificationBell />
 
                 {auth.user && (

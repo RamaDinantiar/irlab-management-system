@@ -17,6 +17,19 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function rules(): array
     {
-        return $this->profileRules($this->user()->id);
+        // NIM & peran dikelola Admin; pengguna melengkapi program studi & angkatan (FR-PST-03).
+        return [
+            ...$this->profileRules($this->user()->id),
+            'major' => ['nullable', 'string', 'max:255'],
+            'cohort_year' => ['nullable', 'integer', 'between:2000,2100'],
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function attributes(): array
+    {
+        return ['name' => 'nama', 'email' => 'email', 'major' => 'program studi', 'cohort_year' => 'angkatan'];
     }
 }
