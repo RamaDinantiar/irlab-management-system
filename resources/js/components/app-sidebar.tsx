@@ -1,7 +1,11 @@
 import { Link, router } from '@inertiajs/react';
 import { LogOut, Settings } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
-import { NavMain } from '@/components/nav-main';
+import {
+    NavMain,
+    sidebarItemClass,
+    sidebarLabelClass,
+} from '@/components/nav-main';
 import {
     Sidebar,
     SidebarContent,
@@ -18,9 +22,6 @@ import { cn } from '@/lib/utils';
 import { dashboard, logout } from '@/routes';
 import { edit as editProfile } from '@/routes/profile';
 
-const footerItemClass =
-    'h-11 gap-3 rounded-none px-3 text-h3 font-bold text-white/80 hover:bg-sidebar-accent hover:text-white [&>svg]:size-6! group-data-[collapsible=icon]:size-11! group-data-[collapsible=icon]:justify-center';
-
 export function AppSidebar() {
     const groups = useNavigation();
     const { isCurrentOrParentUrl } = useCurrentUrl();
@@ -31,11 +32,11 @@ export function AppSidebar() {
             collapsible="icon"
             className="border-r-0 shadow-[4px_0_12px_rgb(0_0_0/0.12)]"
         >
-            <SidebarHeader className="px-6 pt-8 pb-6 group-data-[collapsible=icon]:px-2">
+            <SidebarHeader className="px-6 pt-8 pb-6 transition-[padding] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)] group-data-[collapsible=icon]:px-[18px]">
                 <Link
                     href={dashboard()}
                     prefetch
-                    className="flex items-center gap-3 rounded-sm group-data-[collapsible=icon]:justify-center focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
+                    className="flex items-center gap-3 overflow-hidden rounded-sm focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
                     aria-label="IR Lab — Dashboard"
                 >
                     <AppLogo />
@@ -53,14 +54,16 @@ export function AppSidebar() {
                             asChild
                             tooltip={{ children: 'Settings' }}
                             className={cn(
-                                footerItemClass,
+                                sidebarItemClass,
                                 isCurrentOrParentUrl('/settings') &&
                                     'text-white',
                             )}
                         >
                             <Link href={editProfile()} prefetch>
                                 <Settings aria-hidden />
-                                <span>Settings</span>
+                                <span className={sidebarLabelClass}>
+                                    Settings
+                                </span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -68,7 +71,7 @@ export function AppSidebar() {
                         <SidebarMenuButton
                             asChild
                             tooltip={{ children: 'Log out' }}
-                            className={footerItemClass}
+                            className={sidebarItemClass}
                         >
                             <Link
                                 href={logout()}
@@ -80,7 +83,9 @@ export function AppSidebar() {
                                 data-test="logout-button"
                             >
                                 <LogOut aria-hidden />
-                                <span>Log out</span>
+                                <span className={sidebarLabelClass}>
+                                    Log out
+                                </span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
