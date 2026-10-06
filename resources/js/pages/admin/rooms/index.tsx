@@ -63,7 +63,7 @@ function RoomFormDialog({
                                     required
                                     maxLength={50}
                                     defaultValue={room?.name}
-                                    placeholder="Lab IR 1"
+                                    placeholder="Lab IR"
                                 />
                                 <InputError message={errors.name} />
                             </div>

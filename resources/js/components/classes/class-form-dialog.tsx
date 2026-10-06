@@ -214,15 +214,33 @@ export function ClassFormDialog({
                                     <InputError message={errors.end_time} />
                                 </div>
                             </div>
-                            <SelectField
-                                id="class-room"
-                                name="room_id"
-                                label="Ruang"
-                                options={rooms}
-                                defaultValue={klass?.room?.id}
-                                placeholder="Pilih ruang"
-                                error={errors.room_id}
-                            />
+                            {rooms.length === 1 ? (
+                                // Hanya satu lab: tidak perlu memilih ruang.
+                                <div className="grid gap-2">
+                                    <span className="text-sm font-medium">
+                                        Ruang
+                                    </span>
+                                    <input
+                                        type="hidden"
+                                        name="room_id"
+                                        value={rooms[0].id}
+                                    />
+                                    <p className="flex h-10 items-center border bg-muted/40 px-3 text-sm">
+                                        {rooms[0].label}
+                                    </p>
+                                    <InputError message={errors.room_id} />
+                                </div>
+                            ) : (
+                                <SelectField
+                                    id="class-room"
+                                    name="room_id"
+                                    label="Ruang"
+                                    options={rooms}
+                                    defaultValue={klass?.room?.id}
+                                    placeholder="Pilih ruang"
+                                    error={errors.room_id}
+                                />
+                            )}
 
                             {assistants && (
                                 <fieldset className="grid gap-2">

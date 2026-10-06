@@ -33,7 +33,7 @@ class ProgramSeeder extends Seeder
 
         $rag = Program::create([...$base, 'type' => ProgramType::Workshop, 'title' => 'Hands-on Large Language Models & RAG Implementation', 'category' => 'Artificial Intelligence',
             'description' => 'Pelatihan intensif arsitektur **Retrieval-Augmented Generation** dengan LangChain dan vector database. Peserta membangun sistem QA dokumen ilmiah.',
-            'speaker_name' => 'Dr. Ir. Hendra, M.Kom', 'speaker_affiliation' => 'Dosen Pembina & Tim Peneliti Rekayasa Data', 'mode' => 'offline', 'location' => 'Lab IR 1',
+            'speaker_name' => 'Dr. Ir. Hendra, M.Kom', 'speaker_affiliation' => 'Dosen Pembina & Tim Peneliti Rekayasa Data', 'mode' => 'offline', 'location' => 'Lab IR',
             'starts_at' => now()->addDays(12)->setTime(9, 0), 'ends_at' => now()->addDays(12)->setTime(15, 30), 'quota' => 40, 'fee_internal' => 35000, 'fee_external' => 50000,
             'facilities' => ['E-Sertifikat Terverifikasi', 'Modul Repo & Starter Code'], 'status' => 'open', 'opens_at' => now()->subDays(3), 'closes_at' => now()->addDays(8)]);
         $cv = Program::create([...$base, 'type' => ProgramType::Workshop, 'title' => 'Deep Learning for Computer Vision & Object Detection', 'category' => 'Computer Vision',
@@ -42,7 +42,7 @@ class ProgramSeeder extends Seeder
             'status' => 'closed', 'opens_at' => now()->subDays(20), 'closes_at' => now()->subDays(7)]);
         $tutor = Program::create([...$base, 'type' => ProgramType::QuickTutor, 'title' => 'Struktur Data untuk UTS', 'category' => 'Algoritma',
             'description' => 'Sesi tutor singkat: tree, graph, dan hashing sebelum UTS.', 'speaker_name' => 'Dimas Asisten', 'speaker_affiliation' => 'Asisten Lab IR', 'mode' => 'offline',
-            'location' => 'Lab IR 2', 'starts_at' => now()->addDays(4)->setTime(15, 0), 'ends_at' => now()->addDays(4)->setTime(17, 0), 'quota' => 20, 'status' => 'open', 'opens_at' => now()->subDay(), 'closes_at' => now()->addDays(3)]);
+            'location' => 'Lab IR', 'starts_at' => now()->addDays(4)->setTime(15, 0), 'ends_at' => now()->addDays(4)->setTime(17, 0), 'quota' => 20, 'status' => 'open', 'opens_at' => now()->subDay(), 'closes_at' => now()->addDays(3)]);
 
         foreach ([$rag, $cv, $tutor] as $program) {
             $phone = $program->fields()->create(['order' => 1, 'label' => 'Nomor WhatsApp', 'type' => 'text', 'required' => true]);
@@ -84,12 +84,11 @@ class ProgramSeeder extends Seeder
         }
 
         // Log maintenance.
-        $lab1 = Room::where('name', 'Lab IR 1')->value('id');
-        $lab2 = Room::where('name', 'Lab IR 2')->value('id');
+        $lab = Room::where('name', 'Lab IR')->value('id');
         foreach ([
-            ['Update OS & antivirus Lab IR 1', -14, $lab1, 'PC-01 s.d. PC-40: update Windows, definisi antivirus.', 'Selesai. Semua PC terbarui.'],
-            ['Penggantian perangkat input', -6, $lab2, 'Mouse PC-12, keyboard PC-27.', 'Mouse diganti; keyboard PC-27 menunggu stok.'],
-            ['Pengecekan jaringan & proyektor', 3, $lab1, 'Switch utama, kabel LAN baris 3, proyektor.', null],
+            ['Update OS & antivirus Lab IR', -14, $lab, 'PC-01 s.d. PC-40: update Windows, definisi antivirus.', 'Selesai. Semua PC terbarui.'],
+            ['Penggantian perangkat input', -6, $lab, 'Mouse PC-12, keyboard PC-27.', 'Mouse diganti; keyboard PC-27 menunggu stok.'],
+            ['Pengecekan jaringan & proyektor', 3, $lab, 'Switch utama, kabel LAN baris 3, proyektor.', null],
         ] as [$title, $day, $room, $devices, $result]) {
             Program::create([...$base, 'type' => ProgramType::Maintenance, 'title' => $title, 'description' => $devices, 'room_id' => $room,
                 'starts_at' => now()->addDays($day)->setTime(16, 0), 'ends_at' => now()->addDays($day)->setTime(18, 0),

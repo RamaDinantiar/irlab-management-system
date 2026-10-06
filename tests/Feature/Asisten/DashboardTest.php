@@ -102,7 +102,7 @@ class DashboardTest extends TestCase
     {
         // Minggu malam: shift minggu ini sudah lewat → shift Rabu minggu depan.
         $asisten = User::factory()->asisten()->create();
-        $room = Room::factory()->create(['name' => 'Lab IR 1']);
+        $room = Room::factory()->create(['name' => 'Lab IR']);
         $semester = Semester::factory()->active()->create();
         foreach (['2026-10-01', '2026-10-07'] as $date) {
             Shift::create(['semester_id' => $semester->id, 'user_id' => $asisten->id, 'room_id' => $room->id, 'date' => $date, 'start_time' => '13:00', 'end_time' => '16:00', 'title' => 'Jaga Lab']);
@@ -112,6 +112,6 @@ class DashboardTest extends TestCase
         $shift = AsistenDashboardData::for($asisten, $now)['nextShift'];
 
         $this->assertSame('2026-10-07T13:00:00+07:00', $shift['startsAt']);
-        $this->assertSame('Lab IR 1', $shift['room']);
+        $this->assertSame('Lab IR', $shift['room']);
     }
 }

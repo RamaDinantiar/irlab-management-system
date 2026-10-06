@@ -31,7 +31,7 @@ class AnnouncementSeeder extends Seeder
         Announcement::create([
             'scope' => 'global', 'target_roles' => ['asisten'], 'created_by' => $admin->id, 'publish_at' => now()->subDays(2),
             'title' => 'Rapat koordinasi asisten',
-            'body' => 'Rapat koordinasi asisten Kamis pukul 16.00 di Lab IR 1. Mohon siapkan rekap laporan ngawas September.',
+            'body' => 'Rapat koordinasi asisten Kamis pukul 16.00 di Lab IR. Mohon siapkan rekap laporan ngawas September.',
         ]);
         Announcement::create([
             'scope' => 'class', 'class_id' => $ir->id, 'created_by' => $dimas->id, 'publish_at' => now()->subHours(6),

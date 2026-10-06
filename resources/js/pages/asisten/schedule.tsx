@@ -257,7 +257,8 @@ function AddShiftDialog({
 }) {
     const form = useForm({
         user_id: '',
-        room_id: '',
+        // Hanya satu lab → langsung terisi.
+        room_id: manage.rooms.length === 1 ? String(manage.rooms[0].id) : '',
         title: 'Jaga Lab',
         date: '',
         start_time: '13:00',
@@ -309,7 +310,12 @@ function AddShiftDialog({
                             </select>
                             <InputError message={form.errors.user_id} />
                         </div>
-                        <div className="grid gap-2">
+                        <div
+                            className={cn(
+                                'grid gap-2',
+                                manage.rooms.length === 1 && 'hidden',
+                            )}
+                        >
                             <Label htmlFor="sh-room">Ruang</Label>
                             <select
                                 id="sh-room"

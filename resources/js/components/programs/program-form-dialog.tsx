@@ -99,7 +99,11 @@ export function ProgramFormDialog({
         speaker_affiliation: program?.speakerAffiliation ?? '',
         mode: program?.mode ?? 'offline',
         location: program?.location ?? '',
-        room_id: program?.roomId ? String(program.roomId) : '',
+        room_id: program?.roomId
+            ? String(program.roomId)
+            : options.rooms.length === 1
+              ? String(options.rooms[0].id)
+              : '',
         starts_at: toLocal(program?.startsAt),
         ends_at: toLocal(program?.endsAt),
         quota: program?.quota ? String(program.quota) : '',
@@ -197,7 +201,7 @@ export function ProgramFormDialog({
                                     }
                                     placeholder={
                                         maintenance
-                                            ? 'Pembersihan & update OS Lab IR 1'
+                                            ? 'Pembersihan & update OS Lab IR'
                                             : 'Hands-on Large Language Models & RAG'
                                     }
                                 />
@@ -394,7 +398,16 @@ export function ProgramFormDialog({
                                     />
                                     <InputError message={form.errors.ends_at} />
                                 </div>
-                                {maintenance ? (
+                                {maintenance && options.rooms.length === 1 ? (
+                                    <div className="grid gap-2">
+                                        <span className="text-sm font-medium">
+                                            Ruang
+                                        </span>
+                                        <p className="flex h-10 items-center border bg-muted/40 px-3 text-sm">
+                                            {options.rooms[0].name}
+                                        </p>
+                                    </div>
+                                ) : maintenance ? (
                                     <div className="grid gap-2">
                                         <Label htmlFor="p-room">Ruang</Label>
                                         <select
@@ -434,7 +447,7 @@ export function ProgramFormDialog({
                                             placeholder={
                                                 form.data.mode === 'online'
                                                     ? 'https://zoom.us/…'
-                                                    : 'Lab IR 1'
+                                                    : 'Lab IR'
                                             }
                                         />
                                     </div>

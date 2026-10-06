@@ -70,20 +70,19 @@ class DatabaseSeeder extends Seeder
             }
         }
 
-        // Ruang & kelas semester aktif (jadwal sesuai frame Figma "Dashboard").
-        $lab1 = Room::factory()->create(['name' => 'Lab IR 1', 'rows' => 6, 'cols' => 8]);
-        $lab2 = Room::factory()->create(['name' => 'Lab IR 2', 'rows' => 5, 'cols' => 8]);
+        // Satu-satunya ruang lab & kelas semester aktif (jadwal sesuai frame Figma "Dashboard").
+        $lab = Room::factory()->create(['name' => 'Lab IR', 'rows' => 6, 'cols' => 8]);
 
         $classes = [
-            ['IF-3101', 'Kelas A', 1, '07:20', '09:50', $lab1, [$dimas]],
-            ['IF-3101', 'Kelas C', 1, '10:10', '12:40', $lab1, [$dimas]],
-            ['IF-3205', 'Kelas C', 1, '15:00', '16:40', $lab2, [$michael]],
-            ['IF-3102', 'Kelas A', 2, '07:20', '09:50', $lab2, [$yozika]],
-            ['IF-2104', 'Kelas A', 2, '10:10', '12:40', $lab1, [$yozika]],
-            ['IF-3103', 'Kelas B', 2, '13:00', '14:40', $lab1, [$dimas, $michael]],
-            ['IF-3102', 'Kelas B', 4, '10:10', '12:40', $lab2, [$yozika]],
-            ['IF-3103', 'Kelas A', 4, '13:00', '14:40', $lab1, [$dimas]],
-            ['IF-3205', 'Kelas A', 5, '10:10', '11:50', $lab2, [$michael]],
+            ['IF-3101', 'Kelas A', 1, '07:20', '09:50', $lab, [$dimas]],
+            ['IF-3101', 'Kelas C', 1, '10:10', '12:40', $lab, [$dimas]],
+            ['IF-3205', 'Kelas C', 1, '15:00', '16:40', $lab, [$michael]],
+            ['IF-3102', 'Kelas A', 2, '07:20', '09:50', $lab, [$yozika]],
+            ['IF-2104', 'Kelas A', 2, '10:10', '12:40', $lab, [$yozika]],
+            ['IF-3103', 'Kelas B', 2, '13:00', '14:40', $lab, [$dimas, $michael]],
+            ['IF-3102', 'Kelas B', 4, '10:10', '12:40', $lab, [$yozika]],
+            ['IF-3103', 'Kelas A', 4, '13:00', '14:40', $lab, [$dimas]],
+            ['IF-3205', 'Kelas A', 5, '10:10', '11:50', $lab, [$michael]],
         ];
 
         $created = [];
@@ -132,7 +131,7 @@ class DatabaseSeeder extends Seeder
             'course_id' => $byCode[$active->id]['IF-3103']->id,
             'semester_id' => $active->id,
             'name' => 'Kelas C', 'day_of_week' => 5, 'start_time' => '13:00', 'end_time' => '14:40',
-            'room_id' => $lab1->id, 'quota' => 25,
+            'room_id' => $lab->id, 'quota' => 25,
         ])->assistants()->attach($dimas);
 
         // Pengajuan Asisten yang menunggu persetujuan Admin.

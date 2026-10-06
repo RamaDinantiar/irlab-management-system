@@ -35,7 +35,7 @@ class ProgramTest extends TestCase
     {
         return [
             'type' => 'workshop', 'title' => 'Hands-on RAG', 'description' => 'Pelatihan RAG.', 'speaker_name' => 'Dr. Hendra',
-            'mode' => 'offline', 'location' => 'Lab IR 1', 'starts_at' => now()->addWeek()->format('Y-m-d H:i'), 'quota' => 2,
+            'mode' => 'offline', 'location' => 'Lab IR', 'starts_at' => now()->addWeek()->format('Y-m-d H:i'), 'quota' => 2,
             'closes_at' => now()->addDays(3)->format('Y-m-d H:i'), 'intent' => 'publish', ...$overrides,
         ];
     }
@@ -147,7 +147,7 @@ class ProgramTest extends TestCase
     public function test_maintenance_logs_record_staff_and_results()
     {
         $this->actingAs($this->asisten)->post(route('asisten.programs.store'), [
-            'type' => 'maintenance', 'title' => 'Update OS Lab IR 1', 'description' => 'PC-01 s.d. PC-20', 'starts_at' => now()->format('Y-m-d H:i'),
+            'type' => 'maintenance', 'title' => 'Update OS Lab IR', 'description' => 'PC-01 s.d. PC-20', 'starts_at' => now()->format('Y-m-d H:i'),
             'staff_ids' => [$this->asisten->id], 'result_notes' => 'Selesai.',
         ])->assertSessionHasNoErrors();
 

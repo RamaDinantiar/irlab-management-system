@@ -33,7 +33,7 @@ class ClassTest extends TestCase
         $this->actingAs(User::factory()->admin()->create());
         $this->semester = Semester::factory()->active()->create();
         $this->course = Course::factory()->for($this->semester)->create(['name' => 'Machine Learning']);
-        $this->room = Room::factory()->create(['name' => 'Lab IR 1']);
+        $this->room = Room::factory()->create(['name' => 'Lab IR']);
     }
 
     /**

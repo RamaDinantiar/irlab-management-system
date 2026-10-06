@@ -45,10 +45,9 @@ class OperationsSeeder extends Seeder
         $generate($semester);
 
         // Shift jaga lab mingguan (di luar sesi kelas).
-        $lab1 = Room::where('name', 'Lab IR 1')->first();
-        $lab2 = Room::where('name', 'Lab IR 2')->first();
+        $lab = Room::where('name', 'Lab IR')->first();
         $start = CarbonImmutable::parse($semester->start_date)->startOfWeek();
-        foreach ([[$dimas, 3, '13:00', '16:00', $lab1], [$yozika, 6, '08:00', '12:00', $lab2], [$michael, 4, '15:00', '17:00', $lab2]] as [$user, $day, $from, $to, $room]) {
+        foreach ([[$dimas, 3, '13:00', '16:00', $lab], [$yozika, 6, '08:00', '12:00', $lab], [$michael, 4, '15:00', '17:00', $lab]] as [$user, $day, $from, $to, $room]) {
             for ($week = 0; $week < 16; $week++) {
                 $date = $start->addWeeks($week)->addDays($day - 1);
                 if (! Shift::overlaps($user->id, $date->toDateString(), $from, $to)) {
