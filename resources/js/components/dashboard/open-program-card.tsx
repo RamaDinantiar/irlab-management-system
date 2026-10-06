@@ -14,7 +14,7 @@ export function OpenProgramCard({
 
     if (!program) {
         return (
-            <section className="flex min-h-36 flex-col justify-end gap-1 border bg-card p-5">
+            <section className="flex h-full min-h-36 flex-col justify-end gap-1 border bg-card p-5">
                 <h2 className="text-h3 font-bold text-primary-700">
                     Program Terbuka
                 </h2>
@@ -33,7 +33,7 @@ export function OpenProgramCard({
     return (
         <section
             aria-labelledby="open-program-title"
-            className="flex min-h-36 flex-col gap-2 border bg-card p-5"
+            className="flex h-full min-h-36 flex-col gap-2 border bg-card p-5"
         >
             <p className="font-mono text-xs font-bold text-primary-700 uppercase">
                 {program.type} · Pendaftaran dibuka
