@@ -17,6 +17,8 @@ export type TaskFormOptions = {
             startTime: string;
             endTime: string;
             members: number;
+            /** Sesi pertemuan yang sudah dimulai hari ini (null bila belum). */
+            session: { meetingNumber: number; startedAt: string } | null;
         }[];
     }[];
     limits: { attachments: number; attachmentMb: number };

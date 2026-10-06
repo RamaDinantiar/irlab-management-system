@@ -246,4 +246,23 @@ class TaskManagementTest extends TestCase
         $this->actingAs($student)->post(route('praktikan.tasks.submit', $target), ['text' => 'jawaban'])
             ->assertSessionHasErrors(['submission' => 'Pengumpulan sudah dihentikan oleh asisten.']);
     }
+
+    public function test_the_form_knows_which_class_sessions_are_running_today()
+    {
+        Meeting::factory()->create(['class_id' => $this->classA->id, 'number' => 3, 'date' => today(), 'started_at' => now()->subMinutes(10)]);
+        Meeting::factory()->create(['class_id' => $this->classB->id, 'number' => 3, 'date' => today(), 'started_at' => null]);
+
+        $this->get(route('asisten.tasks.index', ['type' => 'post-test']))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('courses.0.classes.0.session.meetingNumber', 3)
+                ->where('courses.0.classes.1.session', null)
+            );
+
+        // Mode "Sesi Berjalan" mengirim jam hari ini sebagai open_at/due_at.
+        $today = now()->format('Y-m-d');
+        $this->post(route('asisten.tasks.store'), $this->payload(['meeting_number' => 3, 'targets' => [
+            ['class_id' => $this->classA->id, 'open_at' => "{$today} 08:00", 'due_at' => "{$today} 23:59"],
+        ]]))->assertSessionHasNoErrors();
+        $this->assertSame("{$today} 23:59", TaskTarget::sole()->due_at->format('Y-m-d H:i'));
+    }
 }

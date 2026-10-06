@@ -1,6 +1,7 @@
 import { Form } from '@inertiajs/react';
 import {
     Bell,
+    CalendarClock,
     Clock,
     Copy,
     FilePlus2,
@@ -13,6 +14,7 @@ import {
     Star,
     Users,
     X,
+    Zap,
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useRef, useState } from 'react';
@@ -48,11 +50,35 @@ import type { TaskFormData, TaskFormOptions, TaskType } from '@/types';
 
 type TargetDraft = {
     included: boolean;
+    /** Post/Pre-Test: "now" = sesi berjalan (jam saja, hari ini); "scheduled" = tanggal & jam. */
+    mode: 'now' | 'scheduled';
+    startTime: string;
+    endTime: string;
     openAt: string;
     dueAt: string;
     withSession: boolean;
     windowMinutes: string;
 };
+
+type ClassOption = TaskFormOptions['courses'][number]['classes'][number];
+
+const WIB = 'Asia/Jakarta';
+
+/** Tanggal hari ini (WIB) dalam format YYYY-MM-DD. */
+const todayWib = () =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: WIB }).format(new Date());
+
+/** Jam WIB "HH:mm" untuk sekarang + offset menit. */
+const clockWib = (offsetMinutes = 0) =>
+    new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hourCycle: 'h23',
+        timeZone: WIB,
+    }).format(new Date(Date.now() + offsetMinutes * 60_000));
+
+/** "07.20"/"07:20" → "07:20". */
+const toClock = (time: string) => time.slice(0, 5).replace('.', ':');
 
 const TITLE_MAX = 150;
 const MEETINGS = Array.from({ length: 16 }, (_, i) => i + 1);
@@ -63,18 +89,25 @@ const NO_MEETING = 'none';
 function Card({
     icon: Icon,
     title,
+    required,
     aside,
     children,
     className,
+    id,
 }: {
     icon?: typeof Users;
     title?: string;
+    required?: boolean;
+    id?: string;
     aside?: ReactNode;
     children: ReactNode;
     className?: string;
 }) {
     return (
-        <section className={cn('grid gap-4 border bg-card p-5', className)}>
+        <section
+            id={id}
+            className={cn('grid gap-4 border bg-card p-5', className)}
+        >
             {title && (
                 <div className="flex items-center justify-between gap-3">
                     <h3 className="flex items-center gap-2.5 text-sm font-bold">
@@ -85,6 +118,7 @@ function Card({
                             />
                         )}
                         {title}
+                        {required && <Required />}
                     </h3>
                     {aside}
                 </div>
@@ -172,6 +206,7 @@ function TaskFormBody({
         task?.meetingNumber ? String(task.meetingNumber) : NO_MEETING,
     );
     const [allowLate, setAllowLate] = useState(task?.allowLate ?? false);
+    const [allocationError, setAllocationError] = useState<string>();
     const [files, setFiles] = useState<File[]>([]);
     const [removed, setRemoved] = useState<number[]>([]);
     const fileInput = useRef<HTMLInputElement>(null);
@@ -190,7 +225,14 @@ function TaskFormBody({
                     return [
                         klass.id,
                         {
-                            included: !!saved || !task,
+                            // Alokasi tidak dicentang otomatis — wajib dipilih asisten.
+                            included: !!saved,
+                            mode: !task && klass.session ? 'now' : 'scheduled',
+                            startTime: clockWib(),
+                            endTime:
+                                toClock(klass.endTime) > clockWib()
+                                    ? toClock(klass.endTime)
+                                    : clockWib(30),
                             openAt: toLocalInput(saved?.openAt),
                             dueAt: toLocalInput(saved?.dueAt),
                             withSession:
@@ -229,7 +271,6 @@ function TaskFormBody({
 
     const readOnly = task !== null && !task.canEdit;
     const published = task?.status === 'published';
-    let targetIndex = 0;
 
     if (courses.length === 0) {
         return (
@@ -687,7 +728,12 @@ function TaskFormBody({
 
                             {/* Kolom kanan — alokasi, waktu, penilaian */}
                             <div className="grid gap-5">
-                                <Card icon={Users} title="Alokasi Penugasan">
+                                <Card
+                                    id="task-allocation"
+                                    icon={Users}
+                                    title="Alokasi Penugasan"
+                                    required
+                                >
                                     {!course || course.classes.length === 0 ? (
                                         <p className="text-sm text-muted-foreground">
                                             Mata kuliah ini belum memiliki kelas
@@ -736,7 +782,7 @@ function TaskFormBody({
                                                                 checked={on}
                                                                 onCheckedChange={(
                                                                     checked,
-                                                                ) =>
+                                                                ) => {
                                                                     update(
                                                                         klass.id,
                                                                         {
@@ -744,8 +790,32 @@ function TaskFormBody({
                                                                                 checked ===
                                                                                 true,
                                                                         },
-                                                                    )
-                                                                }
+                                                                    );
+                                                                    if (
+                                                                        checked ===
+                                                                        true
+                                                                    ) {
+                                                                        setAllocationError(
+                                                                            undefined,
+                                                                        );
+                                                                        // Sesi berjalan → isi pertemuan otomatis.
+                                                                        if (
+                                                                            klass.session &&
+                                                                            type !==
+                                                                                'report' &&
+                                                                            meeting ===
+                                                                                NO_MEETING
+                                                                        ) {
+                                                                            setMeeting(
+                                                                                String(
+                                                                                    klass
+                                                                                        .session
+                                                                                        .meetingNumber,
+                                                                                ),
+                                                                            );
+                                                                        }
+                                                                    }
+                                                                }}
                                                                 className="size-5"
                                                                 aria-label={`Tugaskan ke ${klass.label}`}
                                                             />
@@ -755,7 +825,11 @@ function TaskFormBody({
                                             })}
                                         </ul>
                                     )}
-                                    <InputError message={errors.targets} />
+                                    <InputError
+                                        message={
+                                            allocationError ?? errors.targets
+                                        }
+                                    />
                                 </Card>
 
                                 <Card
@@ -770,206 +844,33 @@ function TaskFormBody({
                                     {included.length === 0 ? (
                                         <p className="text-sm text-muted-foreground">
                                             Pilih kelas pada Alokasi Penugasan
-                                            untuk mengatur waktu buka & batas
-                                            pengumpulan.
+                                            untuk mengatur waktu pengerjaan.
                                         </p>
                                     ) : (
                                         <ul className="grid gap-4">
-                                            {included.map((klass) => {
-                                                const target =
-                                                    targets[klass.id];
-                                                const index = targetIndex++;
-                                                const prefix = `targets[${index}]`;
-                                                const session =
-                                                    type === 'pretest' &&
-                                                    target.withSession;
-                                                const error =
-                                                    errors[
-                                                        `targets.${index}.due_at`
-                                                    ] ??
-                                                    errors[
-                                                        `targets.${index}.class_id`
-                                                    ];
-
-                                                return (
-                                                    <li
-                                                        key={klass.id}
-                                                        className="grid gap-3 border-b pb-4 last:border-b-0 last:pb-0"
-                                                    >
-                                                        <input
-                                                            type="hidden"
-                                                            name={`${prefix}[class_id]`}
-                                                            value={klass.id}
-                                                        />
-                                                        {included.length >
-                                                            1 && (
-                                                            <p className="text-sm font-bold text-primary-700">
-                                                                {klass.label}
-                                                            </p>
-                                                        )}
-                                                        {type === 'pretest' && (
-                                                            <label className="flex items-start gap-2 text-sm">
-                                                                <Checkbox
-                                                                    checked={
-                                                                        target.withSession
-                                                                    }
-                                                                    onCheckedChange={(
-                                                                        checked,
-                                                                    ) =>
-                                                                        update(
-                                                                            klass.id,
-                                                                            {
-                                                                                withSession:
-                                                                                    checked ===
-                                                                                    true,
-                                                                            },
-                                                                        )
-                                                                    }
-                                                                    className="mt-0.5"
-                                                                />
-                                                                Buka otomatis
-                                                                saat sesi
-                                                                pertemuan
-                                                                dimulai
-                                                            </label>
-                                                        )}
-                                                        {session ? (
-                                                            <div className="grid gap-1.5">
-                                                                <Label
-                                                                    htmlFor={`window-${klass.id}`}
-                                                                    className="text-xs font-bold"
-                                                                >
-                                                                    Batas Waktu
-                                                                    Pengerjaan
-                                                                </Label>
-                                                                <input
-                                                                    type="hidden"
-                                                                    name={`${prefix}[window_minutes]`}
-                                                                    value={
-                                                                        target.windowMinutes
-                                                                    }
-                                                                />
-                                                                <Select
-                                                                    value={
-                                                                        target.windowMinutes
-                                                                    }
-                                                                    onValueChange={(
-                                                                        value,
-                                                                    ) =>
-                                                                        update(
-                                                                            klass.id,
-                                                                            {
-                                                                                windowMinutes:
-                                                                                    value,
-                                                                            },
-                                                                        )
-                                                                    }
-                                                                >
-                                                                    <SelectTrigger
-                                                                        id={`window-${klass.id}`}
-                                                                        className="w-full data-[size=default]:h-11"
-                                                                    >
-                                                                        <SelectValue />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        {WINDOW_OPTIONS.map(
-                                                                            (
-                                                                                minutes,
-                                                                            ) => (
-                                                                                <SelectItem
-                                                                                    key={
-                                                                                        minutes
-                                                                                    }
-                                                                                    value={String(
-                                                                                        minutes,
-                                                                                    )}
-                                                                                >
-                                                                                    {
-                                                                                        minutes
-                                                                                    }{' '}
-                                                                                    menit
-                                                                                    setelah
-                                                                                    sesi
-                                                                                    dimulai
-                                                                                </SelectItem>
-                                                                            ),
-                                                                        )}
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="grid gap-3">
-                                                                <div className="grid gap-1.5">
-                                                                    <Label
-                                                                        htmlFor={`open-${klass.id}`}
-                                                                        className="text-xs font-bold"
-                                                                    >
-                                                                        Waktu
-                                                                        Buka
-                                                                    </Label>
-                                                                    <Input
-                                                                        id={`open-${klass.id}`}
-                                                                        name={`${prefix}[open_at]`}
-                                                                        type="datetime-local"
-                                                                        value={
-                                                                            target.openAt
-                                                                        }
-                                                                        onChange={(
-                                                                            event,
-                                                                        ) =>
-                                                                            update(
-                                                                                klass.id,
-                                                                                {
-                                                                                    openAt: event
-                                                                                        .target
-                                                                                        .value,
-                                                                                },
-                                                                            )
-                                                                        }
-                                                                        className="h-11"
-                                                                    />
-                                                                </div>
-                                                                <div className="grid gap-1.5">
-                                                                    <Label
-                                                                        htmlFor={`due-${klass.id}`}
-                                                                        className="text-xs font-bold"
-                                                                    >
-                                                                        Batas
-                                                                        Pengumpulan
-                                                                    </Label>
-                                                                    <Input
-                                                                        id={`due-${klass.id}`}
-                                                                        name={`${prefix}[due_at]`}
-                                                                        type="datetime-local"
-                                                                        value={
-                                                                            target.dueAt
-                                                                        }
-                                                                        onChange={(
-                                                                            event,
-                                                                        ) =>
-                                                                            update(
-                                                                                klass.id,
-                                                                                {
-                                                                                    dueAt: event
-                                                                                        .target
-                                                                                        .value,
-                                                                                },
-                                                                            )
-                                                                        }
-                                                                        className="h-11"
-                                                                        aria-invalid={
-                                                                            !!error
-                                                                        }
-                                                                    />
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        <InputError
-                                                            message={error}
-                                                        />
-                                                    </li>
-                                                );
-                                            })}
+                                            {included.map((klass, index) => (
+                                                <TargetTiming
+                                                    key={klass.id}
+                                                    klass={klass}
+                                                    target={targets[klass.id]}
+                                                    index={index}
+                                                    type={type}
+                                                    showLabel={
+                                                        included.length > 1
+                                                    }
+                                                    error={
+                                                        errors[
+                                                            `targets.${index}.due_at`
+                                                        ] ??
+                                                        errors[
+                                                            `targets.${index}.class_id`
+                                                        ]
+                                                    }
+                                                    onChange={(patch) =>
+                                                        update(klass.id, patch)
+                                                    }
+                                                />
+                                            ))}
                                         </ul>
                                     )}
                                     {included.length > 1 && !readOnly && (
@@ -979,8 +880,10 @@ function TaskFormBody({
                                             size="sm"
                                             className="w-fit"
                                             onClick={() => {
-                                                const source =
-                                                    targets[included[0].id];
+                                                const {
+                                                    included: _,
+                                                    ...source
+                                                } = targets[included[0].id];
                                                 setTargets((current) =>
                                                     Object.fromEntries(
                                                         Object.entries(
@@ -991,12 +894,7 @@ function TaskFormBody({
                                                                 target.included
                                                                     ? {
                                                                           ...target,
-                                                                          openAt: source.openAt,
-                                                                          dueAt: source.dueAt,
-                                                                          withSession:
-                                                                              source.withSession,
-                                                                          windowMinutes:
-                                                                              source.windowMinutes,
+                                                                          ...source,
                                                                       }
                                                                     : target,
                                                             ],
@@ -1238,10 +1136,27 @@ function TaskFormBody({
                             <Button
                                 type="submit"
                                 disabled={processing}
-                                onClick={() =>
-                                    intent.current &&
-                                    (intent.current.value = 'publish')
-                                }
+                                onClick={(event) => {
+                                    // Alokasi kelas wajib sebelum publikasi.
+                                    if (included.length === 0) {
+                                        event.preventDefault();
+                                        setAllocationError(
+                                            'Pilih minimal satu kelas sebelum mempublikasikan.',
+                                        );
+                                        document
+                                            .getElementById('task-allocation')
+                                            ?.scrollIntoView({
+                                                behavior: 'smooth',
+                                                block: 'center',
+                                            });
+
+                                        return;
+                                    }
+
+                                    if (intent.current) {
+                                        intent.current.value = 'publish';
+                                    }
+                                }}
                                 className="bg-white text-primary-700 hover:bg-primary-50"
                             >
                                 {processing ? <Spinner /> : <Send />}{' '}
@@ -1304,6 +1219,280 @@ function AttachmentCard({
                 >
                     <X />
                 </Button>
+            )}
+        </li>
+    );
+}
+
+/**
+ * Waktu pengerjaan satu kelas. Post/Pre-Test: "Sesi Berjalan" cukup jam mulai
+ * & selesai (tanggal = hari ini, hanya bila sesi kelas sudah dimulai) atau
+ * "Terjadwal" dengan tanggal & jam. Laporan selalu bertanggal (berhari-hari).
+ */
+function TargetTiming({
+    klass,
+    target,
+    index,
+    type,
+    showLabel,
+    error,
+    onChange,
+}: {
+    klass: ClassOption;
+    target: TargetDraft;
+    index: number;
+    type: TaskType;
+    showLabel: boolean;
+    error?: string;
+    onChange: (patch: Partial<TargetDraft>) => void;
+}) {
+    const prefix = `targets[${index}]`;
+    const isTest = type !== 'report';
+    const mode = isTest && klass.session ? target.mode : 'scheduled';
+    const autoOpen =
+        type === 'pretest' && mode === 'scheduled' && target.withSession;
+    const today = todayWib();
+    const invalidRange =
+        mode === 'now' &&
+        target.endTime !== '' &&
+        target.endTime <= target.startTime;
+
+    return (
+        <li className="grid gap-3 border-b pb-4 last:border-b-0 last:pb-0">
+            <input
+                type="hidden"
+                name={`${prefix}[class_id]`}
+                value={klass.id}
+            />
+            {showLabel && (
+                <p className="text-sm font-bold text-primary-700">
+                    {klass.label}
+                </p>
+            )}
+
+            {isTest && (
+                <div className="grid gap-1.5">
+                    <div
+                        role="radiogroup"
+                        aria-label={`Mode waktu ${klass.label}`}
+                        className="grid grid-cols-2"
+                    >
+                        {(
+                            [
+                                ['now', Zap, 'Sesi Berjalan'],
+                                ['scheduled', CalendarClock, 'Terjadwal'],
+                            ] as const
+                        ).map(([value, Icon, text]) => {
+                            const disabled = value === 'now' && !klass.session;
+
+                            return (
+                                <label
+                                    key={value}
+                                    className={cn(
+                                        'flex items-center justify-center gap-2 border px-3 py-2 text-sm font-medium has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-ring/40',
+                                        mode === value
+                                            ? 'border-primary-700 bg-primary-700 text-white'
+                                            : 'bg-white',
+                                        disabled
+                                            ? 'cursor-not-allowed text-muted-foreground opacity-60'
+                                            : 'cursor-pointer hover:bg-primary-50',
+                                        mode === value &&
+                                            'hover:bg-primary-700',
+                                    )}
+                                >
+                                    <input
+                                        type="radio"
+                                        className="sr-only"
+                                        checked={mode === value}
+                                        disabled={disabled}
+                                        onChange={() =>
+                                            onChange({ mode: value })
+                                        }
+                                    />
+                                    <Icon className="size-4" aria-hidden />
+                                    {text}
+                                </label>
+                            );
+                        })}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        {klass.session
+                            ? `Sesi pertemuan ${klass.session.meetingNumber} sedang berjalan sejak ${toClock(
+                                  new Intl.DateTimeFormat('en-GB', {
+                                      hour: '2-digit',
+                                      minute: '2-digit',
+                                      hourCycle: 'h23',
+                                      timeZone: WIB,
+                                  }).format(new Date(klass.session.startedAt)),
+                              )} WIB.`
+                            : 'Sesi kelas ini belum dimulai hari ini — mulai sesi untuk memakai mode Sesi Berjalan, atau jadwalkan.'}
+                    </p>
+                </div>
+            )}
+
+            {mode === 'now' ? (
+                <>
+                    <input
+                        type="hidden"
+                        name={`${prefix}[open_at]`}
+                        value={
+                            target.startTime
+                                ? `${today} ${target.startTime}`
+                                : ''
+                        }
+                    />
+                    <input
+                        type="hidden"
+                        name={`${prefix}[due_at]`}
+                        value={
+                            target.endTime ? `${today} ${target.endTime}` : ''
+                        }
+                    />
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="grid gap-1.5">
+                            <Label
+                                htmlFor={`start-${klass.id}`}
+                                className="text-xs font-bold"
+                            >
+                                Jam Mulai
+                            </Label>
+                            <Input
+                                id={`start-${klass.id}`}
+                                type="time"
+                                required
+                                value={target.startTime}
+                                onChange={(event) =>
+                                    onChange({ startTime: event.target.value })
+                                }
+                                className="h-11"
+                            />
+                        </div>
+                        <div className="grid gap-1.5">
+                            <Label
+                                htmlFor={`end-${klass.id}`}
+                                className="text-xs font-bold"
+                            >
+                                Jam Selesai
+                            </Label>
+                            <Input
+                                id={`end-${klass.id}`}
+                                type="time"
+                                required
+                                value={target.endTime}
+                                onChange={(event) =>
+                                    onChange({ endTime: event.target.value })
+                                }
+                                className="h-11"
+                                aria-invalid={invalidRange || !!error}
+                            />
+                        </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                        Berlaku hari ini. Praktikan bisa mengerjakan mulai jam
+                        mulai sampai jam selesai.
+                    </p>
+                    <InputError
+                        message={
+                            invalidRange
+                                ? 'Jam selesai harus setelah jam mulai.'
+                                : error
+                        }
+                    />
+                </>
+            ) : (
+                <>
+                    {type === 'pretest' && (
+                        <label className="flex items-start gap-2 text-sm">
+                            <Checkbox
+                                checked={target.withSession}
+                                onCheckedChange={(checked) =>
+                                    onChange({ withSession: checked === true })
+                                }
+                                className="mt-0.5"
+                            />
+                            Buka otomatis saat sesi pertemuan dimulai
+                        </label>
+                    )}
+                    {autoOpen ? (
+                        <div className="grid gap-1.5">
+                            <Label
+                                htmlFor={`window-${klass.id}`}
+                                className="text-xs font-bold"
+                            >
+                                Batas Waktu Pengerjaan
+                            </Label>
+                            <input
+                                type="hidden"
+                                name={`${prefix}[window_minutes]`}
+                                value={target.windowMinutes}
+                            />
+                            <Select
+                                value={target.windowMinutes}
+                                onValueChange={(value) =>
+                                    onChange({ windowMinutes: value })
+                                }
+                            >
+                                <SelectTrigger
+                                    id={`window-${klass.id}`}
+                                    className="w-full data-[size=default]:h-11"
+                                >
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {WINDOW_OPTIONS.map((minutes) => (
+                                        <SelectItem
+                                            key={minutes}
+                                            value={String(minutes)}
+                                        >
+                                            {minutes} menit setelah sesi dimulai
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    ) : (
+                        <div className="grid gap-3">
+                            <div className="grid gap-1.5">
+                                <Label
+                                    htmlFor={`open-${klass.id}`}
+                                    className="text-xs font-bold"
+                                >
+                                    Waktu Buka
+                                </Label>
+                                <Input
+                                    id={`open-${klass.id}`}
+                                    name={`${prefix}[open_at]`}
+                                    type="datetime-local"
+                                    value={target.openAt}
+                                    onChange={(event) =>
+                                        onChange({ openAt: event.target.value })
+                                    }
+                                    className="h-11"
+                                />
+                            </div>
+                            <div className="grid gap-1.5">
+                                <Label
+                                    htmlFor={`due-${klass.id}`}
+                                    className="text-xs font-bold"
+                                >
+                                    Batas Pengumpulan
+                                </Label>
+                                <Input
+                                    id={`due-${klass.id}`}
+                                    name={`${prefix}[due_at]`}
+                                    type="datetime-local"
+                                    value={target.dueAt}
+                                    onChange={(event) =>
+                                        onChange({ dueAt: event.target.value })
+                                    }
+                                    className="h-11"
+                                    aria-invalid={!!error}
+                                />
+                            </div>
+                        </div>
+                    )}
+                    <InputError message={error} />
+                </>
             )}
         </li>
     );

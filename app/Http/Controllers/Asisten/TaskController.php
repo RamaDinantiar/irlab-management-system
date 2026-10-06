@@ -209,7 +209,9 @@ class TaskController extends Controller
         $courses = Course::where('semester_id', $semesterId)
             ->where('approval_status', ApprovalStatus::Approved)
             ->when(! $user->isAdmin(), fn ($q) => $q->whereHas('assistants', fn ($a) => $a->whereKey($user->id)))
-            ->with(['classes' => fn ($q) => $q->where('approval_status', ApprovalStatus::Approved)->taughtBy($user)->withCount('enrollments')->orderBy('name')])
+            ->with(['classes' => fn ($q) => $q->where('approval_status', ApprovalStatus::Approved)->taughtBy($user)->withCount('enrollments')->orderBy('name')
+                // Sesi yang sudah dimulai hari ini → Post/Pre-Test cukup jam mulai & selesai.
+                ->with(['meetings' => fn ($m) => $m->whereDate('date', today())->whereNotNull('started_at')->orderByDesc('started_at')])])
             ->orderBy('code')
             ->get();
 
@@ -224,6 +226,10 @@ class TaskController extends Controller
                     'startTime' => $class->startClock(),
                     'endTime' => $class->endClock(),
                     'members' => $class->enrollments_count,
+                    'session' => ($meeting = $class->meetings->first()) ? [
+                        'meetingNumber' => $meeting->number,
+                        'startedAt' => $meeting->started_at->toIso8601String(),
+                    ] : null,
                 ])->values(),
             ]),
             'limits' => [
