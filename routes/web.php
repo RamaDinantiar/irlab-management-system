@@ -70,7 +70,7 @@ if (app()->isLocal()) {
     Route::inertia('dev/komponen', 'dev/components')->name('dev.components');
 
     // Masuk cepat sebagai akun demo seeder, mis. /dev/login-as/asisten?to=/asisten/grade
-    // (?as=yozika untuk akun demo tertentu, mis. Bendahara).
+    // (?as=yozika untuk akun demo tertentu, mis. Bendahara; ?sidebar=collapsed untuk sidebar ikon).
     Route::get('dev/login-as/{role}', function (Request $request, Role $role) {
         $user = User::where('role', $role)
             ->where('email', 'like', ($request->filled('as') ? preg_replace('/[^a-z]/', '', (string) $request->query('as')) : '%').'@irlab.test')
@@ -79,9 +79,12 @@ if (app()->isLocal()) {
         $request->session()->regenerate();
 
         $to = $request->query('to');
-
-        return is_string($to) && str_starts_with($to, '/') && ! str_starts_with($to, '//')
+        $response = is_string($to) && str_starts_with($to, '/') && ! str_starts_with($to, '//')
             ? redirect($to)
             : redirect()->route($role->dashboardRoute());
+
+        return $request->has('sidebar')
+            ? $response->withCookie(cookie('sidebar_state', $request->query('sidebar') === 'collapsed' ? 'false' : 'true', httpOnly: false))
+            : $response;
     })->name('dev.login-as');
 }
