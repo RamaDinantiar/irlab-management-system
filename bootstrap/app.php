@@ -45,7 +45,14 @@ return Application::configure(basePath: dirname(__DIR__))
                 || (in_array($status, [500, 503], true) && ! app()->hasDebugModeEnabled());
 
             if ($friendly && ! $request->expectsJson()) {
-                return Inertia::render('error', ['status' => $status])
+                // 403 karena peran: tunjukkan akun yang sedang aktif (mis. tab lain
+                // baru saja masuk sebagai Praktikan sehingga sesi berganti).
+                $user = $request->user();
+
+                return Inertia::render('error', [
+                    'status' => $status,
+                    'signedInAs' => $status === 403 && $user ? ['name' => $user->name, 'role' => $user->role->label()] : null,
+                ])
                     ->toResponse($request)
                     ->setStatusCode($status);
             }

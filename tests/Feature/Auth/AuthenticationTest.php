@@ -147,9 +147,10 @@ class AuthenticationTest extends TestCase
 
     public function test_forbidden_pages_render_a_friendly_error_page()
     {
-        $this->actingAs(User::factory()->create())
+        $this->actingAs(User::factory()->create(['name' => 'Rina']))
             ->get(route('admin.dashboard'))
             ->assertForbidden()
-            ->assertInertia(fn (Assert $page) => $page->component('error')->where('status', 403));
+            ->assertInertia(fn (Assert $page) => $page->component('error')->where('status', 403)
+                ->where('signedInAs', ['name' => 'Rina', 'role' => 'Praktikan']));
     }
 }

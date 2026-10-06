@@ -1,9 +1,16 @@
 import { Head, Link } from '@inertiajs/react';
-import { ArrowLeft, Ban, SearchX, ServerCrash, Wrench } from 'lucide-react';
+import {
+    ArrowLeft,
+    Ban,
+    LogOut,
+    SearchX,
+    ServerCrash,
+    Wrench,
+} from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
 import { Button } from '@/components/ui/button';
-import { dashboard } from '@/routes';
+import { dashboard, logout } from '@/routes';
 
 const MESSAGES: Record<
     number,
@@ -36,7 +43,13 @@ const MESSAGES: Record<
 };
 
 /** Halaman error ramah (FR-AUTH-02: URL peran lain → 403). */
-export default function ErrorPage({ status }: { status: number }) {
+export default function ErrorPage({
+    status,
+    signedInAs,
+}: {
+    status: number;
+    signedInAs?: { name: string; role: string } | null;
+}) {
     const {
         title,
         description,
@@ -62,6 +75,19 @@ export default function ErrorPage({ status }: { status: number }) {
                             {title}
                         </h1>
                         <p className="text-muted-foreground">{description}</p>
+                        {signedInAs && (
+                            <p className="border border-warning/30 bg-warning-soft px-4 py-3 text-left text-sm">
+                                Anda sedang masuk sebagai{' '}
+                                <strong>
+                                    {signedInAs.name} ({signedInAs.role})
+                                </strong>
+                                . Satu browser hanya memakai satu akun: bila
+                                Anda baru masuk dengan akun lain di tab lain,
+                                tab ini ikut memakai akun tersebut. Masuk
+                                kembali dengan akun yang sesuai, atau gunakan
+                                jendela penyamaran untuk akun kedua.
+                            </p>
+                        )}
                         <div className="mt-4 flex flex-wrap justify-center gap-3">
                             <Button
                                 variant="outline"
@@ -72,6 +98,13 @@ export default function ErrorPage({ status }: { status: number }) {
                             <Button asChild>
                                 <Link href={dashboard()}>Ke Dashboard</Link>
                             </Button>
+                            {signedInAs && (
+                                <Button variant="outline" asChild>
+                                    <Link href={logout()} as="button">
+                                        <LogOut /> Masuk dengan akun lain
+                                    </Link>
+                                </Button>
+                            )}
                         </div>
                     </div>
                 </main>
