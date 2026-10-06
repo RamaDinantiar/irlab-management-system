@@ -29,7 +29,8 @@ class RegistrationTest extends TestCase
 
     public function test_the_registration_page_is_shown_and_linked_from_login()
     {
-        $this->get(route('register'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('auth/register')->where('domains', ['itpln.ac.id']));
+        $this->get(route('register'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('auth/register')->where('domains', ['itpln.ac.id'])
+            ->where('majors', ['S1 Teknik Informatika', 'S1 Sistem Informasi']));
         $this->get(route('login'))->assertInertia(fn (Assert $page) => $page->where('canRegister', true));
     }
 
@@ -66,6 +67,7 @@ class RegistrationTest extends TestCase
         $this->post(route('register.store'), $this->payload())->assertSessionHasErrors('nim');
         $this->post(route('register.store'), $this->payload(['nim' => '202331100', 'email' => 'lama@itpln.ac.id']))->assertSessionHasErrors('email');
         $this->post(route('register.store'), $this->payload(['nim' => '202331101', 'email' => 'baru@itpln.ac.id', 'terms' => null]))->assertSessionHasErrors('terms');
+        $this->post(route('register.store'), $this->payload(['nim' => '202331103', 'email' => 'baru3@itpln.ac.id', 'major' => 'S1 Teknik Elektro']))->assertSessionHasErrors('major');
         $this->post(route('register.store'), $this->payload(['nim' => '202331102', 'email' => 'baru2@itpln.ac.id', 'password' => 'pendek', 'password_confirmation' => 'pendek']))->assertSessionHasErrors('password');
     }
 

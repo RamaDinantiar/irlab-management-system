@@ -28,6 +28,9 @@ class CreateNewUser implements CreatesNewUsers
     /** Maks. percobaan daftar per IP per jam. */
     private const MAX_ATTEMPTS = 10;
 
+    /** Program studi yang dapat dipilih saat pendaftaran mandiri. */
+    public const MAJORS = ['S1 Teknik Informatika', 'S1 Sistem Informasi'];
+
     /**
      * @param  array<string, mixed>  $input
      */
@@ -50,7 +53,7 @@ class CreateNewUser implements CreatesNewUsers
         Validator::make($input, [
             'name' => ['required', 'string', 'max:255'],
             'nim' => ['required', 'regex:/^\d{5,20}$/', Rule::unique(User::class)],
-            'major' => ['required', 'string', 'max:255'],
+            'major' => ['required', 'string', Rule::in(self::MAJORS)],
             'cohort_year' => ['nullable', 'integer', 'between:2000,2100'],
             'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class), function (string $attribute, mixed $value, Closure $fail) use ($domains) {
                 // Cocokkan domain persis setelah "@" terakhir (sub-domain & domain tiruan ditolak).

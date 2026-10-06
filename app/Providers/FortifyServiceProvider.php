@@ -99,6 +99,7 @@ class FortifyServiceProvider extends ServiceProvider
 
             return Inertia::render('auth/register', [
                 'domains' => CreateNewUser::domains(),
+                'majors' => CreateNewUser::MAJORS,
                 'passwordRules' => Password::defaults()->toPasswordRulesString(),
             ]);
         });

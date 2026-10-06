@@ -16,19 +16,17 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 import { login } from '@/routes';
 import { store } from '@/routes/register';
-
-/** Usulan program studi; tetap bisa diketik bebas. */
-const MAJORS = [
-    'S1 Teknik Informatika',
-    'S1 Sistem Informasi',
-    'S1 Bisnis Digital',
-    'S1 Teknik Elektro',
-    'D3 Teknik Informatika',
-];
 
 /** 0–4: panjang ≥ 8, huruf besar & kecil, angka, simbol. */
 function strength(password: string): number {
@@ -85,9 +83,11 @@ function Field({
  */
 export default function Register({
     domains,
+    majors,
     passwordRules,
 }: {
     domains: string[];
+    majors: string[];
     passwordRules: string;
 }) {
     const [password, setPassword] = useState('');
@@ -166,21 +166,25 @@ export default function Register({
                             error={errors.major}
                         >
                             {(p) => (
-                                <>
-                                    <Input
-                                        {...p}
-                                        name="major"
-                                        required
-                                        list="majors"
-                                        maxLength={255}
-                                        placeholder="S1 Teknik Informatika"
-                                    />
-                                    <datalist id="majors">
-                                        {MAJORS.map((m) => (
-                                            <option key={m} value={m} />
+                                <Select name="major" required>
+                                    <SelectTrigger
+                                        id={p.id}
+                                        aria-invalid={p['aria-invalid']}
+                                        className={cn(
+                                            p.className,
+                                            'w-full data-[size=default]:h-11',
+                                        )}
+                                    >
+                                        <SelectValue placeholder="Pilih program studi" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {majors.map((m) => (
+                                            <SelectItem key={m} value={m}>
+                                                {m}
+                                            </SelectItem>
                                         ))}
-                                    </datalist>
-                                </>
+                                    </SelectContent>
+                                </Select>
                             )}
                         </Field>
 
