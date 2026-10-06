@@ -27,51 +27,19 @@ class TaskController extends Controller
 {
     public function index(Request $request, ?string $type = null): Response
     {
-        $semester = Semester::current();
-        $taskType = TaskType::fromSlug($type);
-        $user = $request->user();
-
-        $tasks = $semester
-            ? Task::where('semester_id', $semester->id)
-                ->when($taskType, fn ($q) => $q->where('type', $taskType))
-                ->when(! $user->isAdmin(), fn ($q) => $q->whereHas('course.assistants', fn ($a) => $a->whereKey($user->id)))
-                ->with(['course', 'targets.labClass' => fn ($q) => $q->withCount('enrollments'), 'targets' => fn ($q) => $q->withCount(['submissions' => fn ($s) => $s->where('is_current', true)])])
-                ->latest()
-                ->get()
-            : collect();
-
-        return Inertia::render('asisten/tasks/index', [
-            'type' => $taskType?->value,
-            'tasks' => $tasks->map(fn (Task $task) => [
-                'id' => $task->id,
-                'type' => $task->type->value,
-                'title' => $task->title,
-                'course' => "{$task->course->code} · {$task->course->name}",
-                'status' => $task->status,
-                'meetingNumber' => $task->meeting_number,
-                'canEdit' => $task->isEditable(),
-                'targets' => $task->targets->map(fn (TaskTarget $target) => [
-                    'id' => $target->id,
-                    'className' => $target->labClass->name,
-                    'state' => $target->setRelation('task', $task)->state(),
-                    'openAt' => $target->open_at?->toIso8601String(),
-                    'dueAt' => $target->due_at?->toIso8601String(),
-                    'windowMinutes' => $target->window_minutes,
-                    'submitted' => $target->submissions_count,
-                    'members' => $target->labClass->enrollments_count,
-                ])->values(),
-            ]),
-        ]);
+        return Inertia::render('asisten/tasks/index', $this->indexProps($request, TaskType::fromSlug($type)));
     }
 
+    /**
+     * "Buat Tugas" kini pop-up di halaman daftar; URL lama tetap membuka pop-up itu.
+     */
     public function create(Request $request): Response
     {
-        $type = TaskType::tryFrom((string) $request->query('type')) ?? TaskType::Posttest;
+        $type = TaskType::tryFrom((string) $request->query('type'));
 
-        return Inertia::render('asisten/tasks/form', [
-            'task' => null,
-            'defaultType' => $type->value,
-            ...$this->options($request),
+        return Inertia::render('asisten/tasks/index', [
+            ...$this->indexProps($request, $type),
+            'openCreate' => true,
         ]);
     }
 
@@ -89,12 +57,14 @@ class TaskController extends Controller
         abort_unless($task->isManagedBy($request->user()), 403);
         $task->load(['targets', 'attachments', 'course']);
 
-        return Inertia::render('asisten/tasks/form', [
-            'task' => [
+        return Inertia::render('asisten/tasks/index', [
+            ...$this->indexProps($request, $task->type, $task->semester_id),
+            'editing' => [
                 'id' => $task->id,
                 'type' => $task->type->value,
                 'courseId' => $task->course_id,
                 'title' => $task->title,
+                'topic' => $task->topic,
                 'body' => $task->body_json,
                 'meetingNumber' => $task->meeting_number,
                 'maxScore' => $task->max_score,
@@ -113,8 +83,6 @@ class TaskController extends Controller
                     'windowMinutes' => $target->window_minutes,
                 ])->values(),
             ],
-            'defaultType' => $task->type->value,
-            ...$this->options($request, $task->semester_id),
         ]);
     }
 
@@ -165,6 +133,70 @@ class TaskController extends Controller
     }
 
     /**
+     * Daftar tugas per kelas (kartu Figma) + opsi pop-up Buat/Ubah Tugas.
+     *
+     * @return array<string, mixed>
+     */
+    private function indexProps(Request $request, ?TaskType $taskType, ?int $semesterId = null): array
+    {
+        $semesterId ??= Semester::current()?->id;
+        $user = $request->user();
+
+        $tasks = $semesterId
+            ? Task::where('semester_id', $semesterId)
+                ->when($taskType, fn ($q) => $q->where('type', $taskType))
+                ->when(! $user->isAdmin(), fn ($q) => $q->whereHas('course.assistants', fn ($a) => $a->whereKey($user->id)))
+                ->with([
+                    'course',
+                    'targets.labClass' => fn ($q) => $q->withCount('enrollments'),
+                    'targets' => fn ($q) => $q->withCount([
+                        'submissions' => fn ($s) => $s->where('is_current', true),
+                        'submissions as graded_count' => fn ($s) => $s->where('is_current', true)->whereHas('grade', fn ($g) => $g->whereNotNull('score')),
+                    ]),
+                ])
+                ->latest()
+                ->get()
+            : collect();
+
+        return [
+            'type' => $taskType?->value,
+            'tasks' => $tasks->map(fn (Task $task) => [
+                'id' => $task->id,
+                'type' => $task->type->value,
+                'title' => $task->title,
+                'topic' => $task->topic,
+                'courseId' => $task->course_id,
+                'course' => "{$task->course->code} · {$task->course->name}",
+                'courseName' => $task->course->name,
+                'status' => $task->status,
+                'meetingNumber' => $task->meeting_number,
+                'allowLate' => $task->allow_late,
+                'canEdit' => $task->isEditable(),
+                'targets' => $task->targets->sortBy(fn (TaskTarget $target) => $target->labClass->name)->map(fn (TaskTarget $target) => [
+                    'id' => $target->id,
+                    'classId' => $target->class_id,
+                    'className' => $target->labClass->name,
+                    'dayOfWeek' => $target->labClass->day_of_week,
+                    'startTime' => $target->labClass->startClock(),
+                    'endTime' => $target->labClass->endClock(),
+                    'state' => $target->setRelation('task', $task)->state(),
+                    'openAt' => $target->open_at?->toIso8601String(),
+                    'dueAt' => $target->due_at?->toIso8601String(),
+                    'closedAt' => $target->closed_at?->toIso8601String(),
+                    'windowMinutes' => $target->window_minutes,
+                    'submitted' => $target->submissions_count,
+                    'graded' => $target->graded_count,
+                    'members' => $target->labClass->enrollments_count,
+                ])->values(),
+            ]),
+            'extendOptions' => TaskTargetController::EXTEND_OPTIONS,
+            'openCreate' => false,
+            'editing' => null,
+            ...$this->options($request, $semesterId),
+        ];
+    }
+
+    /**
      * Mata kuliah yang diampu + kelasnya (untuk form).
      *
      * @return array<string, mixed>
@@ -177,7 +209,7 @@ class TaskController extends Controller
         $courses = Course::where('semester_id', $semesterId)
             ->where('approval_status', ApprovalStatus::Approved)
             ->when(! $user->isAdmin(), fn ($q) => $q->whereHas('assistants', fn ($a) => $a->whereKey($user->id)))
-            ->with(['classes' => fn ($q) => $q->where('approval_status', ApprovalStatus::Approved)->taughtBy($user)->orderBy('name')])
+            ->with(['classes' => fn ($q) => $q->where('approval_status', ApprovalStatus::Approved)->taughtBy($user)->withCount('enrollments')->orderBy('name')])
             ->orderBy('code')
             ->get();
 
@@ -191,6 +223,7 @@ class TaskController extends Controller
                     'dayOfWeek' => $class->day_of_week,
                     'startTime' => $class->startClock(),
                     'endTime' => $class->endClock(),
+                    'members' => $class->enrollments_count,
                 ])->values(),
             ]),
             'limits' => [

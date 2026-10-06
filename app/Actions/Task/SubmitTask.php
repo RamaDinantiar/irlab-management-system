@@ -29,7 +29,11 @@ class SubmitTask
         $text = $text !== null ? trim($text) : null;
 
         if ($target->state($now) !== 'open') {
-            $this->fail('submission', $target->state($now) === 'closed' ? 'Tenggat sudah lewat; tugas ini tidak menerima pengumpulan terlambat.' : 'Tugas belum dibuka.');
+            $this->fail('submission', match (true) {
+                $target->state($now) !== 'closed' => 'Tugas belum dibuka.',
+                $target->closed_at !== null => 'Pengumpulan sudah dihentikan oleh asisten.',
+                default => 'Tenggat sudah lewat; tugas ini tidak menerima pengumpulan terlambat.',
+            });
         }
 
         $previous = Submission::where('task_target_id', $target->id)->where('user_id', $user->id)->where('is_current', true)->first();

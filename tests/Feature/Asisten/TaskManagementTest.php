@@ -188,4 +188,62 @@ class TaskManagementTest extends TestCase
             ->post(route('asisten.tasks.store'), $this->payload())
             ->assertSessionHasNoErrors();
     }
+
+    public function test_create_and_edit_open_the_form_as_a_popup_on_the_index()
+    {
+        $task = Task::factory()->for($this->course)->create(['semester_id' => $this->course->semester_id, 'topic' => 'Room DB & DAO']);
+
+        $this->get(route('asisten.tasks.create', ['type' => 'pretest']))
+            ->assertInertia(fn (Assert $page) => $page->component('asisten/tasks/index')->where('openCreate', true)->where('editing', null));
+
+        $this->get(route('asisten.tasks.edit', $task))
+            ->assertInertia(fn (Assert $page) => $page
+                ->component('asisten/tasks/index')
+                ->where('editing.id', $task->id)
+                ->where('editing.topic', 'Room DB & DAO')
+                ->has('courses.0.classes.0.members')
+            );
+
+        $this->post(route('asisten.tasks.store'), $this->payload(['topic' => 'Entity & ViewModel']))->assertSessionHasNoErrors();
+        $this->assertSame('Entity & ViewModel', Task::latest('id')->first()->topic);
+    }
+
+    public function test_assistants_extend_stop_and_manually_open_a_class()
+    {
+        $task = Task::factory()->for($this->course)->create(['semester_id' => $this->course->semester_id, 'allow_late' => true]);
+        $live = TaskTarget::factory()->for($task)->create(['class_id' => $this->classA->id, 'due_at' => now()->addMinutes(10)]);
+        $later = TaskTarget::factory()->for($task)->create(['class_id' => $this->classB->id, 'open_at' => now()->addDay(), 'due_at' => now()->addDays(2)]);
+
+        $this->post(route('asisten.task-targets.extend', $live), ['minutes' => 15])->assertSessionHasNoErrors();
+        $this->assertEqualsWithDelta(now()->addMinutes(25)->timestamp, $live->fresh()->due_at->timestamp, 5);
+        $this->post(route('asisten.task-targets.extend', $live), ['minutes' => 7])->assertSessionHasErrors('minutes');
+
+        // Berhenti mengunci form meskipun pengumpulan terlambat diizinkan.
+        $this->post(route('asisten.task-targets.close', $live))->assertRedirect();
+        $this->assertSame('closed', $live->fresh()->state());
+        $this->post(route('asisten.task-targets.close', $live))->assertStatus(422);
+
+        // Tambah Waktu membuka kembali kelas yang sudah dihentikan.
+        $this->post(route('asisten.task-targets.extend', $live), ['minutes' => 10]);
+        $this->assertSame('open', $live->fresh()->state());
+
+        $this->post(route('asisten.task-targets.open', $later))->assertRedirect();
+        $this->assertSame('open', $later->fresh()->state());
+        $this->assertTrue($later->fresh()->due_at->isSameDay(now()->addDays(2)));
+        $this->post(route('asisten.task-targets.open', $later))->assertStatus(422);
+
+        $this->actingAs(User::factory()->asisten()->create())
+            ->post(route('asisten.task-targets.close', $live))->assertForbidden();
+    }
+
+    public function test_stopped_classes_reject_submissions()
+    {
+        $task = Task::factory()->for($this->course)->create(['semester_id' => $this->course->semester_id, 'allow_late' => true, 'text_answer' => 'optional']);
+        $target = TaskTarget::factory()->for($task)->create(['class_id' => $this->classA->id, 'closed_at' => now()->subMinute()]);
+        $student = User::factory()->create();
+        $this->classA->enrollments()->create(['user_id' => $student->id]);
+
+        $this->actingAs($student)->post(route('praktikan.tasks.submit', $target), ['text' => 'jawaban'])
+            ->assertSessionHasErrors(['submission' => 'Pengumpulan sudah dihentikan oleh asisten.']);
+    }
 }

@@ -16,6 +16,7 @@ export type TaskFormOptions = {
             dayOfWeek: number;
             startTime: string;
             endTime: string;
+            members: number;
         }[];
     }[];
     limits: { attachments: number; attachmentMb: number };
@@ -26,6 +27,7 @@ export type TaskFormData = {
     type: TaskType;
     courseId: number;
     title: string;
+    topic: string | null;
     body: JSONContent | null;
     meetingNumber: number | null;
     maxScore: number;

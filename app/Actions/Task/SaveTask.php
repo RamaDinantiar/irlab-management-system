@@ -37,6 +37,7 @@ class SaveTask
 
             $task->fill([
                 'title' => $data['title'],
+                'topic' => $data['topic'] ?? null,
                 'body_json' => $data['body_json'] ?? null,
                 'meeting_number' => $data['meeting_number'] ?? null,
                 'max_score' => $data['max_score'],

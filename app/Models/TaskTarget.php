@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Carbon\CarbonInterface;
 use Database\Factories\TaskTargetFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 
 /**
@@ -19,6 +19,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $meeting_id
  * @property Carbon|null $open_at
  * @property Carbon|null $due_at
+ * @property Carbon|null $closed_at
  * @property int|null $window_minutes
  * @property Carbon|null $published_at
  * @property-read Task $task
@@ -36,6 +37,7 @@ class TaskTarget extends Model
         return [
             'open_at' => 'datetime',
             'due_at' => 'datetime',
+            'closed_at' => 'datetime',
             'published_at' => 'datetime',
         ];
     }
@@ -87,6 +89,11 @@ class TaskTarget extends Model
 
         if ($this->open_at === null || $this->open_at->isAfter($now)) {
             return 'scheduled';
+        }
+
+        // Dihentikan manual oleh asisten ("Berhenti") — terlambat pun ditolak.
+        if ($this->closed_at !== null && ! $this->closed_at->isAfter($now)) {
+            return 'closed';
         }
 
         if ($this->due_at !== null && $this->due_at->isBefore($now) && ! $this->task->allow_late) {

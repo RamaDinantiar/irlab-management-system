@@ -64,6 +64,7 @@ class TaskRequest extends FormRequest
             ]),
             'intent' => ['required', 'in:draft,publish'],
             'title' => ['required', 'string', 'max:150'],
+            'topic' => ['nullable', 'string', 'max:255'],
             'body_json' => ['nullable', 'array'],
             'meeting_number' => ['nullable', 'integer', 'between:1,50'],
             'max_score' => ['required', 'integer', 'between:1,1000'],
@@ -152,7 +153,7 @@ class TaskRequest extends FormRequest
     public function attributes(): array
     {
         return [
-            'course_id' => 'mata kuliah', 'type' => 'jenis tugas', 'title' => 'judul', 'max_score' => 'nilai maksimal',
+            'course_id' => 'mata kuliah', 'type' => 'jenis tugas', 'title' => 'judul', 'topic' => 'topik', 'max_score' => 'nilai maksimal',
             'late_penalty' => 'penalti', 'late_penalty_unit' => 'satuan penalti', 'text_answer' => 'jawaban teks',
             'meeting_number' => 'pertemuan', 'attachments.*' => 'lampiran',
         ];

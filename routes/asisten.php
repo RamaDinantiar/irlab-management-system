@@ -17,6 +17,7 @@ use App\Http\Controllers\Asisten\SessionController;
 use App\Http\Controllers\Asisten\ShiftController;
 use App\Http\Controllers\Asisten\ShiftSwapController;
 use App\Http\Controllers\Asisten\TaskController;
+use App\Http\Controllers\Asisten\TaskTargetController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -67,6 +68,9 @@ Route::get('tasks/{task}/edit', [TaskController::class, 'edit'])->name('tasks.ed
 Route::put('tasks/{task}', [TaskController::class, 'update'])->name('tasks.update');
 Route::post('tasks/{task}/duplicate', [TaskController::class, 'duplicate'])->name('tasks.duplicate');
 Route::delete('tasks/{task}', [TaskController::class, 'destroy'])->name('tasks.destroy');
+Route::post('task-targets/{target}/extend', [TaskTargetController::class, 'extend'])->name('task-targets.extend');
+Route::post('task-targets/{target}/close', [TaskTargetController::class, 'close'])->name('task-targets.close');
+Route::post('task-targets/{target}/open', [TaskTargetController::class, 'open'])->name('task-targets.open');
 
 // FR-AG: Grade (inline batch, publikasi, split-screen, ekspor).
 Route::get('grade/{type?}', [GradeController::class, 'index'])->where('type', 'laporan|post-test|pre-test')->name('grades.index');
