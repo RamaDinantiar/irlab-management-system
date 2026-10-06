@@ -50,6 +50,7 @@ Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy'])->name
 Route::get('sessions', [SessionController::class, 'index'])->name('sessions.index');
 Route::get('sessions/{meeting}', [SessionController::class, 'show'])->name('sessions.show');
 Route::post('sessions/{meeting}/start', [SessionController::class, 'start'])->name('sessions.start');
+Route::post('sessions/{meeting}/end', [SessionController::class, 'end'])->name('sessions.end');
 Route::put('sessions/{meeting}/attendance', [SessionController::class, 'saveAttendance'])->name('sessions.attendance');
 
 Route::post('course-proposals', [CourseProposalController::class, 'store'])->name('course-proposals.store');

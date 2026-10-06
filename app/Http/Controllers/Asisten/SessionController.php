@@ -45,6 +45,8 @@ class SessionController extends Controller
                 'date' => $meeting->date->toDateString(),
                 'isToday' => $meeting->date->isToday(),
                 'startedAt' => $meeting->started_at?->toIso8601String(),
+                'endedAt' => $meeting->ended_at?->toIso8601String(),
+                'running' => $meeting->isRunning(),
                 'moduleTitle' => $meeting->module_title,
                 'class' => [
                     'id' => $meeting->labClass->id,
@@ -98,6 +100,23 @@ class SessionController extends Controller
         }
 
         Inertia::flash('toast', ['type' => 'success', 'message' => "Sesi pertemuan {$meeting->number} dimulai. Silakan isi presensi."]);
+
+        return back();
+    }
+
+    /**
+     * "Akhiri Sesi": sesi tidak lagi berjalan; Post/Pre-Test mode Sesi Berjalan
+     * tidak tersedia lagi untuk kelas ini sampai sesi berikutnya dimulai.
+     */
+    public function end(Request $request, Meeting $meeting): RedirectResponse
+    {
+        $this->authorizeAssistant($request, $meeting->labClass, write: true);
+        abort_unless($meeting->started_at !== null && $meeting->ended_at === null, 422, 'Sesi ini belum dimulai atau sudah diakhiri.');
+
+        $meeting->update(['ended_at' => now()]);
+        AuditLog::record('meeting.ended', $meeting);
+
+        Inertia::flash('toast', ['type' => 'success', 'message' => "Sesi pertemuan {$meeting->number} diakhiri."]);
 
         return back();
     }

@@ -210,8 +210,8 @@ class TaskController extends Controller
             ->where('approval_status', ApprovalStatus::Approved)
             ->when(! $user->isAdmin(), fn ($q) => $q->whereHas('assistants', fn ($a) => $a->whereKey($user->id)))
             ->with(['classes' => fn ($q) => $q->where('approval_status', ApprovalStatus::Approved)->taughtBy($user)->withCount('enrollments')->orderBy('name')
-                // Sesi yang sudah dimulai hari ini → Post/Pre-Test cukup jam mulai & selesai.
-                ->with(['meetings' => fn ($m) => $m->whereDate('date', today())->whereNotNull('started_at')->orderByDesc('started_at')])])
+                // Sesi yang sedang berjalan → Post/Pre-Test cukup jam mulai & selesai.
+                ->with(['meetings' => fn ($m) => $m->running()->orderByDesc('started_at')])])
             ->orderBy('code')
             ->get();
 

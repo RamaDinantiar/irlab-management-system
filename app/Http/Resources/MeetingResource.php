@@ -28,6 +28,8 @@ class MeetingResource extends JsonResource
                 ? ['id' => $this->responsibleAssistant->id, 'name' => $this->responsibleAssistant->name]
                 : null),
             'startedAt' => $this->started_at?->toIso8601String(),
+            'endedAt' => $this->ended_at?->toIso8601String(),
+            'running' => $this->isRunning(),
             'attendanceCount' => $this->whenCounted('attendances'),
         ];
     }

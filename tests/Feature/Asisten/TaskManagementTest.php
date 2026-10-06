@@ -249,14 +249,22 @@ class TaskManagementTest extends TestCase
 
     public function test_the_form_knows_which_class_sessions_are_running_today()
     {
-        Meeting::factory()->create(['class_id' => $this->classA->id, 'number' => 3, 'date' => today(), 'started_at' => now()->subMinutes(10)]);
-        Meeting::factory()->create(['class_id' => $this->classB->id, 'number' => 3, 'date' => today(), 'started_at' => null]);
+        // Sesi kemarin yang baru dimulai hari ini tetap dihitung berjalan; sesi yang diakhiri tidak.
+        $running = Meeting::factory()->create(['class_id' => $this->classA->id, 'number' => 3, 'date' => today()->subDay(), 'started_at' => now()->subMinutes(10)]);
+        Meeting::factory()->create(['class_id' => $this->classB->id, 'number' => 3, 'date' => today(), 'started_at' => now()->subHour(), 'ended_at' => now()->subMinutes(5)]);
 
         $this->get(route('asisten.tasks.index', ['type' => 'post-test']))
             ->assertInertia(fn (Assert $page) => $page
                 ->where('courses.0.classes.0.session.meetingNumber', 3)
                 ->where('courses.0.classes.1.session', null)
             );
+
+        // Akhiri Sesi → mode Sesi Berjalan tidak tersedia lagi.
+        $this->post(route('asisten.sessions.end', $running))->assertSessionHasNoErrors();
+        $this->assertNotNull($running->fresh()->ended_at);
+        $this->post(route('asisten.sessions.end', $running))->assertStatus(422);
+        $this->get(route('asisten.tasks.index', ['type' => 'post-test']))
+            ->assertInertia(fn (Assert $page) => $page->where('courses.0.classes.0.session', null));
 
         // Mode "Sesi Berjalan" mengirim jam hari ini sebagai open_at/due_at.
         $today = now()->format('Y-m-d');

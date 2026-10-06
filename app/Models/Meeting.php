@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Contracts\HasFiles;
 use App\Enums\Role;
 use Database\Factories\MeetingFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,6 +24,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $module_release_at
  * @property int|null $responsible_assistant_id
  * @property Carbon|null $started_at
+ * @property Carbon|null $ended_at
  * @property-read LabClass $labClass
  * @property-read StoredFile|null $moduleFile
  */
@@ -39,7 +41,23 @@ class Meeting extends Model implements HasFiles
             'date' => 'date',
             'module_release_at' => 'datetime',
             'started_at' => 'datetime',
+            'ended_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Sesi berjalan: dimulai hari ini dan belum diakhiri asisten.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeRunning(Builder $query): void
+    {
+        $query->where('started_at', '>=', today())->whereNull('ended_at');
+    }
+
+    public function isRunning(): bool
+    {
+        return $this->started_at !== null && $this->started_at->isToday() && $this->ended_at === null;
     }
 
     /**

@@ -13,6 +13,8 @@ type Session = {
     date: string;
     isToday: boolean;
     startedAt: string | null;
+    endedAt: string | null;
+    running: boolean;
     moduleTitle: string | null;
     class: {
         id: number;
@@ -49,9 +51,15 @@ export default function SessionsIndex({ sessions }: { sessions: Session[] }) {
                             >
                                 <div className="flex flex-wrap items-center gap-2">
                                     {session.isToday && <Badge>Hari ini</Badge>}
-                                    {session.startedAt ? (
+                                    {session.running ? (
                                         <Badge variant="success">
-                                            Sudah dimulai
+                                            Sedang berjalan
+                                        </Badge>
+                                    ) : session.startedAt ? (
+                                        <Badge variant="secondary">
+                                            {session.endedAt
+                                                ? 'Selesai'
+                                                : 'Sudah dimulai'}
                                         </Badge>
                                     ) : (
                                         <Badge variant="outline">

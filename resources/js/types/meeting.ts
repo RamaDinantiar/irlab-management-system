@@ -19,6 +19,9 @@ export type MeetingRow = {
     moduleReleased: boolean;
     responsibleAssistant?: { id: number; name: string } | null;
     startedAt: string | null;
+    endedAt: string | null;
+    /** Dimulai hari ini dan belum diakhiri. */
+    running: boolean;
     attendanceCount?: number;
 };
 

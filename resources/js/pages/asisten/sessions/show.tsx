@@ -1,11 +1,29 @@
 import { Form, Head, Link } from '@inertiajs/react';
-import { ArrowLeft, CheckCheck, Play, Save, Users } from 'lucide-react';
+import {
+    ArrowLeft,
+    CheckCheck,
+    ClipboardList,
+    Play,
+    Save,
+    Square,
+    Users,
+} from 'lucide-react';
 import { useState } from 'react';
 import SessionController from '@/actions/App/Http/Controllers/Asisten/SessionController';
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogClose,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+} from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { formatDate, formatRelative } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
@@ -83,9 +101,25 @@ export default function SessionShow({
                     title={`${klass.course} · ${klass.name}`}
                     description={`Pertemuan ${meeting.number}${meeting.moduleTitle ? ` · ${meeting.moduleTitle}` : ''} · ${formatDate(meeting.date)} · ${klass.startTime.replace(':', '.')}–${klass.endTime.replace(':', '.')} · ${klass.room}`}
                     actions={
-                        started ? (
-                            <Badge variant="success">
-                                Dimulai {formatRelative(meeting.startedAt!)}
+                        meeting.running ? (
+                            <div className="flex flex-wrap items-center gap-3">
+                                <Badge variant="success">
+                                    <span
+                                        className="size-2 animate-pulse rounded-full bg-success"
+                                        aria-hidden
+                                    />
+                                    Sedang berjalan · dimulai{' '}
+                                    {formatRelative(meeting.startedAt!)}
+                                </Badge>
+                                {klass.canEdit && (
+                                    <EndSessionButton meetingId={meeting.id} />
+                                )}
+                            </div>
+                        ) : started ? (
+                            <Badge variant="secondary">
+                                {meeting.endedAt
+                                    ? `Sesi diakhiri ${formatRelative(meeting.endedAt)}`
+                                    : `Dimulai ${formatRelative(meeting.startedAt!)}`}
                             </Badge>
                         ) : (
                             klass.canEdit && (
@@ -114,6 +148,23 @@ export default function SessionShow({
                         )
                     }
                 />
+
+                {meeting.running && (
+                    <p className="flex flex-wrap items-center gap-x-3 gap-y-2 border border-success/30 bg-success-soft px-4 py-3 text-sm">
+                        <span className="flex-1">
+                            Sesi sedang berjalan. Post-Test / Pre-Test untuk
+                            kelas ini bisa dibuat dengan mode{' '}
+                            <strong>Sesi Berjalan</strong> (cukup jam mulai &
+                            selesai). Tekan <strong>Akhiri Sesi</strong> setelah
+                            praktikum selesai.
+                        </span>
+                        <Button size="sm" variant="outline" asChild>
+                            <Link href="/asisten/task/post-test">
+                                <ClipboardList /> Ke Post-Test
+                            </Link>
+                        </Button>
+                    </p>
+                )}
 
                 {!started && (
                     <p className="border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-900">
@@ -253,5 +304,58 @@ export default function SessionShow({
                 )}
             </div>
         </>
+    );
+}
+
+/** "Akhiri Sesi" dengan konfirmasi. */
+function EndSessionButton({ meetingId }: { meetingId: number }) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button
+                    size="lg"
+                    variant="outline"
+                    className="border-danger/40 text-danger hover:bg-danger-soft hover:text-danger"
+                >
+                    <Square /> Akhiri Sesi
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="border-t-danger">
+                <DialogHeader>
+                    <DialogTitle>Akhiri sesi praktikum?</DialogTitle>
+                    <DialogDescription>
+                        Sesi ditandai selesai. Presensi tetap bisa diubah, dan
+                        Post-Test / Pre-Test yang sedang berjalan tetap berakhir
+                        sesuai jam selesainya (atau hentikan lewat tombol
+                        Berhenti di halaman Task).
+                    </DialogDescription>
+                </DialogHeader>
+                <Form
+                    {...SessionController.end.form(meetingId)}
+                    options={{ preserveScroll: true }}
+                    onSuccess={() => setOpen(false)}
+                >
+                    {({ processing }) => (
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button type="button" variant="outline">
+                                    Batal
+                                </Button>
+                            </DialogClose>
+                            <Button
+                                type="submit"
+                                variant="destructive"
+                                disabled={processing}
+                            >
+                                {processing ? <Spinner /> : <Square />} Akhiri
+                                Sesi
+                            </Button>
+                        </DialogFooter>
+                    )}
+                </Form>
+            </DialogContent>
+        </Dialog>
     );
 }
