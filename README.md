@@ -155,7 +155,7 @@ Buka http://127.0.0.1:8000.
 | Pembimbing lapangan | Dine Tiara Kusuma, S.T., M.Kom, Kepala Lab IR ITPLN        |
 | Dosen pembimbing    | Andi Dahroni, S.T., M.Kom                                  |
 | Mitra               | Laboratorium Information Retrieval, Institut Teknologi PLN |
-| Periode             | Program magang Oktober – November 2026                     |
+| Periode             | Program magang Oktober – Desember 2026                     |
 
 ## Lisensi
 
