@@ -20,9 +20,25 @@ class ProfileUpdateRequest extends FormRequest
         // NIM & peran dikelola Admin; pengguna melengkapi program studi & angkatan (FR-PST-03).
         return [
             ...$this->profileRules($this->user()->id),
+            'phone' => $this->phoneRules(required: false),
             'major' => ['nullable', 'string', 'max:255'],
             'cohort_year' => ['nullable', 'integer', 'between:2000,2100'],
         ];
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('phone')) {
+            $this->merge(['phone' => self::normalizePhone($this->input('phone'))]);
+        }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function messages(): array
+    {
+        return ['phone.regex' => 'Nomor HP tidak valid. Contoh: 081234567890.'];
     }
 
     /**
@@ -30,6 +46,6 @@ class ProfileUpdateRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['name' => 'nama', 'email' => 'email', 'major' => 'program studi', 'cohort_year' => 'angkatan'];
+        return ['name' => 'nama', 'email' => 'email', 'phone' => 'nomor HP', 'major' => 'program studi', 'cohort_year' => 'angkatan'];
     }
 }

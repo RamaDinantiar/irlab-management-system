@@ -15,7 +15,7 @@ export function GradingQueue({
     return (
         <DashboardPanel
             title="Antrian Penilaian"
-            action={{ label: 'Buka Grading', href: gradeHref }}
+            action={{ label: 'Buka Penilaian', href: gradeHref }}
             empty="Belum ada submission yang perlu dinilai."
         >
             {items.map((item) => {

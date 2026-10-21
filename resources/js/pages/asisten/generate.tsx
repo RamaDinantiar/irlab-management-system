@@ -16,6 +16,7 @@ import {
 import { useEffect, useMemo, useState } from 'react';
 import GenerateController from '@/actions/App/Http/Controllers/Asisten/GenerateController';
 import { EmptyState } from '@/components/empty-state';
+import { SelectField } from '@/components/select-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -65,13 +66,14 @@ const FORMATS = [
         value: 'zip',
         label: 'ZIP Folder',
         icon: FileArchive,
-        description: 'Kumpulan file PDF terpisah per hari pengawasan.',
+        description:
+            'Kumpulan file Word (.docx) terpisah per hari pengawasan dalam satu bulan.',
     },
     {
-        value: 'pdf',
-        label: 'Single PDF',
+        value: 'docx',
+        label: 'Single DOC',
         icon: FileText,
-        description: 'Satu dokumen gabungan seluruh hari pengawasan.',
+        description: 'Laporan kegiatan satu hari dalam satu file Word.',
     },
     {
         value: 'excel',
@@ -161,7 +163,15 @@ export default function AsistenGenerate({
         month: filters.month,
         format: 'zip' as (typeof FORMATS)[number]['value'],
         scope: filters.scope,
+        date: files[0]?.date ?? '',
     });
+    const single = form.data.format === 'docx';
+    const selectedDay = files.find((f) => f.date === form.data.date);
+    // Single DOC (satu hari) langsung diunduh, tanpa antrean.
+    const dailyUrl = (date: string) =>
+        GenerateController.daily.url({
+            query: { date, scope: filters.scope },
+        });
     const [search, setSearch] = useState('');
     const rows = useExportPolling(exports);
     const complete = stats.total
@@ -216,8 +226,8 @@ export default function AsistenGenerate({
                                     Kriteria Periode &amp; Format Ekspor
                                 </h2>
                                 <p className="text-xs text-muted-foreground">
-                                    Hanya laporan berstatus Diverifikasi
-                                    Sekretaris yang masuk rekap.
+                                    Hanya laporan yang sudah diverifikasi
+                                    Sekretaris/Bendahara yang masuk rekap.
                                 </p>
                             </div>
                         </div>
@@ -230,35 +240,26 @@ export default function AsistenGenerate({
                     <div className="grid gap-5 lg:grid-cols-[1fr_1fr_3fr]">
                         <label className="grid content-start gap-2 text-sm font-medium">
                             Pilih Bulan
-                            <select
+                            <SelectField
                                 value={month}
-                                onChange={(e) =>
-                                    setMonth(year, Number(e.target.value))
-                                }
-                                className="h-10 border border-input bg-white px-3 text-sm font-normal"
-                            >
-                                {MONTHS.map((name, i) => (
-                                    <option key={name} value={i + 1}>
-                                        {name}
-                                    </option>
-                                ))}
-                            </select>
+                                onValueChange={(v) => setMonth(year, Number(v))}
+                                options={MONTHS.map((name, i) => ({
+                                    value: i + 1,
+                                    label: name,
+                                }))}
+                            />
                         </label>
                         <label className="grid content-start gap-2 text-sm font-medium">
                             Pilih Tahun
-                            <select
+                            <SelectField
                                 value={year}
-                                onChange={(e) =>
-                                    setMonth(Number(e.target.value), month)
+                                onValueChange={(v) =>
+                                    setMonth(Number(v), month)
                                 }
-                                className="h-10 border border-input bg-white px-3 text-sm font-normal"
-                            >
-                                {[year - 1, year, year + 1].map((y) => (
-                                    <option key={y} value={y}>
-                                        {y}
-                                    </option>
-                                ))}
-                            </select>
+                                options={[year - 1, year, year + 1].map(
+                                    (y) => ({ value: y, label: y }),
+                                )}
+                            />
                         </label>
                         <fieldset className="grid gap-2">
                             <legend className="mb-2 text-sm font-medium">
@@ -312,6 +313,31 @@ export default function AsistenGenerate({
                             </div>
                         </fieldset>
                     </div>
+                    {single && (
+                        <label className="grid max-w-md gap-2 text-sm font-medium">
+                            Tanggal Laporan
+                            <SelectField
+                                value={form.data.date}
+                                onValueChange={(v) => form.setData('date', v)}
+                                disabled={files.length === 0}
+                                aria-invalid={!!form.errors.date}
+                                placeholder="Tidak ada laporan terverifikasi"
+                                options={files.map((f) => ({
+                                    value: f.date,
+                                    label: `${longDate(f.date)} · ${f.shifts} sesi`,
+                                }))}
+                            />
+                            <span className="text-xs font-normal text-muted-foreground">
+                                Single DOC hanya berisi semua sesi pada tanggal
+                                yang dipilih.
+                            </span>
+                            {form.errors.date && (
+                                <span className="text-xs font-normal text-destructive">
+                                    {form.errors.date}
+                                </span>
+                            )}
+                        </label>
+                    )}
                     {canAllScope && (
                         <div
                             role="radiogroup"
@@ -424,8 +450,8 @@ export default function AsistenGenerate({
                                 Daftar Berkas Rekapitulasi
                             </h2>
                             <p className="text-xs text-muted-foreground">
-                                Pratinjau berkas harian yang akan dikompresi ke
-                                dalam arsip.
+                                Satu file Word per hari pengawasan. Unduh satu
+                                hari saja lewat tombol Single DOC di tiap baris.
                             </p>
                         </div>
                         <div className="relative">
@@ -465,6 +491,9 @@ export default function AsistenGenerate({
                                         <th className="px-3 py-3">
                                             Status Berkas
                                         </th>
+                                        <th className="px-5 py-3 text-right">
+                                            Aksi
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -476,12 +505,12 @@ export default function AsistenGenerate({
                                             <td className="px-5 py-3">
                                                 <span className="flex items-center gap-3">
                                                     <span className="flex size-9 items-center justify-center bg-primary-100 font-mono text-[10px] font-bold text-primary-800">
-                                                        PDF
+                                                        DOC
                                                     </span>
                                                     <span className="grid">
                                                         <span className="font-medium">
                                                             {longDate(f.date)}
-                                                            .pdf
+                                                            .docx
                                                         </span>
                                                         <span className="text-xs text-muted-foreground">
                                                             {f.shifts} Shift
@@ -513,6 +542,21 @@ export default function AsistenGenerate({
                                                     />{' '}
                                                     Siap Diekspor
                                                 </span>
+                                            </td>
+                                            <td className="px-5 py-3 text-right">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    asChild
+                                                >
+                                                    <a
+                                                        href={dailyUrl(f.date)}
+                                                        aria-label={`Unduh Single DOC ${longDate(f.date)}`}
+                                                    >
+                                                        <FileText aria-hidden />{' '}
+                                                        Single DOC
+                                                    </a>
+                                                </Button>
                                             </td>
                                         </tr>
                                     ))}
@@ -547,20 +591,13 @@ export default function AsistenGenerate({
                                     >
                                         <div className="flex flex-wrap items-center justify-between gap-2">
                                             <span className="text-sm font-medium">
-                                                {
-                                                    MONTHS[
-                                                        Number(
-                                                            e.month.slice(5),
-                                                        ) - 1
-                                                    ]
-                                                }{' '}
-                                                {e.month.slice(0, 4)} ·{' '}
-                                                {
-                                                    FORMATS.find(
-                                                        (f) =>
-                                                            f.value === e.type,
-                                                    )?.label
-                                                }
+                                                {e.date
+                                                    ? longDate(e.date)
+                                                    : `${MONTHS[Number(e.month.slice(5)) - 1]} ${e.month.slice(0, 4)}`}{' '}
+                                                ·{' '}
+                                                {FORMATS.find(
+                                                    (f) => f.value === e.type,
+                                                )?.label ?? 'PDF (format lama)'}
                                                 {e.scope === 'all' &&
                                                     ' · semua asisten'}
                                             </span>
@@ -656,13 +693,14 @@ export default function AsistenGenerate({
                                         )
                                     }
                                 >
-                                    <ShieldCheck /> Setujui Rekap (Bendahara)
+                                    <ShieldCheck /> Setujui Rekap
                                 </Button>
                             )}
                         </div>
                         <p className="-mt-2 text-xs text-muted-foreground">
                             Total jam dari laporan terverifikasi × tarif per
-                            jam. Berstatus Draft sampai disetujui Bendahara.
+                            jam. Berstatus Draft sampai disetujui
+                            Sekretaris/Bendahara.
                         </p>
                         {honor.recaps.length === 0 ? (
                             <p className="border bg-card p-4 text-sm text-muted-foreground">
@@ -738,14 +776,17 @@ export default function AsistenGenerate({
                 </div>
             </div>
 
-            {/* Figma: bar aksi menempel di bawah. */}
-            <div className="fixed right-4 bottom-4 left-4 z-20 flex flex-wrap items-center justify-between gap-3 border bg-card p-3 shadow-lg md:right-8 md:left-[calc(var(--sidebar-width,16rem)+1.5rem)]">
+            {/* Figma: bar aksi menempel di bawah; di HP selebar layar dengan tombol penuh. */}
+            <div className="fixed inset-x-0 bottom-0 z-20 flex flex-wrap items-center justify-between gap-3 border-t bg-card p-3 shadow-lg sm:right-4 sm:bottom-4 sm:left-4 sm:border md:right-8 lg:left-[calc(var(--sidebar-width,16rem)+1.5rem)] [&>:is(a,button)]:w-full sm:[&>:is(a,button)]:w-auto">
                 <span className="flex items-center gap-3">
                     <span className="flex size-10 items-center justify-center bg-primary-100 text-primary-800">
                         <FileArchive className="size-5" aria-hidden />
                     </span>
                     <span className="grid text-sm">
-                        <strong>{files.length} Berkas Harian</strong>
+                        <strong>
+                            {single ? (selectedDay ? 1 : 0) : files.length}{' '}
+                            Berkas Harian
+                        </strong>
                         <span className="text-xs text-muted-foreground">
                             Format{' '}
                             {
@@ -753,26 +794,43 @@ export default function AsistenGenerate({
                                     (f) => f.value === form.data.format,
                                 )?.label
                             }{' '}
-                            · Rekapitulasi {MONTHS[month - 1]} {year}
+                            ·{' '}
+                            {single && selectedDay
+                                ? longDate(selectedDay.date)
+                                : `Rekapitulasi ${MONTHS[month - 1]} ${year}`}
                         </span>
                     </span>
                 </span>
-                <Button
-                    onClick={() =>
-                        form.post(GenerateController.store.url(), {
-                            preserveScroll: true,
-                        })
-                    }
-                    disabled={form.processing || files.length === 0}
-                    title={
-                        files.length === 0
-                            ? 'Tidak ada laporan pada periode ini'
-                            : undefined
-                    }
-                >
-                    {form.processing ? <Spinner /> : <Download />} Generate
-                    &amp; Unduh
-                </Button>
+                {single ? (
+                    selectedDay ? (
+                        <Button asChild>
+                            <a href={dailyUrl(selectedDay.date)}>
+                                <Download /> Unduh Single DOC
+                            </a>
+                        </Button>
+                    ) : (
+                        <Button disabled>
+                            <Download /> Unduh Single DOC
+                        </Button>
+                    )
+                ) : (
+                    <Button
+                        onClick={() =>
+                            form.post(GenerateController.store.url(), {
+                                preserveScroll: true,
+                            })
+                        }
+                        disabled={form.processing || files.length === 0}
+                        title={
+                            files.length === 0
+                                ? 'Tidak ada laporan pada periode ini'
+                                : undefined
+                        }
+                    >
+                        {form.processing ? <Spinner /> : <Download />} Generate
+                        &amp; Unduh
+                    </Button>
+                )}
             </div>
         </>
     );

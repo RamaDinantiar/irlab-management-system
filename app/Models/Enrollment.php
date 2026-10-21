@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\EnrollmentFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Carbon;
 
 /**
  * Keanggotaan praktikan di kelas (FR-ENR). Dikeluarkan Asisten = soft delete
@@ -16,7 +16,7 @@ use Illuminate\Support\Carbon;
  * @property int $id
  * @property int $class_id
  * @property int $user_id
- * @property Carbon $joined_at
+ * @property CarbonImmutable $joined_at
  * @property string|null $removed_reason
  * @property int|null $removed_by
  * @property-read LabClass $labClass

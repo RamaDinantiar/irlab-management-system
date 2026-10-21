@@ -65,7 +65,7 @@ class AsistenDashboardData
     /**
      * Aktivitas terbaru di kelas yang diampu: submission & praktikan bergabung.
      *
-     * @return list<array{id: string, type: string, message: string, at: string}>
+     * @return array<int, array{id: string, type: string, message: string, at: string}>
      */
     private static function activities(User $user): array
     {
@@ -90,7 +90,7 @@ class AsistenDashboardData
                 'at' => $e->joined_at->toIso8601String(),
             ]);
 
-        $programs = ProgramRegistration::with(['user:id,name', 'program:id,title'])->latest()->limit(3)->get()
+        $programs = ! config('lab.features.programs') ? collect() : ProgramRegistration::with(['user:id,name', 'program:id,title'])->latest()->limit(3)->get()
             ->map(fn (ProgramRegistration $r) => [
                 'id' => "prg-{$r->id}",
                 'type' => 'program',
@@ -133,18 +133,5 @@ class AsistenDashboardData
             ->whereHas('task', fn ($q) => $q->where('status', 'published'))
             ->whereHas('labClass', fn ($q) => $q->taughtBy($user))
             ->count();
-    }
-
-    /**
-     * @return array{0: CarbonImmutable, 1: CarbonImmutable}
-     */
-    private static function bounds(CarbonImmutable $weekStart, int $day, string $start, string $end): array
-    {
-        $date = $weekStart->addDays($day - 1);
-
-        return [
-            $date->setTimeFromTimeString($start),
-            $date->setTimeFromTimeString($end),
-        ];
     }
 }

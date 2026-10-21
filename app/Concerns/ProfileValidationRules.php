@@ -22,6 +22,24 @@ trait ProfileValidationRules
     }
 
     /**
+     * No. HP Indonesia (08…/62…/+62…), 10–15 digit. Spasi & tanda hubung
+     * dibuang dulu lewat normalizePhone().
+     *
+     * @return array<int, ValidationRule|array<mixed>|string>
+     */
+    protected function phoneRules(bool $required = true): array
+    {
+        return [$required ? 'required' : 'nullable', 'string', 'regex:/^(\+62|62|0)8\d{8,12}$/'];
+    }
+
+    protected static function normalizePhone(mixed $phone): ?string
+    {
+        $phone = preg_replace('/[\s.\-()]/', '', (string) $phone);
+
+        return $phone === '' ? null : $phone;
+    }
+
+    /**
      * Get the validation rules used to validate user names.
      *
      * @return array<int, ValidationRule|array<mixed>|string>

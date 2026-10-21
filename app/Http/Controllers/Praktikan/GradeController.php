@@ -100,7 +100,7 @@ class GradeController extends Controller
                 'feedback' => $published ? $grade->feedback : null,
                 'grader' => $published ? $grade->grader?->name : null,
                 'gradedAt' => $published ? $grade->published_at?->toIso8601String() : null,
-                'isLate' => $submission?->is_late ?? false,
+                'isLate' => $submission->is_late ?? false,
             ];
         };
 
@@ -111,7 +111,7 @@ class GradeController extends Controller
 
             return [
                 'meeting' => $meeting->number,
-                'title' => $meeting->module_title,
+                'title' => $meeting->topic,
                 'date' => $meeting->date->toDateString(),
                 'pretest' => $cell($group->first(fn ($t) => $t->task->type->value === 'pretest')),
                 'posttest' => $cell($group->first(fn ($t) => $t->task->type->value === 'posttest')),
@@ -119,7 +119,7 @@ class GradeController extends Controller
             ];
         })->filter(fn ($row) => $row['pretest'] || $row['posttest'] || $row['report'])->values();
 
-        $meetingIds = $class->meetings->whereNotNull('started_at')->pluck('id');
+        $meetingIds = $class->meetings->filter->hasStarted()->pluck('id');
         $present = Attendance::whereIn('meeting_id', $meetingIds)->where('user_id', $userId)->where('status', 'hadir')->count();
 
         return [

@@ -2,10 +2,10 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
-use Illuminate\Support\Carbon;
 
 /**
  * Audit log append-only (PRD 8.2, FR-ADM-09). Tulis lewat AuditLog::record().
@@ -18,7 +18,7 @@ use Illuminate\Support\Carbon;
  * @property array<string, mixed>|null $before_json
  * @property array<string, mixed>|null $after_json
  * @property string|null $ip
- * @property Carbon $created_at
+ * @property CarbonImmutable $created_at
  */
 class AuditLog extends Model
 {

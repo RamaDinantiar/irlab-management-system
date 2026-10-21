@@ -17,10 +17,10 @@ class ManageClassAccess
     public function regenerateToken(LabClass $class): string
     {
         $this->ensureApproved($class);
-        $old = $class->join_token;
 
         $class->forceFill(['join_token' => JoinToken::generate($class->semester_id)])->save();
-        AuditLog::record('class.token_regenerated', $class, ['join_token' => $old], ['join_token' => $class->join_token]);
+        // Nilai token sengaja tidak dicatat: audit log tidak boleh membocorkan token aktif.
+        AuditLog::record('class.token_regenerated', $class);
 
         return $class->join_token;
     }

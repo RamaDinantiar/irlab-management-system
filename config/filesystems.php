@@ -30,7 +30,7 @@ return [
 
     'disks' => [
 
-        // PRD 8.1 NFR-F03: file lab (modul, lampiran, submission) di luar web
+        // PRD 8.1 NFR-F03: file lab (lampiran, submission) di luar web
         // root, tidak pernah disajikan langsung — hanya lewat FileController.
         'lab' => [
             'driver' => 'local',

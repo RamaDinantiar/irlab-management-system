@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Database\Factories\TaskTargetFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * Tugas untuk satu kelas (FR-AT-03) dengan jendela buka & tenggat sendiri.
@@ -17,13 +18,16 @@ use Illuminate\Support\Carbon;
  * @property int $task_id
  * @property int $class_id
  * @property int|null $meeting_id
- * @property Carbon|null $open_at
- * @property Carbon|null $due_at
- * @property Carbon|null $closed_at
+ * @property CarbonImmutable|null $open_at
+ * @property CarbonImmutable|null $due_at
+ * @property CarbonImmutable|null $closed_at
  * @property int|null $window_minutes
- * @property Carbon|null $published_at
+ * @property CarbonImmutable|null $published_at
  * @property-read Task $task
  * @property-read LabClass $labClass
+ * @property-read int $submitted_count withCount
+ * @property-read int $graded_count withCount
+ * @property-read int|bool $submitted withCount/withExists
  */
 class TaskTarget extends Model
 {
@@ -101,6 +105,22 @@ class TaskTarget extends Model
         }
 
         return 'open';
+    }
+
+    /**
+     * Padanan SQL dari state() === 'open'.
+     *
+     * @param  Builder<self>  $query
+     */
+    public function scopeOpen(Builder $query): void
+    {
+        $now = now();
+
+        $query->whereNotNull('open_at')->where('open_at', '<=', $now)
+            ->where(fn ($q) => $q->whereNull('closed_at')->orWhere('closed_at', '>', $now))
+            ->whereHas('task', fn ($q) => $q->where('status', 'published'))
+            ->where(fn ($q) => $q->whereNull('due_at')->orWhere('due_at', '>=', $now)
+                ->orWhereHas('task', fn ($t) => $t->where('allow_late', true)));
     }
 
     public function isPastDue(?CarbonInterface $now = null): bool

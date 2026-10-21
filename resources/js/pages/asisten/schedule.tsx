@@ -16,9 +16,15 @@ import { useEffect, useMemo, useState } from 'react';
 import ScheduleController from '@/actions/App/Http/Controllers/Asisten/ScheduleController';
 import ShiftController from '@/actions/App/Http/Controllers/Asisten/ShiftController';
 import ShiftSwapController from '@/actions/App/Http/Controllers/Asisten/ShiftSwapController';
+import {
+    CourseLegend,
+    courseLegendItems,
+} from '@/components/dashboard/course-legend';
 import { WeekSchedule } from '@/components/dashboard/week-schedule';
 import { EmptyState } from '@/components/empty-state';
+import { ClassesByDay } from '@/components/schedule/classes-by-day';
 import InputError from '@/components/input-error';
+import { SelectField } from '@/components/select-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,9 +39,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { formatDate, formatRelative } from '@/lib/datetime';
+import { formatDate, formatRelative, todayWib } from '@/lib/datetime';
 import { dayName } from '@/lib/days';
-import { scheduleColors } from '@/lib/schedule-colors';
 import { cn } from '@/lib/utils';
 import type {
     AllClassRow,
@@ -44,6 +49,8 @@ import type {
     ShiftSwapRow,
     SwapStatus,
 } from '@/types';
+import { TimeField } from '@/components/pickers/time-field';
+import { DateField } from '@/components/pickers/date-field';
 
 type Props = {
     week: { start: string; today: number; events: ScheduleEvent[] };
@@ -81,6 +88,28 @@ const SWAP_STATUS: Record<
 
 const shiftWhen = (s: { date: string; start: string; end: string }) =>
     `${formatDate(s.date)} · ${s.start}–${s.end}`;
+
+/** Senin minggu berjalan (WIB), "YYYY-MM-DD". */
+function currentMonday(): string {
+    const today = todayWib();
+    const weekday = (new Date(`${today}T00:00:00`).getDay() + 6) % 7;
+
+    return addDays(today, -weekday);
+}
+
+/** Selisih minggu dari minggu berjalan → "Minggu depan", "2 minggu lalu", … */
+const NEAR_WEEKS: Record<number, string> = {
+    [-1]: 'Minggu lalu',
+    0: 'Minggu ini',
+    1: 'Minggu depan',
+};
+
+function weekLabel(offset: number): string {
+    return (
+        NEAR_WEEKS[offset] ??
+        (offset > 0 ? `${offset} minggu lagi` : `${-offset} minggu lalu`)
+    );
+}
 
 function addDays(iso: string, days: number) {
     const date = new Date(`${iso}T00:00:00`);
@@ -124,7 +153,8 @@ function SwapDialog({
             headers: { Accept: 'application/json' },
         })
             .then((response) => response.json())
-            .then((rows) => alive && setCandidates(rows));
+            .then((rows) => alive && setCandidates(rows))
+            .catch(() => alive && setCandidates([]));
 
         return () => {
             alive = false;
@@ -155,26 +185,23 @@ function SwapDialog({
                 <form onSubmit={submit} className="grid gap-5">
                     <div className="grid gap-2">
                         <Label htmlFor="swap-shift">Shift saya</Label>
-                        <select
+                        <SelectField
                             id="swap-shift"
                             required
                             value={form.data.shift_id}
-                            onChange={(e) =>
+                            onValueChange={(v) =>
                                 form.setData((d) => ({
                                     ...d,
-                                    shift_id: e.target.value,
+                                    shift_id: v,
                                     to_user_id: '',
                                 }))
                             }
-                            className="h-10 border border-input bg-white px-3 text-sm"
-                        >
-                            <option value="">Pilih shift…</option>
-                            {swappable.map((s) => (
-                                <option key={s.id} value={s.id}>
-                                    {shiftWhen(s)} — {s.title}
-                                </option>
-                            ))}
-                        </select>
+                            placeholder="Pilih shift…"
+                            options={swappable.map((s) => ({
+                                value: s.id,
+                                label: `${shiftWhen(s)} — ${s.title}`,
+                            }))}
+                        />
                         {swappable.length === 0 && (
                             <p className="text-xs text-muted-foreground">
                                 Tidak ada shift yang dapat ditukar (minimal 24
@@ -185,27 +212,22 @@ function SwapDialog({
                     </div>
                     <div className="grid gap-2">
                         <Label htmlFor="swap-to">Asisten tujuan</Label>
-                        <select
+                        <SelectField
                             id="swap-to"
                             required
                             disabled={!candidates}
                             value={form.data.to_user_id}
-                            onChange={(e) =>
-                                form.setData('to_user_id', e.target.value)
-                            }
-                            className="h-10 border border-input bg-white px-3 text-sm disabled:opacity-60"
-                        >
-                            <option value="">
-                                {form.data.shift_id && !candidates
+                            onValueChange={(v) => form.setData('to_user_id', v)}
+                            placeholder={
+                                form.data.shift_id && !candidates
                                     ? 'Memuat asisten yang tersedia…'
-                                    : 'Pilih asisten…'}
-                            </option>
-                            {candidates?.map((c) => (
-                                <option key={c.id} value={c.id}>
-                                    {c.name}
-                                </option>
-                            ))}
-                        </select>
+                                    : 'Pilih asisten…'
+                            }
+                            options={(candidates ?? []).map((c) => ({
+                                value: c.id,
+                                label: c.name,
+                            }))}
+                        />
                         <p className="text-xs text-muted-foreground">
                             Hanya asisten yang tidak memiliki shift bentrok.
                         </p>
@@ -292,22 +314,19 @@ function AddShiftDialog({
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div className="grid gap-2">
                             <Label htmlFor="sh-user">Asisten</Label>
-                            <select
+                            <SelectField
                                 id="sh-user"
                                 required
                                 value={form.data.user_id}
-                                onChange={(e) =>
-                                    form.setData('user_id', e.target.value)
+                                onValueChange={(v) =>
+                                    form.setData('user_id', v)
                                 }
-                                className="h-10 border border-input bg-white px-3 text-sm"
-                            >
-                                <option value="">Pilih…</option>
-                                {manage.assistants.map((a) => (
-                                    <option key={a.id} value={a.id}>
-                                        {a.name}
-                                    </option>
-                                ))}
-                            </select>
+                                placeholder="Pilih…"
+                                options={manage.assistants.map((a) => ({
+                                    value: a.id,
+                                    label: a.name,
+                                }))}
+                            />
                             <InputError message={form.errors.user_id} />
                         </div>
                         <div
@@ -317,21 +336,20 @@ function AddShiftDialog({
                             )}
                         >
                             <Label htmlFor="sh-room">Ruang</Label>
-                            <select
+                            <SelectField
                                 id="sh-room"
                                 value={form.data.room_id}
-                                onChange={(e) =>
-                                    form.setData('room_id', e.target.value)
+                                onValueChange={(v) =>
+                                    form.setData('room_id', v)
                                 }
-                                className="h-10 border border-input bg-white px-3 text-sm"
-                            >
-                                <option value="">—</option>
-                                {manage.rooms.map((r) => (
-                                    <option key={r.id} value={r.id}>
-                                        {r.name}
-                                    </option>
-                                ))}
-                            </select>
+                                options={[
+                                    { value: '', label: '—' },
+                                    ...manage.rooms.map((r) => ({
+                                        value: r.id,
+                                        label: r.name,
+                                    })),
+                                ]}
+                            />
                         </div>
                     </div>
                     <div className="grid gap-2">
@@ -348,39 +366,38 @@ function AddShiftDialog({
                     <div className="grid gap-4 sm:grid-cols-4">
                         <div className="grid gap-2 sm:col-span-2">
                             <Label htmlFor="sh-date">Tanggal mulai</Label>
-                            <Input
+                            <DateField
                                 id="sh-date"
-                                type="date"
                                 required
                                 value={form.data.date}
-                                onChange={(e) =>
-                                    form.setData('date', e.target.value)
+                                onChange={(value) =>
+                                    form.setData('date', value)
                                 }
                             />
                             <InputError message={form.errors.date} />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="sh-start">Mulai</Label>
-                            <Input
+                            <TimeField
                                 id="sh-start"
-                                type="time"
                                 required
                                 value={form.data.start_time}
-                                onChange={(e) =>
-                                    form.setData('start_time', e.target.value)
+                                onChange={(value) =>
+                                    form.setData('start_time', value)
                                 }
+                                label="Mulai"
                             />
                         </div>
                         <div className="grid gap-2">
                             <Label htmlFor="sh-end">Selesai</Label>
-                            <Input
+                            <TimeField
                                 id="sh-end"
-                                type="time"
                                 required
                                 value={form.data.end_time}
-                                onChange={(e) =>
-                                    form.setData('end_time', e.target.value)
+                                onChange={(value) =>
+                                    form.setData('end_time', value)
                                 }
+                                label="Selesai"
                             />
                         </div>
                     </div>
@@ -512,6 +529,11 @@ export default function AsistenSchedule({
     manage,
 }: Props) {
     const [tab, setTab] = useState<'mine' | 'all'>('mine');
+    const weekOffset = Math.round(
+        (new Date(`${week.start}T00:00:00`).getTime() -
+            new Date(`${currentMonday()}T00:00:00`).getTime()) /
+            (7 * 86_400_000),
+    );
     const [day, setDay] = useState<number | null>(null);
     const [swapOpen, setSwapOpen] = useState(false);
     const [swapShift, setSwapShift] = useState<number | null>(null);
@@ -524,6 +546,19 @@ export default function AsistenSchedule({
 
         return [...days.entries()].sort(([a], [b]) => a - b);
     }, [allClasses]);
+    // Jadwal Saya: hanya mata kuliah yang diawasi; Semua Jadwal: semuanya.
+    const legend = useMemo(
+        () => ({
+            mine: courseLegendItems([
+                ...allClasses.filter((c) => c.mine),
+                ...week.events
+                    .filter((e) => e.type === 'class')
+                    .map((e) => ({ course: e.title, color: e.color })),
+            ]),
+            all: courseLegendItems(allClasses),
+        }),
+        [allClasses, week.events],
+    );
 
     const goWeek = (start: string | null) =>
         router.get(
@@ -586,39 +621,51 @@ export default function AsistenSchedule({
                     </div>
                 </div>
 
-                <div
-                    role="tablist"
-                    aria-label="Tampilan jadwal"
-                    className="flex gap-6 border-b border-primary-200"
-                >
-                    {(
-                        [
-                            ['mine', 'Jadwal Saya', `${myClassCount} Kelas`],
+                <div className="flex flex-wrap items-center gap-3 border bg-card p-4 shadow-sm">
+                    <div
+                        role="tablist"
+                        aria-label="Tampilan jadwal"
+                        className="flex flex-wrap gap-2"
+                    >
+                        {(
                             [
-                                'all',
-                                'Semua Jadwal',
-                                `${allClasses.length} Kelas`,
-                            ],
-                        ] as const
-                    ).map(([value, label, count]) => (
-                        <button
-                            key={value}
-                            role="tab"
-                            aria-selected={tab === value}
-                            onClick={() => setTab(value)}
-                            className={cn(
-                                '-mb-px flex items-center gap-2 border-b-2 px-1 pb-2.5 text-sm font-bold',
-                                tab === value
-                                    ? 'border-primary-700 text-primary-800'
-                                    : 'border-transparent text-muted-foreground hover:text-foreground',
-                            )}
-                        >
-                            {label}
-                            <span className="bg-primary-100 px-2 py-0.5 text-[11px] font-medium text-primary-800">
-                                {count}
-                            </span>
-                        </button>
-                    ))}
+                                ['mine', 'Jadwal Saya', myClassCount],
+                                ['all', 'Semua Jadwal', allClasses.length],
+                            ] as const
+                        ).map(([value, label, count]) => (
+                            <button
+                                key={value}
+                                type="button"
+                                role="tab"
+                                aria-selected={tab === value}
+                                onClick={() => setTab(value)}
+                                className={cn(
+                                    'flex items-center gap-2 px-4 py-2 text-sm font-medium',
+                                    tab === value
+                                        ? 'bg-primary-700 text-white'
+                                        : 'hover:bg-primary-50',
+                                )}
+                            >
+                                {label}
+                                <span
+                                    className={cn(
+                                        'flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-bold',
+                                        tab === value
+                                            ? 'bg-white/25'
+                                            : 'bg-primary-100 text-primary-700',
+                                    )}
+                                    aria-label={`${count} kelas`}
+                                >
+                                    {count}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+                    {/* Selalu rata kanan: item yang bertambah mengisi ke kanan bawah. */}
+                    <CourseLegend
+                        items={legend[tab]}
+                        className="min-w-0 flex-1 basis-72 justify-end"
+                    />
                 </div>
 
                 {tab === 'mine' ? (
@@ -635,9 +682,20 @@ export default function AsistenSchedule({
                             <Button
                                 size="sm"
                                 variant="outline"
+                                className="min-w-32"
                                 onClick={() => goWeek(null)}
+                                aria-label={
+                                    weekOffset === 0
+                                        ? 'Minggu ini'
+                                        : `${weekLabel(weekOffset)}, kembali ke minggu ini`
+                                }
+                                title={
+                                    weekOffset === 0
+                                        ? undefined
+                                        : 'Kembali ke minggu ini'
+                                }
                             >
-                                Minggu ini
+                                {weekLabel(weekOffset)}
                             </Button>
                             <Button
                                 size="sm"
@@ -652,6 +710,11 @@ export default function AsistenSchedule({
                             weekStart={week.start}
                             today={week.today}
                             events={week.events}
+                            title={
+                                weekOffset === 0
+                                    ? 'Jadwal Minggu Ini'
+                                    : `Jadwal ${weekLabel(weekOffset).replace(/(^|\s)\S/g, (c) => c.toUpperCase())}`
+                            }
                         />
 
                         <div className="grid gap-6 xl:grid-cols-3">
@@ -809,124 +872,15 @@ export default function AsistenSchedule({
                                 </button>
                             ))}
                         </div>
-                        {byDay
-                            .filter(([d]) => day === null || d === day)
-                            .map(([d, rows]) => (
-                                <section
-                                    key={d}
-                                    aria-labelledby={`day-${d}`}
-                                    className="grid gap-4"
-                                >
-                                    <header className="flex flex-wrap items-center justify-between gap-3 border border-primary-200 bg-primary-50 px-4 py-3">
-                                        <div className="flex items-center gap-3">
-                                            <span className="flex size-9 items-center justify-center bg-primary-800 font-mono text-xs font-bold text-white">
-                                                {dayName(d)
-                                                    .slice(0, 2)
-                                                    .toUpperCase()}
-                                            </span>
-                                            <div>
-                                                <h2
-                                                    id={`day-${d}`}
-                                                    className="font-bold uppercase"
-                                                >
-                                                    {dayName(d)}
-                                                </h2>
-                                                <p className="text-xs">
-                                                    {rows.length} Sesi Praktikum
-                                                    ·{' '}
-                                                    {rows.reduce(
-                                                        (sum, r) =>
-                                                            sum + r.credits,
-                                                        0,
-                                                    )}{' '}
-                                                    SKS Total
-                                                </p>
-                                            </div>
-                                        </div>
-                                        <span className="border bg-white px-6 py-1 text-xs">
-                                            {[
-                                                ...new Set(
-                                                    rows
-                                                        .map((r) => r.room)
-                                                        .filter(Boolean),
-                                                ),
-                                            ].join(', ')}
-                                        </span>
-                                    </header>
-                                    <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                                        {rows.map((c) => {
-                                            const color =
-                                                scheduleColors[c.color];
-
-                                            return (
-                                                <li
-                                                    key={c.id}
-                                                    className={cn(
-                                                        'grid gap-3 border-l-4 bg-card p-4 shadow-sm',
-                                                        color.accent,
-                                                        c.mine &&
-                                                            'ring-primary-300 ring-1',
-                                                    )}
-                                                >
-                                                    <div className="flex items-center justify-between">
-                                                        <span
-                                                            className={cn(
-                                                                'inline-flex items-center gap-1 px-2 py-0.5 font-mono text-xs font-bold',
-                                                                color.chip,
-                                                                color.text,
-                                                            )}
-                                                        >
-                                                            <Clock
-                                                                className="size-3"
-                                                                aria-hidden
-                                                            />{' '}
-                                                            {c.startTime}–
-                                                            {c.endTime}
-                                                        </span>
-                                                        <span className="bg-primary-50 px-2 py-0.5 text-[11px] text-primary-800">
-                                                            {c.credits} SKS
-                                                        </span>
-                                                    </div>
-                                                    <p className="text-h3 leading-tight font-bold">
-                                                        {c.course}
-                                                    </p>
-                                                    <p className="flex items-center gap-2 text-xs">
-                                                        <span className="bg-primary-50 px-2 py-1">
-                                                            {c.name}
-                                                        </span>
-                                                        <span className="font-mono text-muted-foreground">
-                                                            {c.code}
-                                                        </span>
-                                                        {c.room && (
-                                                            <span>
-                                                                · {c.room}
-                                                            </span>
-                                                        )}
-                                                    </p>
-                                                    <div className="grid gap-1 border-t pt-2">
-                                                        <span className="text-[11px] text-muted-foreground">
-                                                            Asisten
-                                                            Laboratorium:
-                                                        </span>
-                                                        <span className="flex flex-wrap gap-1">
-                                                            {c.assistants.map(
-                                                                (a) => (
-                                                                    <span
-                                                                        key={a}
-                                                                        className="bg-primary-100 px-2 py-0.5 text-[11px]"
-                                                                    >
-                                                                        {a}
-                                                                    </span>
-                                                                ),
-                                                            )}
-                                                        </span>
-                                                    </div>
-                                                </li>
-                                            );
-                                        })}
-                                    </ul>
-                                </section>
-                            ))}
+                        <ClassesByDay
+                            rows={
+                                day === null
+                                    ? allClasses
+                                    : allClasses.filter(
+                                          (c) => c.dayOfWeek === day,
+                                      )
+                            }
+                        />
 
                         <section aria-labelledby="duty" className="grid gap-3">
                             <h2 id="duty" className="text-h3 font-bold">

@@ -37,7 +37,7 @@ export default function ClassAnnouncements({
                 <EmptyState
                     icon={Megaphone}
                     title="Belum ada pengumuman"
-                    description="Mis. perubahan jadwal, modul baru, atau persiapan pre-test."
+                    description="Mis. perubahan jadwal, materi pertemuan, atau persiapan pre-test."
                 />
             ) : (
                 <div className="grid gap-4">

@@ -7,11 +7,13 @@ use App\Models\Seat;
 
 /**
  * Bentuk data denah untuk komponen React `SeatMap` dan pembuat denah bawaan.
+ *
+ * @phpstan-type Layout array{id: int, name: string, rows: int, cols: int, cells: array<int, array{id: int, row: int, col: int, type: string, label: string|null}>}
  */
 class RoomLayout
 {
     /**
-     * @return array{id: int, name: string, rows: int, cols: int, cells: list<array{id: int, row: int, col: int, type: string, label: string|null}>}
+     * @return Layout
      */
     public static function for(Room $room): array
     {

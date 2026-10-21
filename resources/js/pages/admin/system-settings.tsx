@@ -1,5 +1,5 @@
 import { Form, Head } from '@inertiajs/react';
-import { Clock, FileText, HardDrive, UserPlus, Wallet } from 'lucide-react';
+import { Clock, HardDrive, UserPlus, Wallet } from 'lucide-react';
 import type { ReactNode } from 'react';
 import SystemSettingController from '@/actions/App/Http/Controllers/Admin/SystemSettingController';
 import InputError from '@/components/input-error';
@@ -9,14 +9,14 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { DateField } from '@/components/pickers/date-field';
+import { todayWib } from '@/lib/datetime';
 
 type Settings = {
     idle_minutes: number;
     limit_pdf_mb: number;
     limit_zip_mb: number;
     limit_image_mb: number;
-    pdf_header_title: string;
-    pdf_header_subtitle: string;
     registration_open: boolean;
     registration_domains: string;
 };
@@ -118,7 +118,7 @@ export default function SystemSettings({
             <div className="flex flex-col gap-6 p-4 md:p-6 lg:p-8">
                 <PageHeader
                     title="Pengaturan Sistem"
-                    description="Durasi sesi idle, batas ukuran unggahan, kop PDF berita acara, dan tarif honor asisten."
+                    description="Durasi sesi idle, batas ukuran unggahan, dan tarif honor asisten."
                 />
 
                 <Form
@@ -223,44 +223,6 @@ export default function SystemSettings({
                                     />
                                 </div>
                             </Section>
-                            <Section
-                                icon={FileText}
-                                title="Kop PDF Berita Acara"
-                                description="Tampil di setiap halaman rekap laporan mengawas."
-                            >
-                                <div className="grid gap-2">
-                                    <Label htmlFor="pdf_header_title">
-                                        Judul
-                                    </Label>
-                                    <Input
-                                        id="pdf_header_title"
-                                        name="pdf_header_title"
-                                        required
-                                        maxLength={100}
-                                        defaultValue={settings.pdf_header_title}
-                                    />
-                                    <InputError
-                                        message={errors.pdf_header_title}
-                                    />
-                                </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="pdf_header_subtitle">
-                                        Subjudul
-                                    </Label>
-                                    <Input
-                                        id="pdf_header_subtitle"
-                                        name="pdf_header_subtitle"
-                                        required
-                                        maxLength={150}
-                                        defaultValue={
-                                            settings.pdf_header_subtitle
-                                        }
-                                    />
-                                    <InputError
-                                        message={errors.pdf_header_subtitle}
-                                    />
-                                </div>
-                            </Section>
                             <div className="flex justify-end">
                                 <Button type="submit" disabled={processing}>
                                     {processing && <Spinner />} Simpan
@@ -305,14 +267,11 @@ export default function SystemSettings({
                                     <Label htmlFor="effective_from">
                                         Berlaku mulai
                                     </Label>
-                                    <Input
+                                    <DateField
                                         id="effective_from"
                                         name="effective_from"
-                                        type="date"
                                         required
-                                        defaultValue={new Date().toLocaleDateString(
-                                            'sv-SE',
-                                        )}
+                                        defaultValue={todayWib()}
                                     />
                                     <InputError
                                         message={errors.effective_from}

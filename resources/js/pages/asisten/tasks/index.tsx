@@ -158,6 +158,7 @@ export default function TasksIndex({
     tasks,
     extendOptions,
     openCreate,
+    createClassId,
     editing,
     courses,
     limits,
@@ -166,6 +167,7 @@ export default function TasksIndex({
     tasks: TaskRow[];
     extendOptions: number[];
     openCreate: boolean;
+    createClassId?: number | null;
     editing: TaskFormData | null;
 } & TaskFormOptions) {
     const now = useNow();
@@ -423,6 +425,7 @@ export default function TasksIndex({
                 onOpenChange={(open) => !open && closeForm()}
                 task={editing}
                 defaultType={editing?.type ?? type ?? 'posttest'}
+                defaultClassId={createClassId}
                 typeLocked={type !== null}
                 courses={courses}
                 limits={limits}
@@ -878,7 +881,7 @@ function ActionPanel({
                         {target.openAt
                             ? `Soal dirilis otomatis ${formatRelative(target.openAt, now)}.`
                             : target.windowMinutes
-                              ? 'Soal dirilis otomatis saat asisten memulai sesi pertemuan.'
+                              ? 'Soal dirilis otomatis saat sesi pertemuan dimulai (jam mulai kelas).'
                               : 'Atur waktu buka agar soal dapat dirilis.'}
                     </p>
                 </div>

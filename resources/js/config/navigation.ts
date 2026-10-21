@@ -17,7 +17,7 @@ import {
     SquarePen,
     Users,
 } from 'lucide-react';
-import type { NavGroup, NavItem, Role } from '@/types';
+import type { NavGroup, NavItem, Position, Role } from '@/types';
 
 /**
  * Menu sidebar per peran — PRD 4.2, urutan & nama mengikuti sidebar Figma.
@@ -43,6 +43,7 @@ const programs = (base: string, withMaintenance: boolean): NavItem[] => [
 const asistenItems = (p: string): NavItem[] => [
     { title: 'Schedule', href: `${p}/schedule`, icon: CalendarDays },
     { title: 'Class', href: `${p}/class`, icon: BookOpen },
+    { title: 'Seats', href: `${p}/seats`, icon: Armchair },
     {
         title: 'Task',
         href: `${p}/task`,
@@ -63,7 +64,6 @@ const asistenItems = (p: string): NavItem[] => [
         icon: AppWindow,
         children: programs(`${p}/program`, true),
     },
-    { title: 'Seats', href: `${p}/seats`, icon: Armchair },
 ];
 
 export const navigation: Record<Role, NavGroup[]> = {
@@ -167,6 +167,12 @@ export const roleLabels: Record<Role, string> = {
     praktikan: 'Praktikan',
     asisten: 'Asisten Lab',
     admin: 'Admin',
+};
+
+/** Divisi Asisten. Sekretaris/Bendahara: verifikasi laporan ngawas + honor. */
+export const positionLabels: Record<Position, string> = {
+    none: 'Asisten Umum',
+    sekretaris_bendahara: 'Sekretaris/Bendahara',
 };
 
 /**

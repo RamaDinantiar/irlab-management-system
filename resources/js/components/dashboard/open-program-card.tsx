@@ -1,4 +1,5 @@
 import { Link } from '@inertiajs/react';
+import { MetricCard } from '@/components/dashboard/metric-card';
 import { Button } from '@/components/ui/button';
 import { useNow } from '@/hooks/use-now';
 import { formatCountdown } from '@/lib/datetime';
@@ -12,16 +13,14 @@ export function OpenProgramCard({
 }) {
     const now = useNow();
 
+    // Kosong → bentuk sama dengan kartu metrik di sebelahnya agar baris rata.
     if (!program) {
         return (
-            <section className="flex h-full min-h-36 flex-col justify-end gap-1 border bg-card p-5">
-                <h2 className="text-h3 font-bold text-primary-700">
-                    Program Terbuka
-                </h2>
-                <p className="text-sm text-muted-foreground">
-                    Belum ada program yang membuka pendaftaran.
-                </p>
-            </section>
+            <MetricCard
+                value={0}
+                label="Program pendaftaran dibuka"
+                href="/praktikan/program"
+            />
         );
     }
 

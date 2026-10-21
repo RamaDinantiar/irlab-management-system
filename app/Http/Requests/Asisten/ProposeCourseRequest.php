@@ -42,6 +42,9 @@ class ProposeCourseRequest extends FormRequest
         return $this->courseRules($semesterId, $course instanceof Course ? $course->id : null);
     }
 
+    /**
+     * @return array<int, callable>
+     */
     public function after(): array
     {
         return $this->courseWeightsMustTotal100();

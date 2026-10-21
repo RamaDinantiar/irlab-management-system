@@ -2,11 +2,9 @@
 
 namespace App\Models;
 
-use Database\Factories\ShiftSwapFactory;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * Pengajuan tukar shift (US-A05, FR-AS-03/04). Status: pending (Diajukan),
@@ -19,16 +17,13 @@ use Illuminate\Support\Carbon;
  * @property string $reason
  * @property string $status
  * @property string|null $response_note
- * @property Carbon|null $responded_at
+ * @property CarbonImmutable|null $responded_at
  * @property-read Shift $shift
  * @property-read User $fromUser
  * @property-read User $toUser
  */
 class ShiftSwap extends Model
 {
-    /** @use HasFactory<ShiftSwapFactory> */
-    use HasFactory;
-
     protected $guarded = ['id'];
 
     protected function casts(): array

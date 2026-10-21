@@ -24,6 +24,10 @@ export type SeatOccupant = {
     name: string;
     nim: string;
     major: string | null;
+    /** Hanya untuk Asisten/Admin (detail kursi). */
+    email: string | null;
+    phone: string | null;
+    avatar: string | null;
     mine: boolean;
 };
 

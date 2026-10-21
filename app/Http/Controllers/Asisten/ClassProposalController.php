@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Asisten;
 
+use App\Actions\Schedule\NotifyScheduleChange;
 use App\Enums\ApprovalStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Asisten\ClassProposalRequest;
@@ -36,7 +37,7 @@ class ClassProposalController extends Controller
         return to_route('asisten.class.index');
     }
 
-    public function update(ClassProposalRequest $request, LabClass $class): RedirectResponse
+    public function update(ClassProposalRequest $request, LabClass $class, NotifyScheduleChange $notify): RedirectResponse
     {
         $before = $class->only(['course_id', 'name', 'day_of_week', 'start_time', 'end_time', 'room_id', 'quota', 'approval_status']);
         $class->fill($request->safe()->except('confirm_conflicts'));
@@ -47,6 +48,7 @@ class ClassProposalController extends Controller
         }
 
         $class->save();
+        $notify->forClass($class);
 
         if ($class->wasChanged('approval_status')) {
             Notify::admins('approval', 'Revisi pengajuan kelas', "{$request->user()->name} mengirim ulang {$class->course->name} · {$class->name}.", '/admin/classes?status=pending');

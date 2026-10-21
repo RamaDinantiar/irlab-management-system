@@ -6,7 +6,6 @@ use App\Enums\ApprovalStatus;
 use App\Models\LabClass;
 use App\Models\Room;
 use App\Support\ClassDays;
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Validator;
 
@@ -19,7 +18,7 @@ use Illuminate\Validation\Validator;
 trait ClassValidationRules
 {
     /**
-     * @return array<string, ValidationRule|array<mixed>|string>
+     * @return array<string, array<int, mixed>>
      */
     protected function classRules(int $semesterId, ?int $ignoreClassId = null): array
     {
@@ -29,6 +28,8 @@ trait ClassValidationRules
                 ->where('approval_status', ApprovalStatus::Approved->value)],
             'name' => ['required', 'string', 'max:50',
                 Rule::unique('classes', 'name')->where('course_id', $this->integer('course_id'))->ignore($ignoreClassId)],
+            // Wajib: dipakai kolom Nama Dosen di laporan kegiatan harian (Word).
+            'lecturer' => ['required', 'string', 'max:150'],
             'day_of_week' => ['required', 'integer', 'between:1,7'],
             'start_time' => ['required', 'date_format:H:i'],
             'end_time' => ['required', 'date_format:H:i', 'after:start_time'],
@@ -39,7 +40,7 @@ trait ClassValidationRules
     }
 
     /**
-     * @param  list<int>  $assistantIds
+     * @param  array<int, int>  $assistantIds
      * @return callable(Validator): void
      */
     protected function scheduleConflicts(int $semesterId, array $assistantIds, ?int $ignoreClassId = null): callable
@@ -100,6 +101,7 @@ trait ClassValidationRules
         return [
             'course_id' => 'mata kuliah',
             'name' => 'nama kelas',
+            'lecturer' => 'nama dosen',
             'day_of_week' => 'hari',
             'start_time' => 'jam mulai',
             'end_time' => 'jam selesai',

@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use App\Contracts\HasFiles;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * Riwayat Generate rekap (FR-AGN-04): file berlaku 24 jam, dihapus setelah 7 hari.
@@ -18,7 +18,7 @@ use Illuminate\Support\Carbon;
  * @property int $progress
  * @property int|null $file_id
  * @property string|null $error
- * @property Carbon|null $expires_at
+ * @property CarbonImmutable|null $expires_at
  * @property-read StoredFile|null $file
  * @property-read User $user
  */

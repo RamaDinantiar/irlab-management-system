@@ -9,6 +9,7 @@ use App\Models\Export;
 use App\Models\HonorRecap;
 use App\Models\Shift;
 use App\Models\SupervisionReport;
+use App\Support\Reports\DailyActivityReport;
 use Carbon\CarbonImmutable;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -16,9 +17,10 @@ use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 /**
- * Asisten › Generate — rekap bulanan (US-A04, FR-AGN-01…04) + honor.
+ * Asisten › Generate — rekap laporan mengawas dalam Word (ZIP per hari / satu hari) & Excel (US-A04, FR-AGN-01…04) + honor.
  */
 class GenerateController extends Controller
 {
@@ -79,7 +81,8 @@ class GenerateController extends Controller
     {
         $validated = $request->validate([
             'month' => ['required', 'date_format:Y-m'],
-            'format' => ['required', Rule::in(['zip', 'pdf', 'excel'])],
+            // Single DOC tidak lewat antrean — lihat daily().
+            'format' => ['required', Rule::in(['zip', 'excel'])],
             'scope' => ['required', Rule::in(['mine', 'all'])],
         ]);
 
@@ -95,6 +98,37 @@ class GenerateController extends Controller
         Inertia::flash('toast', ['type' => 'info', 'message' => 'Rekap sedang diproses di background. Anda akan mendapat notifikasi saat selesai.']);
 
         return back();
+    }
+
+    /**
+     * Single DOC: laporan kegiatan harian satu tanggal, langsung diunduh.
+     * Satu hari cukup ringan (< 1 detik) sehingga tidak perlu menunggu antrean.
+     */
+    public function daily(Request $request): BinaryFileResponse|RedirectResponse
+    {
+        $validated = $request->validate([
+            'date' => ['required', 'date_format:Y-m-d'],
+            'scope' => ['nullable', Rule::in(['mine', 'all'])],
+        ], [], ['date' => 'tanggal']);
+        $scope = $validated['scope'] ?? 'mine';
+
+        abort_if($scope === 'all' && ! $request->user()->canApproveHonor(), 403);
+
+        $date = CarbonImmutable::parse($validated['date']);
+        $reports = GenerateMonthlyReport::reports($request->user()->id, $date->format('Y-m'), $scope, $date->toDateString());
+
+        if ($reports->isEmpty()) {
+            Inertia::flash('toast', ['type' => 'warning', 'message' => 'Tidak ada laporan terverifikasi pada tanggal ini.']);
+
+            return back();
+        }
+
+        $tmp = tempnam(sys_get_temp_dir(), 'harian');
+        DailyActivityReport::save($date, $reports, $tmp);
+
+        return response()->download($tmp, GenerateMonthlyReport::dailyName($date), [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        ])->deleteFileAfterSend();
     }
 
     /**
@@ -127,6 +161,7 @@ class GenerateController extends Controller
             'id' => $export->id,
             'type' => $export->type,
             'month' => $export->params_json['month'],
+            'date' => $export->params_json['date'] ?? null, // Single DOC lama (sebelum unduh langsung)
             'scope' => $export->params_json['scope'] ?? 'mine',
             'status' => $export->status,
             'progress' => $export->progress,

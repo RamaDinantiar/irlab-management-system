@@ -3,14 +3,11 @@
 namespace App\Models;
 
 use Carbon\CarbonImmutable;
-use Database\Factories\ShiftFactory;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Support\Carbon;
 
 /**
  * Shift mengawas (PRD 6.1). Shift sesi praktikum terkait kelas; shift jaga
@@ -21,7 +18,7 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property int|null $room_id
  * @property int|null $class_id
- * @property Carbon $date
+ * @property CarbonImmutable $date
  * @property string $start_time
  * @property string $end_time
  * @property string|null $title
@@ -31,9 +28,6 @@ use Illuminate\Support\Carbon;
  */
 class Shift extends Model
 {
-    /** @use HasFactory<ShiftFactory> */
-    use HasFactory;
-
     protected $guarded = ['id'];
 
     protected function casts(): array

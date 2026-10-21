@@ -12,7 +12,11 @@ export default function AuthPortalLayout({
     description,
 }: AuthLayoutProps) {
     return (
-        <div className="flex min-h-svh items-center justify-center bg-primary-50 bg-[url('/images/login-bg.jpg')] bg-cover bg-center p-4 md:p-8">
+        // Inline style: url di CSS akan dimuat dari server Vite saat dev (404).
+        <div
+            className="flex min-h-svh items-center justify-center bg-primary-50 bg-cover bg-center p-4 md:p-8"
+            style={{ backgroundImage: "url('/images/login-bg.jpg')" }}
+        >
             <div className="grid w-full max-w-[1097px] overflow-hidden bg-white shadow-[0_24px_64px_rgb(9_47_56/0.18)] md:min-h-[640px] md:grid-cols-2">
                 <aside className="hidden flex-col bg-linear-to-br from-primary-800 to-primary p-10 text-white md:flex">
                     <div className="flex items-center gap-3">
@@ -24,7 +28,7 @@ export default function AuthPortalLayout({
                         </p>
                         <p className="max-w-md text-sm">
                             Pusat manajemen praktikum resmi, pengujian algoritma
-                            pencarian data masif, repositori modul, dan
+                            pencarian data masif, jadwal pertemuan, dan
                             penilaian komprehensif Lab IR IT PLN.
                         </p>
                         <img

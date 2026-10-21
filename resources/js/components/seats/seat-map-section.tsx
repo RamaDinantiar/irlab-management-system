@@ -1,3 +1,4 @@
+import { LabeledSelect } from '@/components/labeled-select';
 import { SeatLegend } from '@/components/seats/seat-map';
 import { formatSchedule } from '@/lib/days';
 import type { SeatClassSummary, SeatMapPayload } from '@/types';
@@ -16,25 +17,16 @@ export function SeatInfoPanel({
 }) {
     return (
         <div className="grid gap-4 border bg-card p-3 shadow-sm md:grid-cols-[1fr_1fr_auto] md:items-center">
-            <label className="grid gap-1 border px-3 py-2">
-                <span className="text-xs text-muted-foreground">
-                    Matakuliah & Kelas
-                </span>
-                <select
-                    value={selected.id}
-                    onChange={(event) => onChange(Number(event.target.value))}
-                    className="bg-transparent text-sm font-medium focus-visible:outline-none"
-                >
-                    {classes.map((c) => (
-                        <option key={c.id} value={c.id}>
-                            {c.label}
-                        </option>
-                    ))}
-                </select>
-            </label>
-            <div className="grid gap-1 border px-3 py-2">
-                <span className="text-xs text-muted-foreground">Jadwal</span>
-                <span className="text-sm font-medium">
+            <LabeledSelect
+                id="seat-class"
+                label="Matakuliah & Kelas"
+                value={selected.id}
+                onValueChange={(value) => onChange(Number(value))}
+                options={classes.map((c) => ({ value: c.id, label: c.label }))}
+            />
+            <div className="grid gap-1 border border-input px-4 py-2.5 shadow-sm">
+                <span className="text-sm text-muted-foreground">Jadwal</span>
+                <span className="text-base font-bold">
                     {formatSchedule(
                         selected.dayOfWeek,
                         selected.startTime,

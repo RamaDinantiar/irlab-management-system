@@ -6,6 +6,7 @@ use App\Concerns\CourseValidationRules;
 use App\Enums\Role;
 use App\Models\Course;
 use App\Models\Semester;
+use App\Support\CourseColor;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -42,11 +43,15 @@ class CourseRequest extends FormRequest
         return [
             ...($course instanceof Course ? [] : ['semester_id' => ['required', 'integer', 'exists:semesters,id']]),
             ...$this->courseRules($this->semester()->id, $course instanceof Course ? $course->id : null),
+            'color' => ['nullable', Rule::in(CourseColor::PALETTE)],
             'assistant_ids' => ['array'],
             'assistant_ids.*' => ['integer', Rule::exists('users', 'id')->where('role', Role::Asisten->value)],
         ];
     }
 
+    /**
+     * @return array<int, callable>
+     */
     public function after(): array
     {
         return $this->courseWeightsMustTotal100();
@@ -54,6 +59,6 @@ class CourseRequest extends FormRequest
 
     public function attributes(): array
     {
-        return $this->courseAttributes();
+        return [...$this->courseAttributes(), 'color' => 'warna'];
     }
 }

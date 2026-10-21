@@ -134,7 +134,7 @@ class SemesterTest extends TestCase
 
     public function test_purging_requires_an_archive_older_than_two_years_and_typed_confirmation()
     {
-        $recent = Semester::factory()->archived()->create(['end_date' => now()->subYear()->toDateString()]);
+        $recent = Semester::factory()->archived()->create(['name' => 'Genap 2025/2026', 'end_date' => now()->subYear()->toDateString()]);
         $old = Semester::factory()->archived()->create(['name' => 'Ganjil 2022/2023', 'start_date' => '2022-08-22', 'end_date' => '2022-12-16']);
 
         // Arsip berumur < 2 tahun tidak boleh dihapus.

@@ -41,7 +41,7 @@ export default function ClassAttendance({
         <ClassDetailLayout klass={klass} title="Presensi">
             <p className="text-sm text-muted-foreground">
                 H = Hadir · I = Izin · S = Sakit · A = Alfa. Isi presensi lewat
-                tombol “Sesi” pada tab Pertemuan & Modul.
+                tombol “Sesi” pada tab Pertemuan.
             </p>
             {meetings.length === 0 || students.length === 0 ? (
                 <EmptyState

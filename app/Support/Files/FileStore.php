@@ -9,6 +9,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use RuntimeException;
 use ZipArchive;
 
 /**
@@ -70,7 +71,12 @@ class FileStore
     {
         $disk = config('lab.files.disk');
         $path = $purpose.'/'.now()->format('Y/m').'/'.Str::uuid().'.'.pathinfo($name, PATHINFO_EXTENSION);
-        Storage::disk($disk)->put($path, fopen($localPath, 'r'));
+        $stream = fopen($localPath, 'r');
+        if ($stream === false) {
+            throw new RuntimeException("File hasil generate tidak dapat dibuka: {$localPath}");
+        }
+
+        Storage::disk($disk)->put($path, $stream);
 
         return StoredFile::create([
             'owner_type' => $owner?->getMorphClass(),
@@ -131,6 +137,10 @@ class FileStore
 
             for ($i = 0; $i < $zip->numFiles; $i++) {
                 $stat = $zip->statIndex($i);
+                if ($stat === false) {
+                    $this->fail($field, 'ZIP rusak atau tidak dapat dibaca.');
+                }
+
                 $name = str_replace('\\', '/', $stat['name']);
 
                 if (str_starts_with($name, '/') || preg_match('#(^|/)\.\.(/|$)#', $name) || preg_match('/^[A-Za-z]:/', $name)) {

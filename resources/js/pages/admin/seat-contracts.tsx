@@ -11,6 +11,7 @@ import {
     SeatMapHeader,
 } from '@/components/seats/seat-map-section';
 import { displayLabel, SeatMap } from '@/components/seats/seat-map';
+import { SelectField } from '@/components/select-field';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -141,22 +142,20 @@ function CorrectionDialog({
                             <Label htmlFor="move-seat">
                                 Kursi tujuan (kosong)
                             </Label>
-                            <select
+                            <SelectField
                                 id="move-seat"
-                                value={form.data.seat_id}
-                                onChange={(event) =>
-                                    form.setData('seat_id', event.target.value)
-                                }
                                 required
-                                className="h-10 border border-input bg-white px-3 text-sm"
-                            >
-                                <option value="">Pilih kursi…</option>
-                                {empty.map((cell) => (
-                                    <option key={cell.id} value={cell.id}>
-                                        {cell.label}
-                                    </option>
-                                ))}
-                            </select>
+                                value={form.data.seat_id}
+                                onValueChange={(v) =>
+                                    form.setData('seat_id', v)
+                                }
+                                placeholder="Pilih kursi…"
+                                options={empty.map((cell) => ({
+                                    value: cell.id,
+                                    label: cell.label,
+                                }))}
+                                aria-invalid={!!form.errors.seat_id}
+                            />
                             <InputError message={form.errors.seat_id} />
                         </div>
                     )}

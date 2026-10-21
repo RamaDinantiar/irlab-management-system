@@ -14,7 +14,8 @@ use Inertia\Inertia;
 use Inertia\Response;
 
 /**
- * Praktikan › Schedule (FR-PS): matriks mingguan + daftar pertemuan & modul.
+ * Praktikan › Schedule (FR-PS): "Jadwal Saya" (matriks mingguan + daftar
+ * pertemuan) dan "Semua Jadwal di Lab" (seluruh kelas aktif per hari).
  */
 class ScheduleController extends Controller
 {
@@ -28,9 +29,15 @@ class ScheduleController extends Controller
             ? LabClass::forSemester($semester)
                 ->where('approval_status', ApprovalStatus::Approved)
                 ->whereHas('enrollments', fn ($q) => $q->where('user_id', $request->user()->id))
-                ->with(['course', 'room', 'assistants', 'meetings.moduleFile', 'meetings.responsibleAssistant'])
+                ->with(['course', 'room', 'assistants', 'meetings.responsibleAssistant'])
                 ->orderBy('day_of_week')->orderBy('start_time')
                 ->get()
+            : collect();
+
+        // "Semua Jadwal di Lab": seluruh kelas aktif semester ini (Figma "Schedule").
+        $allClasses = $semester
+            ? LabClass::forSemester($semester)->where('approval_status', ApprovalStatus::Approved)
+                ->with(['course', 'room', 'assistants'])->orderBy('day_of_week')->orderBy('start_time')->get()
             : collect();
 
         return Inertia::render('praktikan/schedule', [
@@ -46,11 +53,25 @@ class ScheduleController extends Controller
                     'day' => $class->day_of_week,
                     'start' => $class->startClock(),
                     'end' => $class->endClock(),
-                    'color' => CourseColor::for($class->course_id),
+                    'color' => CourseColor::for($class->course),
                     'running' => $now->dayOfWeekIso === $class->day_of_week
                         && $now->format('H:i') >= $class->startClock() && $now->format('H:i') <= $class->endClock(),
                 ])->values(),
             ],
+            'allClasses' => $allClasses->map(fn (LabClass $c) => [
+                'id' => $c->id,
+                'course' => $c->course->name,
+                'code' => $c->course->code,
+                'credits' => $c->course->credits,
+                'name' => $c->name,
+                'dayOfWeek' => $c->day_of_week,
+                'startTime' => $c->startClock(),
+                'endTime' => $c->endClock(),
+                'room' => $c->room->name,
+                'assistants' => $c->assistants->pluck('name')->values(),
+                'color' => CourseColor::for($c->course),
+                'mine' => $classes->contains('id', $c->id),
+            ])->values(),
             'classes' => $classes->map(fn (LabClass $class) => [
                 'id' => $class->id,
                 'course' => $class->course->name,
@@ -59,18 +80,13 @@ class ScheduleController extends Controller
                 'startTime' => $class->startClock(),
                 'endTime' => $class->endClock(),
                 'room' => $class->room->name,
-                'color' => CourseColor::for($class->course_id),
+                'color' => CourseColor::for($class->course),
                 'meetings' => $class->meetings->map(fn (Meeting $meeting) => [
                     'id' => $meeting->id,
                     'number' => $meeting->number,
                     'date' => $meeting->date->toDateString(),
-                    'moduleTitle' => $meeting->module_title,
-                    'assistant' => $meeting->responsibleAssistant?->name ?? $class->assistants->pluck('name')->join(', '),
-                    // FR-PS-03: hanya modul yang sudah dirilis.
-                    'module' => $meeting->isModuleReleased() ? $meeting->moduleFile?->toClient() : null,
-                    'moduleReleaseAt' => $meeting->module_file_id && ! $meeting->isModuleReleased()
-                        ? $meeting->module_release_at?->toIso8601String()
-                        : null,
+                    'topic' => $meeting->topic,
+                    'assistant' => $meeting->responsibleAssistant->name ?? $class->assistants->pluck('name')->join(', '),
                 ])->values(),
             ])->values(),
         ]);

@@ -81,7 +81,7 @@ class AdminDashboardData
             'reportCompliance' => self::compliance($now),
             'approvals' => $active ? self::approvals($active) : [],
             'gradingQueue' => $admin ? GradingQueue::for($admin) : [],
-            'activePrograms' => Program::whereIn('status', ['open', 'closed'])->where('type', '!=', 'maintenance')
+            'activePrograms' => ! config('lab.features.programs') ? [] : Program::whereIn('status', ['open', 'closed'])->where('type', '!=', 'maintenance')
                 ->withCount(['registrations' => fn ($q) => $q->where('status', '!=', 'cancelled')])->with('stages')
                 ->orderByRaw("CASE status WHEN 'open' THEN 0 ELSE 1 END")->latest('starts_at')->limit(4)->get()
                 ->map(fn (Program $p) => [
@@ -95,7 +95,7 @@ class AdminDashboardData
                 ])->values()->all(),
             'auditLogs' => AuditLog::with('user:id,name')->latest('id')->limit(5)->get()->map(fn (AuditLog $log) => [
                 'id' => "au-{$log->id}",
-                'actor' => $log->user?->name ?? 'Sistem',
+                'actor' => $log->user->name ?? 'Sistem',
                 'action' => str_replace(['.', '_'], ' ', $log->action),
                 'target' => $log->auditable_type ? Str::headline(class_basename($log->auditable_type)).' #'.$log->auditable_id : '—',
                 'at' => $log->created_at->toIso8601String(),
@@ -119,7 +119,7 @@ class AdminDashboardData
         $reports = SupervisionReport::whereDateBetween('date', $range)->where('status', '!=', 'draft')->get(['date', 'created_at']);
 
         return [
-            'month' => $now->locale('id')->translatedFormat('F Y'),
+            'month' => $now->translatedFormat('F Y'),
             'onTime' => $reports->filter(fn (SupervisionReport $r) => $r->created_at->isSameDay($r->date))->count(),
             'submitted' => $reports->count(),
             'expected' => max($expected, $reports->count()),
@@ -130,7 +130,7 @@ class AdminDashboardData
     /**
      * FR-ADM-03: pengajuan Mata Kuliah (dan nanti Kelas) yang menunggu persetujuan.
      *
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     private static function approvals(Semester $semester): array
     {
@@ -140,7 +140,7 @@ class AdminDashboardData
                 'type' => 'course',
                 'name' => $course->name,
                 'detail' => "{$course->code} · {$course->credits} SKS · bobot {$course->weight_pretest}/{$course->weight_posttest}/{$course->weight_report}",
-                'requestedBy' => $course->proposer?->name ?? '—',
+                'requestedBy' => $course->proposer->name ?? '—',
                 'requestedAt' => $course->created_at->toIso8601String(),
                 'href' => '/admin/courses?semester='.$semester->id,
             ]);
@@ -151,7 +151,7 @@ class AdminDashboardData
                 'type' => 'class',
                 'name' => "{$class->course->name} · {$class->name}",
                 'detail' => sprintf('%s %s–%s · %s · kuota %d', ClassDays::NAMES[$class->day_of_week], $class->startClock(), $class->endClock(), $class->room->name, $class->quota),
-                'requestedBy' => $class->proposer?->name ?? '—',
+                'requestedBy' => $class->proposer->name ?? '—',
                 'requestedAt' => $class->created_at->toIso8601String(),
                 'href' => '/admin/classes?semester='.$semester->id,
             ]);

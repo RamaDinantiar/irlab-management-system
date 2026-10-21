@@ -1,13 +1,12 @@
 import { Form, Head, Link } from '@inertiajs/react';
 import {
-    AlarmClock,
     ArrowLeft,
+    Check,
     CheckCircle2,
     Download,
     FileText,
+    Info,
     Paperclip,
-    Receipt,
-    Send,
 } from 'lucide-react';
 import { useState } from 'react';
 import TaskController from '@/actions/App/Http/Controllers/Praktikan/TaskController';
@@ -16,6 +15,8 @@ import { Markdown } from '@/components/markdown';
 import { PageHeader } from '@/components/page-header';
 import { RichTextViewer } from '@/components/rich-text/rich-text-viewer';
 import { StatusBadge } from '@/components/status-badge';
+import { AnswerDropzone } from '@/components/tasks/answer-dropzone';
+import { TaskDeadlineBanner } from '@/components/tasks/task-deadline-banner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -27,12 +28,11 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { useNow } from '@/hooks/use-now';
-import { formatCountdown, formatTimeRange } from '@/lib/datetime';
+import { formatSchedule } from '@/lib/days';
 import { formatFileSize } from '@/lib/files';
 import { TASK_TYPE_LABEL } from '@/lib/task';
 import { cn } from '@/lib/utils';
@@ -49,6 +49,13 @@ type TaskDetail = StudentTask & {
     allowedFormats: ('pdf' | 'zip')[];
     textAnswer: 'none' | 'optional' | 'required';
     meeting: { number: number; title: string | null } | null;
+    schedule: {
+        dayOfWeek: number;
+        startTime: string;
+        endTime: string;
+        room: string | null;
+    };
+    assistants: string[];
     limits: { pdf: number; zip: number };
 };
 
@@ -81,10 +88,11 @@ export default function PraktikanTaskShow({
 }) {
     const now = useNow(30_000);
     const [confirming, setConfirming] = useState(false);
+    const [dropzoneKey, setDropzoneKey] = useState(0);
+    const typeLabel = TASK_TYPE_LABEL[task.type];
     const current = history.find((version) => version.isCurrent);
     const pastDue = task.dueAt !== null && new Date(task.dueAt).getTime() < now;
     const canSubmit = task.state === 'open' && !(current && pastDue);
-    const accept = task.allowedFormats.map((format) => `.${format}`).join(',');
 
     return (
         <>
@@ -98,7 +106,7 @@ export default function PraktikanTaskShow({
                 </Link>
                 <PageHeader
                     title={task.title}
-                    description={`${TASK_TYPE_LABEL[task.type]} · ${task.course} · ${task.className}${task.meeting ? ` · Pertemuan ${task.meeting.number}` : ''}`}
+                    description={`${typeLabel} · ${task.course} · ${task.className}${task.meeting ? ` · Pertemuan ${task.meeting.number}` : ''}`}
                     actions={
                         <StatusBadge
                             status={task.status}
@@ -111,168 +119,171 @@ export default function PraktikanTaskShow({
                     }
                 />
 
-                <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
-                    <article className="grid gap-5 border bg-card p-5 md:p-6">
-                        <RichTextViewer content={task.body} />
-                        {task.attachments.length > 0 && (
-                            <div className="grid gap-2 border-t pt-4">
-                                <h2 className="flex items-center gap-1.5 text-sm font-bold">
-                                    <Paperclip className="size-4" aria-hidden />{' '}
-                                    Lampiran soal
-                                </h2>
-                                <ul className="flex flex-wrap gap-2">
-                                    {task.attachments.map((file) => (
-                                        <li key={file.id}>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                asChild
-                                            >
-                                                <a href={file.url} download>
-                                                    <Download /> {file.name}{' '}
-                                                    <span className="font-mono text-xs">
-                                                        (
-                                                        {formatFileSize(
-                                                            file.size,
-                                                        )}
-                                                        )
-                                                    </span>
-                                                </a>
-                                            </Button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                    </article>
-
-                    <aside className="grid gap-4">
-                        <section
-                            aria-labelledby="deadline-title"
-                            className="grid gap-2 border bg-card p-5"
+                <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+                    <section
+                        aria-labelledby="course-title"
+                        className="grid content-start gap-3"
+                    >
+                        <h2 id="course-title" className="text-h2 font-medium">
+                            Matakuliah Aktif
+                        </h2>
+                        <div className="grid gap-1 border border-[#bfbfbf] bg-white px-4 py-3 shadow-sm">
+                            <p className="text-lg font-medium">
+                                {task.course} ({task.className})
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                {formatSchedule(
+                                    task.schedule.dayOfWeek,
+                                    task.schedule.startTime,
+                                    task.schedule.endTime,
+                                )}{' '}
+                                WIB
+                                {task.schedule.room &&
+                                    ` · ${task.schedule.room}`}
+                                {task.meeting &&
+                                    ` · Pertemuan ${task.meeting.number}`}
+                            </p>
+                        </div>
+                    </section>
+                    <section
+                        aria-labelledby="assistants-title"
+                        className="grid content-start gap-3"
+                    >
+                        <h2
+                            id="assistants-title"
+                            className="text-h2 font-medium"
                         >
-                            <h2
-                                id="deadline-title"
-                                className="text-sm font-bold text-primary-700"
-                            >
-                                Tenggat
-                            </h2>
-                            {task.dueAt ? (
-                                <>
-                                    <p className="font-mono text-sm">
-                                        {task.openAt &&
-                                            formatTimeRange(
-                                                task.openAt,
-                                                task.dueAt,
-                                            )}
-                                    </p>
-                                    <p
-                                        className={cn(
-                                            'flex items-center gap-1.5 font-mono text-sm font-bold',
-                                            pastDue
-                                                ? 'text-danger'
-                                                : 'text-primary-700',
-                                        )}
-                                        aria-live="polite"
-                                    >
-                                        <AlarmClock
-                                            className="size-4"
-                                            aria-hidden
-                                        />
-                                        {pastDue
-                                            ? 'Tenggat sudah lewat'
-                                            : `Sisa ${formatCountdown(task.dueAt, now)}`}
-                                    </p>
-                                </>
+                            Informasi Asisten
+                        </h2>
+                        <div className="border border-[#bfbfbf] bg-white px-4 py-3 shadow-sm">
+                            {task.assistants.length === 0 ? (
+                                <p className="py-2 text-sm text-muted-foreground">
+                                    Belum ada asisten yang ditugaskan.
+                                </p>
                             ) : (
-                                <p className="text-sm">Belum ditentukan.</p>
-                            )}
-                            <ul className="mt-1 space-y-1 text-xs text-muted-foreground">
-                                <li>Nilai maksimal {task.maxScore}</li>
-                                <li>
-                                    {task.allowLate
-                                        ? `Terlambat diizinkan${task.latePenalty ? ` · penalti ${task.latePenalty}% per ${task.latePenaltyUnit === 'day' ? 'hari' : 'jam'}` : ''}`
-                                        : 'Terlambat tidak diizinkan'}
-                                </li>
-                            </ul>
-                        </section>
-
-                        {current && (
-                            <section
-                                aria-labelledby="receipt-title"
-                                className="grid gap-2 border border-success/30 bg-success-soft p-5 text-sm"
-                            >
-                                <h2
-                                    id="receipt-title"
-                                    className="flex items-center gap-1.5 font-bold text-success"
-                                >
-                                    <Receipt className="size-4" aria-hidden />{' '}
-                                    Tanda terima
-                                </h2>
-                                <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
-                                    <dt className="text-muted-foreground">
-                                        Nomor
-                                    </dt>
-                                    <dd className="font-mono font-bold">
-                                        {current.receiptNumber}
-                                    </dd>
-                                    <dt className="text-muted-foreground">
-                                        Waktu server
-                                    </dt>
-                                    <dd className="font-mono">
-                                        {timestamp.format(
-                                            new Date(current.submittedAt),
-                                        )}{' '}
-                                        WIB
-                                    </dd>
-                                    {current.file && (
-                                        <>
-                                            <dt className="text-muted-foreground">
-                                                File
+                                <dl className="grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-4">
+                                    {task.assistants.map((name, i) => (
+                                        <div
+                                            key={name}
+                                            className="grid gap-0.5"
+                                        >
+                                            <dt className="text-xs font-medium text-muted-foreground">
+                                                Asisten {i + 1}:
                                             </dt>
-                                            <dd className="break-all">
-                                                {current.file.name} ·{' '}
-                                                <span className="font-mono">
-                                                    {formatFileSize(
-                                                        current.file.size,
-                                                    )}
-                                                </span>
+                                            <dd className="font-medium text-primary-700">
+                                                {name}
                                             </dd>
-                                            <dt className="text-muted-foreground">
-                                                SHA-256
-                                            </dt>
-                                            <dd className="font-mono text-[11px] break-all">
-                                                {current.sha256}
-                                            </dd>
-                                        </>
-                                    )}
-                                    <dt className="text-muted-foreground">
-                                        Versi
-                                    </dt>
-                                    <dd>{current.version}</dd>
+                                        </div>
+                                    ))}
                                 </dl>
-                                {current.isLate && (
-                                    <StatusBadge
-                                        status="late"
-                                        label={current.lateLabel ?? undefined}
-                                        className="mt-1"
-                                    />
-                                )}
-                            </section>
-                        )}
-                    </aside>
+                            )}
+                        </div>
+                    </section>
                 </div>
+
+                <TaskDeadlineBanner
+                    typeLabel={typeLabel}
+                    state={task.state}
+                    openAt={task.openAt}
+                    dueAt={task.dueAt}
+                    allowLate={task.allowLate}
+                    latePenalty={task.latePenalty}
+                    latePenaltyUnit={task.latePenaltyUnit}
+                    maxScore={task.maxScore}
+                    accepting={canSubmit}
+                    submittedAt={current?.submittedAt ?? null}
+                />
+
+                <section
+                    aria-labelledby="instructions-title"
+                    className="grid gap-4 bg-card p-5 md:p-6"
+                >
+                    <h2
+                        id="instructions-title"
+                        className="flex items-center gap-3 border-b border-input pb-4 text-h2 font-bold"
+                    >
+                        <Info className="size-7 shrink-0" aria-hidden />
+                        Instruksi &amp; Petunjuk Pengerjaan Mahasiswa
+                    </h2>
+                    {task.body ? (
+                        <RichTextViewer content={task.body} />
+                    ) : (
+                        <p className="text-sm text-muted-foreground">
+                            Tidak ada instruksi tambahan.
+                        </p>
+                    )}
+                    {task.attachments.length > 0 && (
+                        <div className="grid gap-2 border-t pt-4">
+                            <h3 className="flex items-center gap-1.5 text-sm font-bold">
+                                <Paperclip className="size-4" aria-hidden />{' '}
+                                Lampiran soal
+                            </h3>
+                            <ul className="flex flex-wrap gap-2">
+                                {task.attachments.map((file) => (
+                                    <li key={file.id}>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            asChild
+                                        >
+                                            <a href={file.url} download>
+                                                <Download /> {file.name}{' '}
+                                                <span className="font-mono text-xs">
+                                                    ({formatFileSize(file.size)}
+                                                    )
+                                                </span>
+                                            </a>
+                                        </Button>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                </section>
 
                 <section
                     aria-labelledby="answer-title"
-                    className="grid gap-4 border bg-card p-5 md:p-6"
+                    className="grid gap-5 bg-card p-5 md:p-6"
                 >
-                    <h2
-                        id="answer-title"
-                        className="text-h3 font-bold text-primary-700"
-                    >
-                        {current ? 'Ganti jawaban' : 'Kumpulkan jawaban'}
-                    </h2>
+                    <div className="grid gap-1 border-b border-input pb-4">
+                        <p className="font-medium">Berkas Jawaban</p>
+                        <h2 id="answer-title" className="text-h2 font-bold">
+                            {!canSubmit
+                                ? `Jawaban ${typeLabel}`
+                                : current
+                                  ? `Ganti Jawaban ${typeLabel}`
+                                  : `Unggah Berkas ${typeLabel}`}
+                        </h2>
+                    </div>
+                    {current && (
+                        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 border border-success/30 bg-success-soft px-4 py-3 text-sm text-success">
+                            <CheckCircle2
+                                className="size-4 shrink-0"
+                                aria-hidden
+                            />
+                            <span className="font-bold">Terkumpul</span>
+                            <span aria-hidden>·</span>
+                            <span>
+                                No.{' '}
+                                <span className="font-mono font-bold">
+                                    {current.receiptNumber}
+                                </span>
+                            </span>
+                            <span aria-hidden>·</span>
+                            <span>
+                                {timestamp.format(
+                                    new Date(current.submittedAt),
+                                )}{' '}
+                                WIB
+                            </span>
+                            {current.isLate && (
+                                <StatusBadge
+                                    status="late"
+                                    label={current.lateLabel ?? undefined}
+                                />
+                            )}
+                        </p>
+                    )}
                     {!canSubmit ? (
                         <p className="text-sm text-muted-foreground">
                             {task.state === 'scheduled'
@@ -285,7 +296,10 @@ export default function PraktikanTaskShow({
                         <Form
                             {...TaskController.submit.form(task.id)}
                             options={{ preserveScroll: true }}
-                            onSuccess={() => setConfirming(false)}
+                            onSuccess={() => {
+                                setConfirming(false);
+                                setDropzoneKey((k) => k + 1);
+                            }}
                             className="grid gap-5"
                             resetOnSuccess
                         >
@@ -300,24 +314,17 @@ export default function PraktikanTaskShow({
                                     )}
                                     {task.allowedFormats.length > 0 && (
                                         <div className="grid gap-2">
-                                            <Label htmlFor="answer-file">
-                                                File jawaban (
-                                                {task.allowedFormats
-                                                    .map(
-                                                        (f) =>
-                                                            `${f.toUpperCase()} ≤ ${task.limits[f]} MB`,
-                                                    )
-                                                    .join(' atau ')}
-                                                )
-                                                {task.textAnswer ===
-                                                    'required' && ' · opsional'}
-                                            </Label>
-                                            <Input
-                                                id="answer-file"
-                                                name="file"
-                                                type="file"
-                                                accept={accept}
-                                                aria-invalid={!!errors.file}
+                                            {task.textAnswer === 'required' && (
+                                                <p className="text-sm text-muted-foreground">
+                                                    Berkas opsional; jawaban
+                                                    teks wajib diisi.
+                                                </p>
+                                            )}
+                                            <AnswerDropzone
+                                                key={dropzoneKey}
+                                                formats={task.allowedFormats}
+                                                limits={task.limits}
+                                                invalid={!!errors.file}
                                             />
                                             {progress && (
                                                 <div
@@ -373,12 +380,12 @@ export default function PraktikanTaskShow({
                                     <InputError message={errors.submission} />
                                     <Button
                                         type="button"
-                                        className="w-fit"
+                                        className="w-full justify-self-end bg-linear-to-r from-primary-500 to-primary-700 sm:w-fit"
                                         size="lg"
                                         disabled={processing}
                                         onClick={() => setConfirming(true)}
                                     >
-                                        <Send /> Kumpulkan
+                                        <Check /> Kumpulkan {typeLabel} Sekarang
                                     </Button>
 
                                     {/* US-P02-3: konfirmasi sebelum mengumpulkan. */}

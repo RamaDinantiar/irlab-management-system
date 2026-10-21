@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Settings;
 
+use App\Actions\User\EndUserSessions;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Settings\PasswordUpdateRequest;
 use Illuminate\Http\RedirectResponse;
@@ -22,13 +23,14 @@ class SecurityController extends Controller
     }
 
     /**
-     * Update the user's password.
+     * Update the user's password; sesi di perangkat lain diakhiri.
      */
-    public function update(PasswordUpdateRequest $request): RedirectResponse
+    public function update(PasswordUpdateRequest $request, EndUserSessions $endSessions): RedirectResponse
     {
         $request->user()->update([
             'password' => $request->password,
         ]);
+        $endSessions->exceptCurrent($request);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Kata sandi berhasil diperbarui.']);
 

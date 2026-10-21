@@ -39,7 +39,7 @@ class SystemTest extends TestCase
 
     public function test_settings_are_saved_audited_and_applied()
     {
-        $payload = ['idle_minutes' => 45, 'limit_pdf_mb' => 15, 'limit_zip_mb' => 30, 'limit_image_mb' => 4, 'pdf_header_title' => 'Lab IR', 'pdf_header_subtitle' => 'Fakultas Informatika'];
+        $payload = ['idle_minutes' => 45, 'limit_pdf_mb' => 15, 'limit_zip_mb' => 30, 'limit_image_mb' => 4];
 
         $this->actingAs($this->admin)->put(route('admin.system-settings.update'), $payload)->assertSessionHasNoErrors();
         $this->assertSame(45, Setting::value('idle_minutes'));

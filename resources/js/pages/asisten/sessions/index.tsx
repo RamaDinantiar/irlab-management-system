@@ -15,7 +15,7 @@ type Session = {
     startedAt: string | null;
     endedAt: string | null;
     running: boolean;
-    moduleTitle: string | null;
+    topic: string | null;
     class: {
         id: number;
         name: string;
@@ -30,17 +30,17 @@ type Session = {
 export default function SessionsIndex({ sessions }: { sessions: Session[] }) {
     return (
         <>
-            <Head title="Mulai Sesi Kelas" />
+            <Head title="Sesi Kelas" />
             <div className="flex flex-col gap-6 p-4 md:p-6 lg:p-8">
                 <PageHeader
-                    title="Mulai Sesi Kelas"
-                    description="Pilih sesi untuk menandai pertemuan dimulai, membuka Pre-test terjadwal, dan mengisi presensi."
+                    title="Sesi Kelas"
+                    description="Sesi mulai & selesai otomatis sesuai jam kelas. Buka sesi untuk mengisi presensi dan mengunduh rekapnya."
                 />
                 {sessions.length === 0 ? (
                     <EmptyState
                         icon={CalendarClock}
                         title="Tidak ada sesi dalam 7 hari ke depan"
-                        description="Buat pertemuan di tab Pertemuan & Modul pada kelas yang Anda ampu."
+                        description="Buat pertemuan di tab Pertemuan pada kelas yang Anda ampu."
                     />
                 ) : (
                     <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -57,13 +57,15 @@ export default function SessionsIndex({ sessions }: { sessions: Session[] }) {
                                         </Badge>
                                     ) : session.startedAt ? (
                                         <Badge variant="secondary">
-                                            {session.endedAt
-                                                ? 'Selesai'
-                                                : 'Sudah dimulai'}
+                                            Selesai
                                         </Badge>
                                     ) : (
                                         <Badge variant="outline">
-                                            Belum dimulai
+                                            Mulai otomatis{' '}
+                                            {session.class.startTime.replace(
+                                                ':',
+                                                '.',
+                                            )}
                                         </Badge>
                                     )}
                                 </div>
@@ -75,9 +77,9 @@ export default function SessionsIndex({ sessions }: { sessions: Session[] }) {
                                         {session.class.name} · Pertemuan{' '}
                                         {session.number}
                                     </p>
-                                    {session.moduleTitle && (
+                                    {session.topic && (
                                         <p className="text-sm">
-                                            {session.moduleTitle}
+                                            {session.topic}
                                         </p>
                                     )}
                                 </div>
@@ -99,10 +101,7 @@ export default function SessionsIndex({ sessions }: { sessions: Session[] }) {
                                             session.id,
                                         )}
                                     >
-                                        <Play />{' '}
-                                        {session.startedAt
-                                            ? 'Buka Sesi'
-                                            : 'Mulai Sesi'}
+                                        <Play /> Buka Sesi
                                     </Link>
                                 </Button>
                             </li>

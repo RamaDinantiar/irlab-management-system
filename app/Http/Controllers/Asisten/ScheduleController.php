@@ -76,9 +76,9 @@ class ScheduleController extends Controller
                 'dayOfWeek' => $c->day_of_week,
                 'startTime' => $c->startClock(),
                 'endTime' => $c->endClock(),
-                'room' => $c->room?->name,
+                'room' => $c->room->name,
                 'assistants' => $c->assistants->pluck('name')->values(),
-                'color' => CourseColor::for($c->course_id),
+                'color' => CourseColor::for($c->course),
                 'mine' => $c->assistants->contains('id', $user->id),
             ])->values(),
             'dutyThisWeek' => Shift::whereDateBetween('date', [$weekStart->toDateString(), $weekStart->addDays(6)->toDateString()])

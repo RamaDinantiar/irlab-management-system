@@ -18,6 +18,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import type { SemesterRow } from '@/types';
+import { DateField } from '@/components/pickers/date-field';
 
 /** US-D01-1: buat semester (status Draft) atau ubah nama/tanggalnya. */
 export function SemesterFormDialog({
@@ -74,13 +75,12 @@ export function SemesterFormDialog({
                                     <Label htmlFor="start_date">
                                         Tanggal mulai
                                     </Label>
-                                    <Input
+                                    <DateField
                                         id="start_date"
                                         name="start_date"
-                                        type="date"
                                         required
-                                        defaultValue={semester?.startDate}
-                                        aria-invalid={!!errors.start_date}
+                                        defaultValue={semester?.startDate ?? ''}
+                                        invalid={!!errors.start_date}
                                     />
                                     <InputError message={errors.start_date} />
                                 </div>
@@ -88,13 +88,12 @@ export function SemesterFormDialog({
                                     <Label htmlFor="end_date">
                                         Tanggal selesai
                                     </Label>
-                                    <Input
+                                    <DateField
                                         id="end_date"
                                         name="end_date"
-                                        type="date"
                                         required
-                                        defaultValue={semester?.endDate}
-                                        aria-invalid={!!errors.end_date}
+                                        defaultValue={semester?.endDate ?? ''}
+                                        invalid={!!errors.end_date}
                                     />
                                     <InputError message={errors.end_date} />
                                 </div>

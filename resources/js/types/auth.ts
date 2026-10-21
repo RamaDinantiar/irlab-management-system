@@ -1,17 +1,19 @@
 export type Role = 'praktikan' | 'asisten' | 'admin';
 
-export type Position = 'none' | 'sekretaris' | 'bendahara';
+/** Divisi Asisten: 'none' = Asisten Umum. */
+export type Position = 'none' | 'sekretaris_bendahara';
 
 export type User = {
     id: number;
     nim: string | null;
     name: string;
     email: string;
+    phone: string | null;
     role: Role;
     position: Position;
     major: string | null;
     cohort_year: number | null;
-    avatar?: string;
+    avatar: string | null;
     email_verified_at: string | null;
     created_at: string;
     updated_at: string;

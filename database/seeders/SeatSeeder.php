@@ -8,13 +8,12 @@ use App\Models\Room;
 use App\Models\SeatContract;
 use App\Models\Semester;
 use App\Support\Seats\RoomLayout;
-use Illuminate\Database\Seeder;
 
 /**
  * Denah bawaan tiap ruang + kontrak kursi contoh. Rina belum mengontrak kursi
  * di Mobile Programming (periode dibuka) agar alur "Tambah Kontrak" bisa dicoba.
  */
-class SeatSeeder extends Seeder
+class SeatSeeder extends DemoSeeder
 {
     public function run(): void
     {

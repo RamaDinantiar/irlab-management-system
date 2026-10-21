@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Auth;
 
+use App\Actions\User\EndUserSessions;
 use App\Concerns\PasswordValidationRules;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\RedirectResponse;
@@ -30,7 +31,7 @@ class ChangePasswordController extends Controller
         ]);
     }
 
-    public function update(Request $request): RedirectResponse
+    public function update(Request $request, EndUserSessions $endSessions): RedirectResponse
     {
         $validated = $request->validate([
             'password' => $this->passwordRules(),
@@ -48,6 +49,8 @@ class ChangePasswordController extends Controller
             'password' => $validated['password'],
             'must_change_password' => false,
         ])->save();
+        // Password sementara mungkin sudah diketahui orang lain: akhiri sesi lainnya.
+        $endSessions->exceptCurrent($request);
 
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Kata sandi berhasil diganti. Selamat datang!']);
 

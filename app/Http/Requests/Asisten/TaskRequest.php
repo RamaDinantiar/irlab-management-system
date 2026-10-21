@@ -86,6 +86,9 @@ class TaskRequest extends FormRequest
         ];
     }
 
+    /**
+     * @return array<int, callable>
+     */
     public function after(): array
     {
         return [function (Validator $validator) {
@@ -112,7 +115,7 @@ class TaskRequest extends FormRequest
                 $validator->errors()->add('attachments', 'Maksimal '.config('lab.files.attachment_count').' lampiran.');
             }
 
-            $targets = collect($this->input('targets', []));
+            $targets = $this->collect('targets');
 
             if ($publishing && $targets->isEmpty()) {
                 $validator->errors()->add('targets', 'Pilih minimal satu kelas sebelum menerbitkan.');

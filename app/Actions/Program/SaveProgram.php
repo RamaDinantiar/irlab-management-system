@@ -60,7 +60,7 @@ class SaveProgram
     }
 
     /**
-     * @param  list<array{label: string, type: string, required?: bool, options?: list<string>|null, formats?: list<string>|null, max_mb?: int|null}>  $fields
+     * @param  array<int, array{label: string, type: string, required?: bool, options?: list<string>|null, formats?: list<string>|null, max_mb?: int|null}>  $fields
      */
     public function syncFields(Program $program, array $fields): void
     {
@@ -77,7 +77,7 @@ class SaveProgram
                     'type' => $f['type'],
                     'required' => (bool) ($f['required'] ?? false),
                     'options' => $f['type'] === 'select' ? array_values(array_filter(array_map('trim', $f['options'] ?? []))) : null,
-                    'rules_json' => $f['type'] === 'file' ? ['formats' => $f['formats'] ?: ['pdf'], 'max_mb' => (int) ($f['max_mb'] ?? 5)] : null,
+                    'rules_json' => $f['type'] === 'file' ? ['formats' => ($f['formats'] ?? null) ?: ['pdf'], 'max_mb' => (int) ($f['max_mb'] ?? 5)] : null,
                 ]);
             }
             AuditLog::record('program.form_saved', $program, null, ['fields' => count($fields)]);
@@ -85,7 +85,7 @@ class SaveProgram
     }
 
     /**
-     * @param  list<array{name: string, start_at?: string|null, end_at?: string|null}>  $stages
+     * @param  array<int, array{name: string, start_at?: string|null, end_at?: string|null}>  $stages
      */
     public function syncStages(Program $program, array $stages): void
     {

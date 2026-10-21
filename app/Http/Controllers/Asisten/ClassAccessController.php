@@ -34,5 +34,4 @@ class ClassAccessController extends Controller
 
         return back();
     }
-
 }

@@ -12,12 +12,13 @@ use App\Models\Room;
 use App\Models\Semester;
 use App\Models\TaskTarget;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 /**
  * Pencarian global topbar (PRD 4.x): sesuai peran — Praktikan mencari
- * tugas/modul, Asisten mencari praktikan/tugas, Admin semua entitas.
+ * tugas/pertemuan, Asisten mencari praktikan/tugas, Admin semua entitas.
  */
 class SearchController extends Controller
 {
@@ -37,7 +38,7 @@ class SearchController extends Controller
         $groups = match ($user->role) {
             Role::Praktikan => [
                 'Tugas' => $this->studentTasks($user, $like),
-                'Modul' => $this->modules(Enrollment::where('user_id', $user->id)->select('class_id'), $like, '/praktikan/schedule'),
+                'Pertemuan' => $this->meetings(Enrollment::where('user_id', $user->id)->select('class_id'), $like, '/praktikan/schedule'),
                 'Program' => $this->programs($like, '/praktikan/programs/'),
             ],
             Role::Asisten => [
@@ -66,52 +67,76 @@ class SearchController extends Controller
             ->filter(fn ($g) => $g['items']->isNotEmpty())->values());
     }
 
-    private function studentTasks(User $user, string $like)
+    /**
+     * @return array<int, array{title: string, subtitle: string, href: string}>
+     */
+    private function studentTasks(User $user, string $like): array
     {
         return TaskTarget::whereIn('class_id', Enrollment::where('user_id', $user->id)->select('class_id'))
             ->whereNotNull('open_at')->where('open_at', '<=', now())
             ->whereHas('task', fn ($q) => $q->where('status', 'published')->where('title', 'like', $like))
             ->with(['task', 'labClass.course'])->latest('due_at')->limit(self::LIMIT)->get()
-            ->map(fn (TaskTarget $t) => ['title' => $t->task->title, 'subtitle' => "{$t->labClass->course->name} · {$t->labClass->name}", 'href' => "/praktikan/tasks/{$t->id}"]);
+            ->map(fn (TaskTarget $t) => ['title' => $t->task->title, 'subtitle' => "{$t->labClass->course->name} · {$t->labClass->name}", 'href' => "/praktikan/tasks/{$t->id}"])->all();
     }
 
-    private function staffTasks(User $user, string $like)
+    /**
+     * @return array<int, array{title: string, subtitle: string, href: string}>
+     */
+    private function staffTasks(User $user, string $like): array
     {
         return TaskTarget::whereIn('class_id', LabClass::taughtBy($user)->select('id'))
             ->whereHas('task', fn ($q) => $q->where('title', 'like', $like))
             ->with(['task', 'labClass.course'])->latest('id')->limit(self::LIMIT)->get()
-            ->map(fn (TaskTarget $t) => ['title' => $t->task->title, 'subtitle' => "{$t->labClass->course->name} · {$t->labClass->name}", 'href' => "/asisten/tasks/{$t->task_id}/edit"]);
+            ->map(fn (TaskTarget $t) => ['title' => $t->task->title, 'subtitle' => "{$t->labClass->course->name} · {$t->labClass->name}", 'href' => "/asisten/tasks/{$t->task_id}/edit"])->all();
     }
 
-    private function modules($classIds, string $like, string $href)
+    /**
+     * @param  Builder<Enrollment>|Builder<LabClass>  $classIds
+     * @return array<int, array{title: string, subtitle: string, href: string}>
+     */
+    private function meetings(Builder $classIds, string $like, string $href): array
     {
-        return Meeting::whereIn('class_id', $classIds)->where('module_title', 'like', $like)
-            ->where(fn ($q) => $q->whereNull('module_release_at')->orWhere('module_release_at', '<=', now()))
+        return Meeting::whereIn('class_id', $classIds)->where('topic', 'like', $like)
             ->with('labClass.course')->orderBy('date')->limit(self::LIMIT)->get()
-            ->map(fn (Meeting $m) => ['title' => $m->module_title, 'subtitle' => "{$m->labClass->course->name} · Pertemuan {$m->number}", 'href' => $href]);
+            ->map(fn (Meeting $m) => ['title' => $m->topic ?? '', 'subtitle' => "{$m->labClass->course->name} · Pertemuan {$m->number}", 'href' => $href])->all();
     }
 
-    private function students($classIds, string $like)
+    /**
+     * @param  Builder<Enrollment>|Builder<LabClass>  $classIds
+     * @return array<int, array{title: string, subtitle: string, href: string}>
+     */
+    private function students(Builder $classIds, string $like): array
     {
         return Enrollment::whereIn('class_id', $classIds)
             ->whereHas('user', fn ($q) => $q->where('name', 'like', $like)->orWhere('nim', 'like', $like))
             ->with(['user:id,name,nim', 'labClass.course'])->limit(self::LIMIT)->get()
-            ->map(fn (Enrollment $e) => ['title' => $e->user->name, 'subtitle' => "{$e->user->nim} · {$e->labClass->course->name} {$e->labClass->name}", 'href' => "/asisten/class/{$e->class_id}"]);
+            ->map(fn (Enrollment $e) => ['title' => $e->user->name, 'subtitle' => "{$e->user->nim} · {$e->labClass->course->name} {$e->labClass->name}", 'href' => "/asisten/class/{$e->class_id}"])->all();
     }
 
-    private function classes(User $user, string $like, ?Semester $semester)
+    /**
+     * @return array<int, array{title: string, subtitle: string, href: string}>
+     */
+    private function classes(User $user, string $like, ?Semester $semester): array
     {
         return LabClass::taughtBy($user)->when($semester, fn ($q) => $q->where('semester_id', $semester->id))
             ->where(fn ($q) => $q->where('name', 'like', $like)->orWhereHas('course', fn ($c) => $c->where('name', 'like', $like)->orWhere('code', 'like', $like)))
             ->with('course')->limit(self::LIMIT)->get()
-            ->map(fn (LabClass $c) => ['title' => "{$c->course->name} · {$c->name}", 'subtitle' => $c->course->code, 'href' => "/asisten/class/{$c->id}"]);
+            ->map(fn (LabClass $c) => ['title' => "{$c->course->name} · {$c->name}", 'subtitle' => $c->course->code, 'href' => "/asisten/class/{$c->id}"])->all();
     }
 
-    private function programs(string $like, string $base)
+    /**
+     * @return array<int, array{title: string, subtitle: string, href: string}>
+     */
+    private function programs(string $like, string $base): array
     {
+        // Program sementara ditutup → tidak muncul di pencarian.
+        if (! config('lab.features.programs')) {
+            return [];
+        }
+
         return Program::where('type', '!=', 'maintenance')->where('title', 'like', $like)
             ->when(str_starts_with($base, '/praktikan'), fn ($q) => $q->catalog())
             ->latest('id')->limit(self::LIMIT)->get()
-            ->map(fn (Program $p) => ['title' => $p->title, 'subtitle' => $p->type->label(), 'href' => $base.$p->id]);
+            ->map(fn (Program $p) => ['title' => $p->title, 'subtitle' => $p->type->label(), 'href' => $base.$p->id])->all();
     }
 }

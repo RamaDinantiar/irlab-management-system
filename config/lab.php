@@ -31,4 +31,22 @@ return [
         // NFR-F07: Code Viewer hanya file teks ≤ 1 MB.
         'code_viewer_max' => 1024 * 1024,
     ],
+
+    /*
+     * Fitur yang sementara ditutup. Kode & data tetap disimpan; halamannya
+     * menampilkan "Belum tersedia" sampai diaktifkan lagi lewat .env.
+     */
+    'features' => [
+        'programs' => (bool) env('LAB_PROGRAMS_ENABLED', false),
+    ],
+
+    /*
+     * Akun Admin tetap untuk produksi (database/seeders/AdminSeeder.php).
+     * ADMIN_PASSWORD kosong → dibuatkan acak; hapus dari .env setelah seeding.
+     */
+    'admin' => [
+        'name' => env('ADMIN_NAME', 'Admin Lab IR'),
+        'email' => env('ADMIN_EMAIL'),
+        'password' => env('ADMIN_PASSWORD'),
+    ],
 ];

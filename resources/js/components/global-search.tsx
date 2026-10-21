@@ -2,12 +2,6 @@ import { router } from '@inertiajs/react';
 import { CornerDownLeft, Loader2, Search } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import SearchController from '@/actions/App/Http/Controllers/SearchController';
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogTitle,
-} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 type Group = {
@@ -15,9 +9,15 @@ type Group = {
     items: { title: string; subtitle: string; href: string }[];
 };
 
-/** Pencarian global topbar (PRD): Ctrl/⌘ + K. */
+/**
+ * Pencarian global topbar (PRD): Ctrl/⌘ + K. Hasil tampil sebagai dropdown
+ * tepat di bawah kolom cari (tanpa overlay). Di bawah xl kolom diganti ikon
+ * yang membuka panel selebar topbar (posisi relatif ke <header> sticky).
+ */
 export function GlobalSearch() {
     const [open, setOpen] = useState(false);
+    const rootRef = useRef<HTMLDivElement>(null);
+    const fieldRef = useRef<HTMLInputElement>(null);
     const [q, setQ] = useState('');
     const [groups, setGroups] = useState<Group[]>([]);
     const [loading, setLoading] = useState(false);
@@ -29,13 +29,35 @@ export function GlobalSearch() {
         const onKey = (e: KeyboardEvent) => {
             if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
                 e.preventDefault();
-                setOpen((o) => !o);
+
+                // Kolom cari terlihat (≥ xl) → fokus; selain itu buka panel.
+                if (fieldRef.current?.offsetParent) {
+                    fieldRef.current.focus();
+                    setOpen(true);
+                } else {
+                    setOpen((o) => !o);
+                }
             }
         };
         window.addEventListener('keydown', onKey);
 
         return () => window.removeEventListener('keydown', onKey);
     }, []);
+
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+
+        const onPointer = (e: PointerEvent) => {
+            if (!rootRef.current?.contains(e.target as Node)) {
+                setOpen(false);
+            }
+        };
+        document.addEventListener('pointerdown', onPointer);
+
+        return () => document.removeEventListener('pointerdown', onPointer);
+    }, [open]);
 
     useEffect(() => {
         if (q.trim().length < 2) {
@@ -66,14 +88,22 @@ export function GlobalSearch() {
         };
     }, [q]);
 
-    const go = (href: string) => {
+    const close = () => {
         setOpen(false);
+        fieldRef.current?.blur();
+    };
+
+    const go = (href: string) => {
+        close();
         setQ('');
         router.visit(href);
     };
 
     const onKeyDown = (e: React.KeyboardEvent) => {
-        if (e.key === 'ArrowDown') {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            close();
+        } else if (e.key === 'ArrowDown') {
             e.preventDefault();
             setActive((a) => Math.min(flat.length - 1, a + 1));
         } else if (e.key === 'ArrowUp') {
@@ -94,37 +124,62 @@ export function GlobalSearch() {
     let index = -1;
 
     return (
-        <>
+        <div ref={rootRef} className="xl:relative">
+            <label className="hidden h-10 items-center gap-2 border border-primary-200 bg-white px-3 text-sm focus-within:border-primary-500 focus-within:ring-[3px] focus-within:ring-ring/25 hover:border-primary-400 xl:flex xl:w-80 2xl:w-[28rem]">
+                {loading ? (
+                    <Loader2
+                        className="size-4 shrink-0 animate-spin text-muted-foreground"
+                        aria-hidden
+                    />
+                ) : (
+                    <Search
+                        className="size-4 shrink-0 text-muted-foreground"
+                        aria-hidden
+                    />
+                )}
+                <input
+                    ref={fieldRef}
+                    value={q}
+                    onChange={(e) => {
+                        setQ(e.target.value);
+                        setOpen(true);
+                    }}
+                    onKeyDown={onKeyDown}
+                    aria-label="Pencarian global"
+                    role="combobox"
+                    aria-expanded={open}
+                    aria-controls="search-results"
+                    aria-activedescendant={
+                        open && flat[active]
+                            ? `search-item-${active}`
+                            : undefined
+                    }
+                    onFocus={() => setOpen(true)}
+                    placeholder="Cari…"
+                    className="h-full min-w-0 flex-1 bg-transparent placeholder:text-muted-foreground focus-visible:outline-none"
+                />
+                {!open && !q && (
+                    <kbd className="border border-primary-200 bg-primary-50 px-1.5 py-0.5 font-mono text-[10px] text-primary-700">
+                        Ctrl K
+                    </kbd>
+                )}
+            </label>
             <button
                 type="button"
-                onClick={() => setOpen(true)}
-                className="hover:border-primary-400 hidden h-9 w-64 items-center gap-2 border border-primary-200 bg-white px-3 text-sm text-muted-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none md:flex"
-            >
-                <Search className="size-4" aria-hidden />
-                <span className="flex-1 text-left">Cari…</span>
-                <kbd className="border bg-muted px-1.5 font-mono text-[10px]">
-                    Ctrl K
-                </kbd>
-            </button>
-            <button
-                type="button"
-                onClick={() => setOpen(true)}
+                onClick={() => setOpen((o) => !o)}
                 aria-label="Cari"
-                className="flex size-10 items-center justify-center rounded-full text-primary-700 hover:bg-primary-50 md:hidden"
+                aria-expanded={open}
+                className={cn(
+                    'flex size-10 items-center justify-center rounded-full text-primary-700 hover:bg-primary-50 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none xl:hidden',
+                    open && 'bg-primary-50',
+                )}
             >
                 <Search className="size-5" />
             </button>
 
-            <Dialog open={open} onOpenChange={setOpen}>
-                <DialogContent className="top-[15%] translate-y-0 gap-0 p-0 sm:max-w-xl">
-                    <DialogTitle className="sr-only">
-                        Pencarian global
-                    </DialogTitle>
-                    <DialogDescription className="sr-only">
-                        Ketik minimal 2 huruf. Gunakan panah atas/bawah dan
-                        Enter.
-                    </DialogDescription>
-                    <div className="flex items-center gap-3 border-b px-4">
+            {open && (
+                <div className="absolute inset-x-4 top-full z-50 mt-2 border border-primary-200 bg-popover text-popover-foreground shadow-lg md:inset-x-6 xl:inset-x-0">
+                    <div className="flex items-center gap-3 border-b px-4 xl:hidden">
                         {loading ? (
                             <Loader2
                                 className="size-4 animate-spin text-muted-foreground"
@@ -139,18 +194,21 @@ export function GlobalSearch() {
                         <input
                             autoFocus
                             value={q}
-                            onChange={(e) => setQ(e.target.value)}
+                            onChange={(e) => {
+                                setQ(e.target.value);
+                                setOpen(true);
+                            }}
                             onKeyDown={onKeyDown}
-                            placeholder="Cari tugas, modul, praktikan, kelas, program…"
-                            aria-label="Kata kunci"
+                            aria-label="Pencarian global"
                             role="combobox"
-                            aria-expanded={flat.length > 0}
+                            aria-expanded={open}
                             aria-controls="search-results"
                             aria-activedescendant={
-                                flat[active]
+                                open && flat[active]
                                     ? `search-item-${active}`
                                     : undefined
                             }
+                            placeholder="Cari tugas, pertemuan, praktikan, kelas…"
                             className="h-12 flex-1 bg-transparent text-sm focus-visible:outline-none"
                         />
                     </div>
@@ -158,11 +216,12 @@ export function GlobalSearch() {
                         ref={listRef}
                         id="search-results"
                         role="listbox"
-                        className="max-h-[60vh] overflow-y-auto"
+                        className="max-h-[min(60vh,28rem)] overflow-y-auto"
                     >
                         {q.trim().length < 2 ? (
                             <p className="px-4 py-8 text-center text-sm text-muted-foreground">
-                                Ketik minimal 2 huruf.
+                                Ketik minimal 2 huruf untuk mencari tugas,
+                                pertemuan, praktikan, kelas, atau program.
                             </p>
                         ) : !loading && groups.length === 0 ? (
                             <p className="px-4 py-8 text-center text-sm text-muted-foreground">
@@ -222,8 +281,8 @@ export function GlobalSearch() {
                             ))
                         )}
                     </div>
-                </DialogContent>
-            </Dialog>
-        </>
+                </div>
+            )}
+        </div>
     );
 }

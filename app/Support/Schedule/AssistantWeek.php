@@ -41,7 +41,7 @@ class AssistantWeek
                         return;
                     }
 
-                    $events->push(self::event("class-{$class->id}", 'class', $class->course->name, $class->name, $class->room?->name ?? '—', $date, $class->startClock(), $class->endClock(), CourseColor::for($class->course_id), $now));
+                    $events->push(self::event("class-{$class->id}", 'class', $class->course->name, $class->name, $class->room->name, $date, $class->startClock(), $class->endClock(), CourseColor::for($class->course), $now));
                 });
         }
 
@@ -61,7 +61,7 @@ class AssistantWeek
 
         return $shift ? [
             'title' => $shift->displayTitle(),
-            'room' => $shift->room?->name ?? '—',
+            'room' => $shift->room->name ?? '—',
             'startsAt' => $shift->startsAt()->toIso8601String(),
             'endsAt' => $shift->endsAt()->toIso8601String(),
         ] : null;
@@ -79,11 +79,11 @@ class AssistantWeek
             $class ? 'class' : 'shift',
             $class ? $class->course->name : ($shift->title ?? 'Jaga Lab'),
             $class ? $class->name : 'Shift mengawas',
-            $shift->room?->name ?? '—',
+            $shift->room->name ?? '—',
             CarbonImmutable::parse($shift->date),
             $shift->startClock(),
             $shift->endClock(),
-            $class ? CourseColor::for($class->course_id) : 'teal',
+            $class ? CourseColor::for($class->course) : 'teal',
             $now,
         );
     }

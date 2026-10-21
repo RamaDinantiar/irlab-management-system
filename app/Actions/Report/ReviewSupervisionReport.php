@@ -9,7 +9,7 @@ use App\Models\User;
 use Illuminate\Validation\ValidationException;
 
 /**
- * FR-AR-05: Sekretaris memverifikasi atau mengembalikan (dengan catatan)
+ * FR-AR-05: Sekretaris/Bendahara memverifikasi atau mengembalikan (dengan catatan)
  * laporan berstatus Diajukan. FR-AR-04: Admin membuka kunci laporan.
  */
 class ReviewSupervisionReport
@@ -59,7 +59,7 @@ class ReviewSupervisionReport
         }
 
         if ($report->user_id === $reviewer->id && ! $reviewer->isAdmin()) {
-            throw ValidationException::withMessages(['report' => 'Laporan sendiri diverifikasi oleh Sekretaris lain atau Admin.']);
+            throw ValidationException::withMessages(['report' => 'Laporan sendiri diverifikasi oleh Sekretaris/Bendahara lain atau Admin.']);
         }
     }
 }

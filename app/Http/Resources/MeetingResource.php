@@ -20,15 +20,15 @@ class MeetingResource extends JsonResource
             'id' => $this->id,
             'number' => $this->number,
             'date' => $this->date->toDateString(),
-            'moduleTitle' => $this->module_title,
-            'moduleFile' => $this->whenLoaded('moduleFile', fn () => $this->moduleFile?->toClient(inline: true)),
-            'moduleReleaseAt' => $this->module_release_at?->toIso8601String(),
-            'moduleReleased' => $this->isModuleReleased(),
+            'topic' => $this->topic,
             'responsibleAssistant' => $this->whenLoaded('responsibleAssistant', fn () => $this->responsibleAssistant
                 ? ['id' => $this->responsibleAssistant->id, 'name' => $this->responsibleAssistant->name]
                 : null),
             'startedAt' => $this->started_at?->toIso8601String(),
             'endedAt' => $this->ended_at?->toIso8601String(),
+            'startsAt' => $this->startsAt()->toIso8601String(),
+            'endsAt' => $this->endsAt()->toIso8601String(),
+            'started' => $this->hasStarted(),
             'running' => $this->isRunning(),
             'attendanceCount' => $this->whenCounted('attendances'),
         ];

@@ -4,10 +4,13 @@ namespace App\Actions\User;
 
 use App\Enums\Role;
 use App\Models\AuditLog;
+use DateInterval;
+use DateTimeInterface;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use OpenSpout\Common\Entity\Comment\TextRun;
 use OpenSpout\Reader\CSV\Reader as CsvReader;
 use OpenSpout\Reader\XLSX\Reader as XlsxReader;
 
@@ -90,10 +93,8 @@ class ImportUsers
     /**
      * Baris data (tanpa header), dikunci nomor baris di file (header = baris 1).
      *
-     * @return array<int, array<string, string>>
-     */
-    /**
      * @param  list<string>  $required  header wajib
+     * @return array<int, array<string, string>>
      */
     public function readRows(UploadedFile $file, array $required = ['nim', 'email']): array
     {
@@ -106,7 +107,7 @@ class ImportUsers
         try {
             foreach ($reader->getSheetIterator() as $sheet) {
                 foreach ($sheet->getRowIterator() as $index => $row) {
-                    $cells = array_map(fn ($cell) => trim((string) $cell), $row->toArray());
+                    $cells = array_map(fn ($cell) => trim(self::cellText($cell)), $row->toArray());
 
                     if ($headers === null) {
                         $headers = array_map(function (string $header) {
@@ -149,5 +150,21 @@ class ImportUsers
         }
 
         return $rows;
+    }
+
+    /**
+     * Nilai sel CSV/XLSX → teks. Sel tanggal Excel (mis. kolom angkatan yang
+     * diformat tanggal) tidak bisa di-cast langsung ke string.
+     *
+     * @param  bool|DateInterval|DateTimeInterface|float|int|string|array<TextRun>|null  $value
+     */
+    private static function cellText(mixed $value): string
+    {
+        return match (true) {
+            $value instanceof DateTimeInterface => $value->format('Y-m-d'),
+            $value instanceof DateInterval => $value->format('%H:%I:%S'),
+            is_array($value) => implode('', array_map(fn (TextRun $run) => $run->text, $value)),
+            default => (string) $value,
+        };
     }
 }

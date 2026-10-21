@@ -1,5 +1,4 @@
 import { Form, Head } from '@inertiajs/react';
-import InputError from '@/components/input-error';
 import { NewPasswordFields } from '@/components/new-password-fields';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,19 +7,18 @@ import { Spinner } from '@/components/ui/spinner';
 import { update } from '@/routes/password';
 
 type Props = {
-    token: string;
     email: string;
     passwordRules: string;
 };
 
-export default function ResetPassword({ token, email, passwordRules }: Props) {
+/** Lupa password langkah 3: kode OTP sudah benar → buat password baru. */
+export default function ResetPassword({ email, passwordRules }: Props) {
     return (
         <>
             <Head title="Atur Ulang Kata Sandi" />
 
             <Form
                 {...update.form()}
-                transform={(data) => ({ ...data, token, email })}
                 resetOnSuccess={['password', 'password_confirmation']}
                 className="flex flex-col gap-6"
             >
@@ -33,13 +31,11 @@ export default function ResetPassword({ token, email, passwordRules }: Props) {
                             <Input
                                 id="email"
                                 type="email"
-                                name="email"
-                                autoComplete="email"
+                                autoComplete="username"
                                 value={email}
                                 className="h-12"
                                 readOnly
                             />
-                            <InputError message={errors.email} />
                         </div>
 
                         <NewPasswordFields

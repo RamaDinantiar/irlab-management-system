@@ -1,9 +1,13 @@
 // Components
 import { Form, Head } from '@inertiajs/react';
-import TextLink from '@/components/text-link';
+import {
+    LogoutConfirmDialog,
+    confirmLogout,
+} from '@/components/logout-confirm-dialog';
+import { textLinkClass } from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { logout } from '@/routes';
+import { cn } from '@/lib/utils';
 import { send } from '@/routes/verification';
 
 export default function VerifyEmail({ status }: { status?: string }) {
@@ -25,15 +29,22 @@ export default function VerifyEmail({ status }: { status?: string }) {
                             Kirim ulang email verifikasi
                         </Button>
 
-                        <TextLink
-                            href={logout()}
-                            className="mx-auto block text-sm"
+                        <button
+                            type="button"
+                            onClick={confirmLogout}
+                            className={cn(
+                                textLinkClass,
+                                'mx-auto block text-sm',
+                            )}
+                            data-test="logout-button"
                         >
                             Keluar
-                        </TextLink>
+                        </button>
                     </>
                 )}
             </Form>
+
+            <LogoutConfirmDialog />
         </>
     );
 }

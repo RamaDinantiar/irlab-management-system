@@ -35,6 +35,7 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('asisten/dashboard')
+                ->has('liveSessions')
                 ->has('dashboard', fn (Assert $dashboard) => $dashboard
                     ->hasAll(['isSample', 'pendingReports', 'pendingGrading', 'nextShift', 'alerts', 'week', 'gradingQueue', 'activities'])
                     ->has('week.events.0', fn (Assert $event) => $event
@@ -75,8 +76,8 @@ class DashboardTest extends TestCase
         $keys = fn (User $user) => array_column(AsistenDashboardData::for($user)['alerts'], 'key');
 
         $this->assertNotContains('to-verify', $keys(User::factory()->asisten()->make()));
-        $this->assertContains('to-verify', $keys(User::factory()->asisten(Position::Sekretaris)->make()));
-        $this->assertContains('honor', $keys(User::factory()->asisten(Position::Bendahara)->make()));
+        $this->assertContains('to-verify', $keys(User::factory()->asisten(Position::SekretarisBendahara)->make()));
+        $this->assertContains('honor', $keys(User::factory()->asisten(Position::SekretarisBendahara)->make()));
     }
 
     public function test_week_uses_the_assistants_real_classes_and_flags_the_running_one()

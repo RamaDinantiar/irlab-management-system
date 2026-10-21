@@ -18,6 +18,7 @@ use App\Http\Controllers\Asisten\ShiftController;
 use App\Http\Controllers\Asisten\ShiftSwapController;
 use App\Http\Controllers\Asisten\TaskController;
 use App\Http\Controllers\Asisten\TaskTargetController;
+use App\Http\Middleware\EnsureProgramsAvailable;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -40,7 +41,7 @@ Route::get('classes/{class}/members/export', [ClassDetailController::class, 'exp
 Route::post('classes/{class}/members/import', [ClassDetailController::class, 'importMembers'])->name('classes.members.import');
 Route::delete('classes/{class}/members/{enrollment}', [ClassDetailController::class, 'removeMember'])->name('classes.members.destroy');
 
-// FR-AC-04: pertemuan & modul.
+// FR-AC-04: pertemuan.
 Route::post('classes/{class}/meetings/generate', [MeetingController::class, 'generate'])->name('classes.meetings.generate');
 Route::post('classes/{class}/meetings', [MeetingController::class, 'store'])->name('classes.meetings.store');
 Route::put('meetings/{meeting}', [MeetingController::class, 'update'])->name('meetings.update');
@@ -49,7 +50,7 @@ Route::delete('meetings/{meeting}', [MeetingController::class, 'destroy'])->name
 // FR-AD-01: Mulai Sesi Kelas + presensi.
 Route::get('sessions', [SessionController::class, 'index'])->name('sessions.index');
 Route::get('sessions/{meeting}', [SessionController::class, 'show'])->name('sessions.show');
-Route::post('sessions/{meeting}/start', [SessionController::class, 'start'])->name('sessions.start');
+Route::get('sessions/{meeting}/attendance.csv', [SessionController::class, 'exportAttendance'])->name('sessions.attendance.export');
 Route::post('sessions/{meeting}/end', [SessionController::class, 'end'])->name('sessions.end');
 Route::put('sessions/{meeting}/attendance', [SessionController::class, 'saveAttendance'])->name('sessions.attendance');
 
@@ -105,20 +106,23 @@ Route::post('reports/{report}/unlock', [ReportController::class, 'unlock'])->nam
 
 // FR-AGN: Generate rekap bulanan + honor (US-A04).
 Route::get('generate', [GenerateController::class, 'index'])->name('generate.index');
+Route::get('generate/daily', [GenerateController::class, 'daily'])->middleware('throttle:30,1')->name('generate.daily');
 Route::post('exports', [GenerateController::class, 'store'])->middleware('throttle:10,1')->name('exports.store');
 Route::get('exports/{export}', [GenerateController::class, 'show'])->name('exports.show');
 Route::post('honor-recaps/approve', [GenerateController::class, 'approveHonor'])->name('honor-recaps.approve');
 
 // FR-APR: Program (Workshop, Quick Tutor, Rekrutmen, Maintenance).
 Route::redirect('program', '/asisten/program/workshop');
-Route::get('program/{type}', [ProgramController::class, 'index'])->where('type', 'workshop|quick-tutor|recruitment|maintenance')->name('programs.index');
-Route::post('programs', [ProgramController::class, 'store'])->name('programs.store');
-Route::get('programs/{program}', [ProgramController::class, 'show'])->name('programs.show');
-Route::post('programs/{program}', [ProgramController::class, 'update'])->name('programs.update'); // multipart (poster)
-Route::delete('programs/{program}', [ProgramController::class, 'destroy'])->name('programs.destroy');
-Route::put('programs/{program}/fields', [ProgramController::class, 'updateFields'])->name('programs.fields');
-Route::put('programs/{program}/stages', [ProgramController::class, 'updateStages'])->name('programs.stages');
-Route::post('programs/{program}/status', [ProgramController::class, 'status'])->name('programs.status');
-Route::get('programs/{program}/export', [ProgramController::class, 'export'])->name('programs.export');
-Route::post('program-registrations/{registration}/attendance', [ProgramController::class, 'attendance'])->name('program-registrations.attendance');
-Route::post('program-registrations/{registration}/review', [ProgramController::class, 'review'])->name('program-registrations.review');
+Route::middleware(EnsureProgramsAvailable::class)->group(function () {
+    Route::get('program/{type}', [ProgramController::class, 'index'])->where('type', 'workshop|quick-tutor|recruitment|maintenance')->name('programs.index');
+    Route::post('programs', [ProgramController::class, 'store'])->name('programs.store');
+    Route::get('programs/{program}', [ProgramController::class, 'show'])->name('programs.show');
+    Route::post('programs/{program}', [ProgramController::class, 'update'])->name('programs.update'); // multipart (poster)
+    Route::delete('programs/{program}', [ProgramController::class, 'destroy'])->name('programs.destroy');
+    Route::put('programs/{program}/fields', [ProgramController::class, 'updateFields'])->name('programs.fields');
+    Route::put('programs/{program}/stages', [ProgramController::class, 'updateStages'])->name('programs.stages');
+    Route::post('programs/{program}/status', [ProgramController::class, 'status'])->name('programs.status');
+    Route::get('programs/{program}/export', [ProgramController::class, 'export'])->name('programs.export');
+    Route::post('program-registrations/{registration}/attendance', [ProgramController::class, 'attendance'])->name('program-registrations.attendance');
+    Route::post('program-registrations/{registration}/review', [ProgramController::class, 'review'])->name('program-registrations.review');
+});

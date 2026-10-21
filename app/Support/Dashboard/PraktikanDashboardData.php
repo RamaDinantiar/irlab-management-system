@@ -22,7 +22,7 @@ use Illuminate\Database\Eloquent\Collection;
  *
  * Seluruh bagian sudah memakai data asli (sumber per bagian):
  *  - hasClasses, week, nextClass        → ✅ data asli (Kelas & Enrollment)
- *  - nextClass.module, nextClass.seat   → ✅ data asli (Pertemuan, Seats)
+ *  - nextClass.topic, nextClass.seat    → ✅ data asli (Pertemuan, Seats)
  *  - pendingTasks, upcomingTasks        → ✅ data asli (Task & Submission)
  *  - courseProgress, recentFeedback     → ✅ data asli (Grade)
  *  - announcements                      → ✅ data asli (Pengumuman)
@@ -39,7 +39,7 @@ class PraktikanDashboardData
         $now ??= CarbonImmutable::now();
         $weekStart = $now->startOfWeek(CarbonImmutable::MONDAY);
 
-        $classes = $withoutClasses ? collect() : self::enrolledClasses($user);
+        $classes = $withoutClasses ? new Collection : self::enrolledClasses($user);
 
         if ($classes->isEmpty()) {
             return self::empty($weekStart, $now);
@@ -85,10 +85,14 @@ class PraktikanDashboardData
      */
     private static function openProgram(): ?array
     {
+        if (! config('lab.features.programs')) {
+            return null;
+        }
+
         $program = Program::catalog()->where('status', 'open')
             ->withCount(['registrations' => fn ($q) => $q->where('status', '!=', 'cancelled')])
             ->get()->filter->isAcceptingRegistrations()
-            ->sortBy(fn (Program $p) => $p->closes_at?->timestamp ?? PHP_INT_MAX)->first();
+            ->sortBy(fn (Program $p) => $p->closes_at->timestamp ?? PHP_INT_MAX)->first();
 
         return $program ? [
             'title' => $program->title,
@@ -125,7 +129,7 @@ class PraktikanDashboardData
      * FR-PD-3: maks. 5 tugas terbuka dengan tenggat terdekat + jumlah yang belum
      * dikumpulkan (tugas terbuka, termasuk yang menerima keterlambatan).
      *
-     * @return array{0: list<array<string, mixed>>, 1: int}
+     * @return array{0: array<int, array<string, mixed>>, 1: int}
      */
     private static function tasks(User $user, CarbonImmutable $now): array
     {
@@ -167,7 +171,7 @@ class PraktikanDashboardData
      * dibuka + nilai akhir sementara dari nilai terpublikasi (A6).
      *
      * @param  Collection<int, LabClass>  $classes
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     private static function courseProgress(User $user, Collection $classes, CarbonImmutable $now): array
     {
@@ -200,7 +204,7 @@ class PraktikanDashboardData
     }
 
     /**
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     private static function recentFeedback(User $user): array
     {
@@ -217,7 +221,7 @@ class PraktikanDashboardData
                 'score' => (float) $grade->score,
                 'maxScore' => $grade->submission->target->task->max_score,
                 'excerpt' => str($grade->feedback ?? 'Tidak ada catatan.')->replaceMatches('/```[\s\S]*?```/', '[kode]')->squish()->limit(120)->toString(),
-                'grader' => $grade->grader?->name ?? 'Asisten',
+                'grader' => $grade->grader->name ?? 'Asisten',
                 'gradedAt' => $grade->published_at->toIso8601String(),
                 'href' => '/praktikan/grade?class='.$grade->submission->target->class_id,
             ])
@@ -248,7 +252,7 @@ class PraktikanDashboardData
 
     /**
      * @param  Collection<int, LabClass>  $classes
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     private static function weekEvents(Collection $classes, CarbonImmutable $weekStart, CarbonImmutable $now): array
     {
@@ -264,7 +268,7 @@ class PraktikanDashboardData
                 'day' => $class->day_of_week,
                 'start' => $class->startClock(),
                 'end' => $class->endClock(),
-                'color' => CourseColor::for($class->course_id),
+                'color' => CourseColor::for($class->course),
                 'running' => $now->betweenIncluded($startsAt, $endsAt),
             ];
         })->values()->all();
@@ -285,7 +289,7 @@ class PraktikanDashboardData
                 return [
                     'course' => $class->course->name,
                     'className' => $class->name,
-                    'module' => $class->meetings->first(fn (Meeting $m) => $m->date->isSameDay($startsAt))?->module_title,
+                    'topic' => $class->meetings->first(fn (Meeting $m) => $m->date->isSameDay($startsAt))?->topic,
                     'room' => $class->room->name,
                     'assistant' => $class->assistants->pluck('name')->join(', ') ?: '—',
                     'seat' => $class->seatContracts->first()?->seat->label,

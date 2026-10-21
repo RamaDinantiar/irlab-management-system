@@ -4,17 +4,30 @@ use App\Enums\Role;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Asisten\DashboardController as AsistenDashboardController;
 use App\Http\Controllers\Auth\ChangePasswordController;
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\Praktikan\DashboardController as PraktikanDashboardController;
 use App\Http\Controllers\SearchController;
+use App\Http\Middleware\ThrottlePasswordReset;
 use App\Models\User;
+use App\Support\SafeRedirect;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 // Landing page publik dikerjakan terpisah (PRD Bagian 0) — beranda aplikasi = login.
 Route::redirect('/', '/login')->name('home');
+
+// Lupa password: email kampus → kode OTP 6 digit → password baru.
+Route::middleware(['guest', ThrottlePasswordReset::class])->controller(ForgotPasswordController::class)->group(function () {
+    Route::get('forgot-password', 'create')->name('password.request');
+    Route::post('forgot-password', 'store')->name('password.email');
+    Route::get('forgot-password/code', 'showCode')->name('password.code');
+    Route::post('forgot-password/code', 'verifyCode')->name('password.code.verify');
+    Route::get('reset-password', 'edit')->name('password.reset');
+    Route::post('reset-password', 'update')->name('password.update');
+});
 
 Route::middleware('auth')->group(function () {
     // FR-AUTH-05: ganti password sementara pada login pertama.
@@ -79,8 +92,8 @@ if (app()->isLocal()) {
         $request->session()->regenerate();
 
         $to = $request->query('to');
-        $response = is_string($to) && str_starts_with($to, '/') && ! str_starts_with($to, '//')
-            ? redirect($to)
+        $response = SafeRedirect::isInternalPath($to)
+            ? redirect()->to($to)
             : redirect()->route($role->dashboardRoute());
 
         return $request->has('sidebar')

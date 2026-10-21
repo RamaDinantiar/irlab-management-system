@@ -22,7 +22,7 @@ class ZipBrowser
 
         for ($i = 0; $i < $zip->numFiles; $i++) {
             $stat = $zip->statIndex($i);
-            if (str_ends_with($stat['name'], '/')) {
+            if ($stat === false || str_ends_with($stat['name'], '/')) {
                 continue;
             }
 
@@ -54,6 +54,12 @@ class ZipBrowser
         }
 
         $stat = $zip->statIndex($index);
+        if ($stat === false) {
+            $zip->close();
+
+            return ['path' => $path, 'content' => null, 'reason' => 'File tidak dapat dibaca dari ZIP.'];
+        }
+
         if ($stat['size'] > config('lab.files.code_viewer_max')) {
             $zip->close();
 

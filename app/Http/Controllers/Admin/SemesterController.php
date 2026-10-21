@@ -84,7 +84,7 @@ class SemesterController extends Controller
             ['source_id' => 'semester sumber'],
         );
 
-        $result = $copy(Semester::findOrFail($validated['source_id']), $semester);
+        $result = $copy(Semester::whereKey($validated['source_id'])->firstOrFail(), $semester);
 
         Inertia::flash('toast', [
             'type' => 'success',

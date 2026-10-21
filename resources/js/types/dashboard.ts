@@ -9,6 +9,11 @@ export type ScheduleColor =
     | 'orange'
     | 'yellow'
     | 'blue'
+    | 'purple'
+    | 'pink'
+    | 'cyan'
+    | 'brown'
+    | 'lime'
     | 'teal';
 
 export type ScheduleEvent = {
@@ -53,8 +58,48 @@ export type ActivityItem = {
     at: string;
 };
 
+/** Sesi kelas yang sedang berlangsung — app/Support/Dashboard/LiveSessions.php. */
+type LiveSessionBase = {
+    meetingId: number;
+    classId: number;
+    course: string;
+    className: string;
+    number: number;
+    topic: string | null;
+    room: string | null;
+    startsAt: string;
+    endsAt: string;
+};
+
+export type AsistenLiveSession = LiveSessionBase & {
+    members: number;
+    attendanceCount: number;
+    /** Tugas kelas ini yang sedang terbuka. */
+    tasks: {
+        id: number;
+        taskId: number;
+        title: string;
+        type: 'pretest' | 'posttest' | 'report';
+        dueAt: string | null;
+        submitted: number;
+    }[];
+};
+
+export type PraktikanLiveSession = LiveSessionBase & {
+    seat: string | null;
+    /** Pre/Post-Test yang sedang dibuka asisten. */
+    tests: {
+        id: number;
+        title: string;
+        type: 'pretest' | 'posttest';
+        dueAt: string | null;
+        submitted: boolean;
+        href: string;
+    }[];
+};
+
 export type AsistenDashboard = {
-    /** true selama sebagian data masih contoh (modul belum dibangun). */
+    /** true selama sebagian data masih contoh (fitur belum dibangun). */
     isSample: boolean;
     /** Laporan ngawas yang belum diisi. */
     pendingReports: number;
@@ -128,15 +173,15 @@ export type Announcement = {
 };
 
 export type PraktikanDashboard = {
-    /** true selama sebagian data masih contoh (modul belum dibangun). */
+    /** true selama sebagian data masih contoh (fitur belum dibangun). */
     isSample: boolean;
     /** false → tampilkan panduan 3 langkah (belum tergabung ke kelas). */
     hasClasses: boolean;
     nextClass: {
         course: string;
         className: string;
-        /** Modul pertemuan berikutnya; null sampai modul Pertemuan dibangun/dirilis. */
-        module: string | null;
+        /** Materi pertemuan berikutnya; null bila belum ditentukan. */
+        topic: string | null;
         room: string;
         assistant: string;
         /** Label kursi hasil kontrak, null jika belum kontrak. */
@@ -196,7 +241,7 @@ export type AuditLogItem = {
 };
 
 export type AdminDashboard = {
-    /** true selama sebagian data masih contoh (modul belum dibangun). */
+    /** true selama sebagian data masih contoh (fitur belum dibangun). */
     isSample: boolean;
     semester: {
         name: string;

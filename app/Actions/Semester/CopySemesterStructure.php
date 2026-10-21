@@ -47,7 +47,7 @@ class CopySemesterStructure
                     $copy = $course->replicate(['proposed_by', 'approved_by', 'approved_at', 'rejection_reason']);
                     $copy->semester_id = $target->id;
                     $copy->approval_status = ApprovalStatus::Approved;
-                    $copy->approved_by = auth()->id();
+                    $copy->approved_by = auth()->user()?->id;
                     $copy->approved_at = now();
                     $copy->save();
                     $copied++;

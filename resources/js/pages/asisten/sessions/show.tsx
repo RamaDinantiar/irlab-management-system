@@ -3,7 +3,7 @@ import {
     ArrowLeft,
     CheckCheck,
     ClipboardList,
-    Play,
+    Download,
     Save,
     Square,
     Users,
@@ -25,7 +25,12 @@ import {
     DialogTrigger,
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
-import { formatDate, formatRelative } from '@/lib/datetime';
+import {
+    formatClock,
+    formatDate,
+    formatIsoClock as clock,
+    formatRelative,
+} from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 import type { AttendanceStatus, MeetingRow } from '@/types';
 
@@ -59,7 +64,7 @@ type Student = {
     status: AttendanceStatus | null;
 };
 
-/** FR-AD-01: layar sesi — mulai pertemuan + checklist presensi. */
+/** FR-AD-01: layar sesi — status sesi otomatis + checklist presensi. */
 export default function SessionShow({
     meeting,
     klass,
@@ -85,7 +90,7 @@ export default function SessionShow({
         ),
     );
     const filled = Object.values(statuses).filter(Boolean).length;
-    const started = meeting.startedAt !== null;
+    const started = meeting.started;
 
     return (
         <>
@@ -99,64 +104,59 @@ export default function SessionShow({
                 </Link>
                 <PageHeader
                     title={`${klass.course} · ${klass.name}`}
-                    description={`Pertemuan ${meeting.number}${meeting.moduleTitle ? ` · ${meeting.moduleTitle}` : ''} · ${formatDate(meeting.date)} · ${klass.startTime.replace(':', '.')}–${klass.endTime.replace(':', '.')} · ${klass.room}`}
+                    description={`Pertemuan ${meeting.number}${meeting.topic ? ` · ${meeting.topic}` : ''} · ${formatDate(meeting.date)} · ${formatClock(klass.startTime)}–${formatClock(klass.endTime)} · ${klass.room}`}
                     actions={
-                        meeting.running ? (
-                            <div className="flex flex-wrap items-center gap-3">
-                                <Badge variant="success">
-                                    <span
-                                        className="size-2 animate-pulse rounded-full bg-success"
-                                        aria-hidden
-                                    />
-                                    Sedang berjalan · dimulai{' '}
-                                    {formatRelative(meeting.startedAt!)}
-                                </Badge>
-                                {klass.canEdit && (
-                                    <EndSessionButton meetingId={meeting.id} />
-                                )}
-                            </div>
-                        ) : started ? (
-                            <Badge variant="secondary">
-                                {meeting.endedAt
-                                    ? `Sesi diakhiri ${formatRelative(meeting.endedAt)}`
-                                    : `Dimulai ${formatRelative(meeting.startedAt!)}`}
-                            </Badge>
-                        ) : (
-                            klass.canEdit && (
-                                <Form
-                                    {...SessionController.start.form(
+                        <div className="flex flex-wrap items-center gap-3">
+                            <Button variant="outline" asChild>
+                                <a
+                                    href={SessionController.exportAttendance.url(
                                         meeting.id,
                                     )}
-                                    options={{ preserveScroll: true }}
+                                    download
                                 >
-                                    {({ processing }) => (
-                                        <Button
-                                            type="submit"
-                                            size="lg"
-                                            disabled={processing}
-                                        >
-                                            {processing ? (
-                                                <Spinner />
-                                            ) : (
-                                                <Play />
-                                            )}{' '}
-                                            Mulai Sesi
-                                        </Button>
+                                    <Download /> Unduh Presensi (CSV)
+                                </a>
+                            </Button>
+                            {meeting.running ? (
+                                <div className="flex flex-wrap items-center gap-3">
+                                    <Badge variant="success">
+                                        <span
+                                            className="size-2 animate-pulse rounded-full bg-success"
+                                            aria-hidden
+                                        />
+                                        Sedang berlangsung · selesai{' '}
+                                        {clock(meeting.endsAt)} WIB
+                                    </Badge>
+                                    {klass.canEdit && (
+                                        <EndSessionButton
+                                            meetingId={meeting.id}
+                                        />
                                     )}
-                                </Form>
-                            )
-                        )
+                                </div>
+                            ) : started ? (
+                                <Badge variant="secondary">
+                                    {meeting.endedAt
+                                        ? `Sesi selesai ${formatRelative(meeting.endedAt)}`
+                                        : 'Sesi selesai'}
+                                </Badge>
+                            ) : (
+                                <Badge variant="secondary">
+                                    Mulai otomatis {formatDate(meeting.date)},{' '}
+                                    {clock(meeting.startsAt)} WIB
+                                </Badge>
+                            )}
+                        </div>
                     }
                 />
 
                 {meeting.running && (
                     <p className="flex flex-wrap items-center gap-x-3 gap-y-2 border border-success/30 bg-success-soft px-4 py-3 text-sm">
                         <span className="flex-1">
-                            Sesi sedang berjalan. Post-Test / Pre-Test untuk
-                            kelas ini bisa dibuat dengan mode{' '}
+                            Sesi berjalan otomatis sesuai jam kelas. Post-Test /
+                            Pre-Test untuk kelas ini bisa dibuat dengan mode{' '}
                             <strong>Sesi Berjalan</strong> (cukup jam mulai &
-                            selesai). Tekan <strong>Akhiri Sesi</strong> setelah
-                            praktikum selesai.
+                            selesai). Bila praktikum selesai lebih cepat, tekan{' '}
+                            <strong>Akhiri Lebih Awal</strong>.
                         </span>
                         <Button size="sm" variant="outline" asChild>
                             <Link href="/asisten/task/post-test">
@@ -168,15 +168,16 @@ export default function SessionShow({
 
                 {!started && (
                     <p className="border border-primary-200 bg-primary-50 px-4 py-3 text-sm text-primary-900">
-                        Menekan <strong>Mulai Sesi</strong> menandai pertemuan
-                        dimulai, membuka Pre-test yang dijadwalkan untuk sesi
-                        ini, dan menyiapkan draft laporan ngawas.
+                        Sesi dimulai otomatis pada jam mulai kelas dan berakhir
+                        pada jam selesai. Pre-Test yang dijadwalkan untuk sesi
+                        ini ikut terbuka, dan presensi bisa diisi sejak sesi
+                        dimulai.
                     </p>
                 )}
 
                 {students.length === 0 ? (
                     <EmptyState icon={Users} title="Belum ada anggota kelas" />
-                ) : (
+                ) : !started ? null : (
                     <Form
                         {...SessionController.saveAttendance.form(meeting.id)}
                         options={{ preserveScroll: true }}
@@ -319,17 +320,18 @@ function EndSessionButton({ meetingId }: { meetingId: number }) {
                     variant="outline"
                     className="border-danger/40 text-danger hover:bg-danger-soft hover:text-danger"
                 >
-                    <Square /> Akhiri Sesi
+                    <Square /> Akhiri Lebih Awal
                 </Button>
             </DialogTrigger>
             <DialogContent className="border-t-danger">
                 <DialogHeader>
-                    <DialogTitle>Akhiri sesi praktikum?</DialogTitle>
+                    <DialogTitle>Akhiri sesi sebelum jamnya?</DialogTitle>
                     <DialogDescription>
-                        Sesi ditandai selesai. Presensi tetap bisa diubah, dan
-                        Post-Test / Pre-Test yang sedang berjalan tetap berakhir
-                        sesuai jam selesainya (atau hentikan lewat tombol
-                        Berhenti di halaman Task).
+                        Sesi ditandai selesai sekarang, sebelum jam selesai
+                        kelas. Presensi tetap bisa diubah, dan Post-Test /
+                        Pre-Test yang sedang berjalan tetap berakhir sesuai jam
+                        selesainya (atau hentikan lewat tombol Berhenti di
+                        halaman Task).
                     </DialogDescription>
                 </DialogHeader>
                 <Form
@@ -350,7 +352,7 @@ function EndSessionButton({ meetingId }: { meetingId: number }) {
                                 disabled={processing}
                             >
                                 {processing ? <Spinner /> : <Square />} Akhiri
-                                Sesi
+                                Sekarang
                             </Button>
                         </DialogFooter>
                     )}

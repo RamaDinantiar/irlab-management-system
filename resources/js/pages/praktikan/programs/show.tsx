@@ -17,6 +17,7 @@ import type { FormEvent } from 'react';
 import ProgramController from '@/actions/App/Http/Controllers/Praktikan/ProgramController';
 import InputError from '@/components/input-error';
 import { Markdown } from '@/components/markdown';
+import { SelectField } from '@/components/select-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -106,20 +107,17 @@ function RegistrationForm({
                                 onChange={(e) => set(f.id, e.target.value)}
                             />
                         ) : f.type === 'select' ? (
-                            <select
+                            <SelectField
                                 id={id}
                                 required={f.required}
                                 value={(value as string) ?? ''}
-                                onChange={(e) => set(f.id, e.target.value)}
-                                className="h-10 border border-input bg-white px-3 text-sm"
-                            >
-                                <option value="">Pilih…</option>
-                                {f.options.map((o) => (
-                                    <option key={o} value={o}>
-                                        {o}
-                                    </option>
-                                ))}
-                            </select>
+                                onValueChange={(v) => set(f.id, v)}
+                                placeholder="Pilih…"
+                                options={f.options.map((o) => ({
+                                    value: o,
+                                    label: o,
+                                }))}
+                            />
                         ) : f.type === 'file' ? (
                             <>
                                 <Input

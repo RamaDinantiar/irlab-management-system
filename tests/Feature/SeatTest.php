@@ -211,7 +211,10 @@ class SeatTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page->component('asisten/seats')
                 ->where('selected.id', $this->class->id)
-                ->where('map.occupants.0.name', 'Rama Dinantiar'));
+                ->where('map.occupants.0.name', 'Rama Dinantiar')
+                ->where('map.occupants.0.email', $this->student->email)
+                ->where('map.occupants.0.phone', $this->student->phone)
+                ->where('map.occupants.0.avatar', null));
 
         $this->actingAs(User::factory()->asisten()->create())->get(route('asisten.seats.index'))
             ->assertInertia(fn (Assert $page) => $page->where('selected', null));

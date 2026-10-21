@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Spinner } from '@/components/ui/spinner';
 import { useClipboard } from '@/hooks/use-clipboard';
+import { cn } from '@/lib/utils';
 import type { ClassRow } from '@/types';
 import type { RouteFormDefinition } from '@/wayfinder';
 
@@ -31,7 +32,6 @@ export function ClassAccess({
     lockAction: RouteFormDefinition<'post'>;
 }) {
     const [copied, copy] = useClipboard();
-    const [open, setOpen] = useState(false);
 
     if (!klass.joinToken) {
         return (
@@ -65,58 +65,7 @@ export function ClassAccess({
             </Button>
             {klass.canEdit && (
                 <>
-                    <Dialog open={open} onOpenChange={setOpen}>
-                        <DialogTrigger asChild>
-                            <Button
-                                size="icon"
-                                variant="ghost"
-                                className="size-8"
-                                aria-label="Buat ulang token"
-                            >
-                                <RefreshCw />
-                            </Button>
-                        </DialogTrigger>
-                        <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>
-                                    Buat ulang token {klass.name}?
-                                </DialogTitle>
-                                <DialogDescription>
-                                    Token{' '}
-                                    <span className="font-mono font-bold">
-                                        {klass.joinToken}
-                                    </span>{' '}
-                                    langsung tidak berlaku. Praktikan yang sudah
-                                    bergabung tidak terpengaruh.
-                                </DialogDescription>
-                            </DialogHeader>
-                            <Form
-                                {...tokenAction}
-                                options={{ preserveScroll: true }}
-                                onSuccess={() => setOpen(false)}
-                            >
-                                {({ processing }) => (
-                                    <DialogFooter>
-                                        <DialogClose asChild>
-                                            <Button
-                                                type="button"
-                                                variant="outline"
-                                            >
-                                                Batal
-                                            </Button>
-                                        </DialogClose>
-                                        <Button
-                                            type="submit"
-                                            disabled={processing}
-                                        >
-                                            {processing && <Spinner />}
-                                            Buat Token Baru
-                                        </Button>
-                                    </DialogFooter>
-                                )}
-                            </Form>
-                        </DialogContent>
-                    </Dialog>
+                    <RegenerateTokenButton klass={klass} action={tokenAction} />
                     <Form {...lockAction} options={{ preserveScroll: true }}>
                         {({ processing }) => (
                             <>
@@ -142,5 +91,117 @@ export function ClassAccess({
                 </>
             )}
         </div>
+    );
+}
+
+/** Buat ulang token (konfirmasi: token lama langsung tidak berlaku). */
+export function RegenerateTokenButton({
+    klass,
+    action,
+    className,
+}: {
+    klass: ClassRow;
+    action: RouteFormDefinition<'post'>;
+    className?: string;
+}) {
+    const [open, setOpen] = useState(false);
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    className={cn('size-8', className)}
+                    aria-label="Buat ulang token"
+                    title="Buat ulang token"
+                >
+                    <RefreshCw />
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Buat ulang token {klass.name}?</DialogTitle>
+                    <DialogDescription>
+                        Token{' '}
+                        <span className="font-mono font-bold">
+                            {klass.joinToken}
+                        </span>{' '}
+                        langsung tidak berlaku. Praktikan yang sudah bergabung
+                        tidak terpengaruh.
+                    </DialogDescription>
+                </DialogHeader>
+                <Form
+                    {...action}
+                    options={{ preserveScroll: true }}
+                    onSuccess={() => setOpen(false)}
+                >
+                    {({ processing }) => (
+                        <DialogFooter>
+                            <DialogClose asChild>
+                                <Button type="button" variant="outline">
+                                    Batal
+                                </Button>
+                            </DialogClose>
+                            <Button type="submit" disabled={processing}>
+                                {processing && <Spinner />}
+                                Buat Token Baru
+                            </Button>
+                        </DialogFooter>
+                    )}
+                </Form>
+            </DialogContent>
+        </Dialog>
+    );
+}
+
+/**
+ * Saklar "Pendaftaran Buka" (Figma "Class") — membuka/menutup pendaftaran
+ * lewat Lock Class (US-A01-4). Kelas terkunci otomatis saat kuota penuh.
+ */
+export function EnrollmentSwitch({
+    klass,
+    action,
+}: {
+    klass: ClassRow;
+    action: RouteFormDefinition<'post'>;
+}) {
+    const open = !klass.isLocked;
+
+    return (
+        <Form {...action} options={{ preserveScroll: true }}>
+            {({ processing }) => (
+                <>
+                    <input
+                        type="hidden"
+                        name="locked"
+                        value={open ? '1' : '0'}
+                    />
+                    <button
+                        type="submit"
+                        role="switch"
+                        aria-checked={open}
+                        disabled={processing || !klass.canEdit}
+                        className="group flex items-center gap-3 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                        <span
+                            aria-hidden
+                            className={cn(
+                                'relative h-7 w-12 shrink-0 rounded-full transition-colors group-focus-visible:ring-[3px] group-focus-visible:ring-ring/40',
+                                open ? 'bg-primary-500' : 'bg-input',
+                            )}
+                        >
+                            <span
+                                className={cn(
+                                    'absolute top-1 left-1 size-5 rounded-full bg-white shadow transition-transform',
+                                    open && 'translate-x-5',
+                                )}
+                            />
+                        </span>
+                        Pendaftaran {open ? 'Buka' : 'Tutup'}
+                    </button>
+                </>
+            )}
+        </Form>
     );
 }

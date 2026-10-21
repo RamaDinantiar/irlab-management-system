@@ -115,7 +115,7 @@ class ProgramController extends Controller
             'archive' => $program->type === ProgramType::Recruitment
                 ? Program::where('type', ProgramType::Recruitment)->where('status', 'finished')->whereKeyNot($program->id)->withCount([
                     'registrations', 'registrations as accepted_count' => fn ($q) => $q->where('status', 'accepted'),
-                ])->latest('starts_at')->get()->map(fn (Program $p) => ['id' => $p->id, 'title' => $p->title, 'year' => $p->starts_at?->year ?? $p->created_at->year, 'applicants' => $p->registrations_count, 'accepted' => $p->accepted_count])->values()
+                ])->latest('starts_at')->get()->map(fn (Program $p) => ['id' => $p->id, 'title' => $p->title, 'year' => $p->starts_at->year ?? $p->created_at->year, 'applicants' => $p->registrations_count, 'accepted' => $p->accepted_count])->values()
                 : [],
             'options' => self::options(),
         ]);
@@ -211,8 +211,8 @@ class ProgramController extends Controller
      */
     private function validated(Request $request, ?Program $program = null): array
     {
-        $type = $program?->type ?? ProgramType::tryFrom((string) $request->input('type'));
-        abort_unless($type, 422);
+        $type = $program->type ?? ProgramType::tryFrom((string) $request->input('type'));
+        abort_unless($type !== null, 422);
         $maintenance = $type === ProgramType::Maintenance;
 
         $data = $request->validate([
@@ -313,7 +313,7 @@ class ProgramController extends Controller
         $value = $r->answers_json[(string) $f->id] ?? null;
 
         if (is_array($value) && isset($value['file_id'])) {
-            $file = $r->files()->find($value['file_id']);
+            $file = $r->files()->whereKey($value['file_id'])->first();
 
             return $file ? ['name' => $file->original_name, 'url' => $file->url()] : null;
         }

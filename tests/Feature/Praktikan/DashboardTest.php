@@ -49,13 +49,14 @@ class DashboardTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('praktikan/dashboard')
+                ->has('liveSessions')
                 ->has('dashboard', fn (Assert $dashboard) => $dashboard
                     ->hasAll(['isSample', 'hasClasses', 'nextClass', 'pendingTasks', 'openProgram', 'week', 'upcomingTasks', 'courseProgress', 'recentFeedback', 'announcements'])
                     ->has('upcomingTasks.0', fn (Assert $task) => $task
                         ->hasAll(['id', 'title', 'course', 'type', 'dueAt', 'status', 'href'])
                     )
                     ->has('nextClass', fn (Assert $class) => $class
-                        ->hasAll(['course', 'className', 'module', 'room', 'assistant', 'seat', 'startsAt', 'endsAt'])
+                        ->hasAll(['course', 'className', 'topic', 'room', 'assistant', 'seat', 'startsAt', 'endsAt'])
                     )
                     ->has('week.events', 2)
                 )

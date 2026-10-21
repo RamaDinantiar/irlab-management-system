@@ -9,18 +9,17 @@ use App\Models\ProgramRegistration;
 use App\Models\Room;
 use App\Models\Semester;
 use App\Models\User;
-use Illuminate\Database\Seeder;
 
 /**
  * Program contoh: Workshop, Quick Tutor, Rekrutmen (aktif + arsip), Maintenance.
  * Aman dijalankan ulang: dilewati bila sudah ada program.
  */
-class ProgramSeeder extends Seeder
+class ProgramSeeder extends DemoSeeder
 {
     public function run(): void
     {
         if (Program::exists()) {
-            $this->command?->info('Program sudah ada — ProgramSeeder dilewati.');
+            $this->command->info('Program sudah ada — ProgramSeeder dilewati.');
 
             return;
         }
@@ -35,7 +34,7 @@ class ProgramSeeder extends Seeder
             'description' => 'Pelatihan intensif arsitektur **Retrieval-Augmented Generation** dengan LangChain dan vector database. Peserta membangun sistem QA dokumen ilmiah.',
             'speaker_name' => 'Dr. Ir. Hendra, M.Kom', 'speaker_affiliation' => 'Dosen Pembina & Tim Peneliti Rekayasa Data', 'mode' => 'offline', 'location' => 'Lab IR',
             'starts_at' => now()->addDays(12)->setTime(9, 0), 'ends_at' => now()->addDays(12)->setTime(15, 30), 'quota' => 40, 'fee_internal' => 35000, 'fee_external' => 50000,
-            'facilities' => ['E-Sertifikat Terverifikasi', 'Modul Repo & Starter Code'], 'status' => 'open', 'opens_at' => now()->subDays(3), 'closes_at' => now()->addDays(8)]);
+            'facilities' => ['E-Sertifikat Terverifikasi', 'Repo & Starter Code'], 'status' => 'open', 'opens_at' => now()->subDays(3), 'closes_at' => now()->addDays(8)]);
         $cv = Program::create([...$base, 'type' => ProgramType::Workshop, 'title' => 'Deep Learning for Computer Vision & Object Detection', 'category' => 'Computer Vision',
             'description' => 'Workshop YOLO dan transfer learning untuk deteksi objek.', 'speaker_name' => 'Dr. Efy Yosrita, S.Si., M.Kom', 'speaker_affiliation' => 'Kepala Laboratorium Information Retrieval',
             'mode' => 'online', 'location' => 'https://zoom.us/j/irlab', 'starts_at' => now()->subDays(5)->setTime(9, 0), 'ends_at' => now()->subDays(5)->setTime(15, 30), 'quota' => 20,

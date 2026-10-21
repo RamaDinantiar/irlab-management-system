@@ -99,8 +99,8 @@ class CourseProposalTest extends TestCase
             ->assertOk()
             ->assertInertia(fn (Assert $page) => $page
                 ->component('asisten/class/index')
-                ->has('courses', 1)
-                ->where('courses.0.id', $assigned->id)
+                ->has('options.courses', 1)
+                ->where('options.courses.0.id', $assigned->id)
                 ->has('proposals', 1)
             );
     }

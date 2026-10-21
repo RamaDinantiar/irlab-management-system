@@ -33,7 +33,7 @@ class TaskTargetController extends Controller
         $target->forceFill(['due_at' => $base->copy()->addMinutes($minutes), 'closed_at' => null])->save();
 
         AuditLog::record('task_target.extended', $target, ['due_at' => $before?->toIso8601String()], ['due_at' => $target->due_at->toIso8601String(), 'minutes' => $minutes]);
-        $this->notifyStudents($target, "Waktu ditambah {$minutes} menit: {$target->task->title}", 'Tenggat baru '.$target->due_at->locale('id')->translatedFormat('d M Y H:i').' WIB.');
+        $this->notifyStudents($target, "Waktu ditambah {$minutes} menit: {$target->task->title}", 'Tenggat baru '.$target->due_at->translatedFormat('d M Y H:i').' WIB.');
 
         Inertia::flash('toast', ['type' => 'success', 'message' => "Waktu {$target->labClass->name} ditambah {$minutes} menit."]);
 
@@ -66,7 +66,7 @@ class TaskTargetController extends Controller
         $target->forceFill(['open_at' => now(), 'due_at' => $due, 'closed_at' => null])->save();
 
         AuditLog::record('task_target.opened_manually', $target, null, ['due_at' => $due->toIso8601String()]);
-        $this->notifyStudents($target, "Tugas dibuka: {$target->task->title}", 'Tenggat '.$due->locale('id')->translatedFormat('d M Y H:i').' WIB.');
+        $this->notifyStudents($target, "Tugas dibuka: {$target->task->title}", 'Tenggat '.$due->translatedFormat('d M Y H:i').' WIB.');
 
         Inertia::flash('toast', ['type' => 'success', 'message' => "{$target->task->title} dibuka untuk {$target->labClass->name}."]);
 

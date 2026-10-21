@@ -2,8 +2,10 @@
 export type ClassRow = {
     id: number;
     semesterId: number;
-    course?: { id: number; code: string; name: string };
+    course?: { id: number; code: string; name: string; credits: number };
     name: string;
+    /** Dosen pengampu — kolom "Nama Dosen" di laporan kegiatan harian. */
+    lecturer: string | null;
     /** 1 = Senin … 7 = Minggu. */
     dayOfWeek: number;
     /** "HH:MM". */

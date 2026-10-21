@@ -1,6 +1,7 @@
-import { Link, router } from '@inertiajs/react';
+import { Link } from '@inertiajs/react';
 import { LogOut, Settings } from 'lucide-react';
 import AppLogo from '@/components/app-logo';
+import { confirmLogout } from '@/components/logout-confirm-dialog';
 import {
     NavMain,
     sidebarItemClass,
@@ -19,7 +20,7 @@ import { useCurrentUrl } from '@/hooks/use-current-url';
 import { useMobileNavigation } from '@/hooks/use-mobile-navigation';
 import { useNavigation } from '@/hooks/use-navigation';
 import { cn } from '@/lib/utils';
-import { dashboard, logout } from '@/routes';
+import { dashboard } from '@/routes';
 import { edit as editProfile } from '@/routes/profile';
 
 export function AppSidebar() {
@@ -73,12 +74,11 @@ export function AppSidebar() {
                             tooltip={{ children: 'Log out' }}
                             className={sidebarItemClass}
                         >
-                            <Link
-                                href={logout()}
-                                as="button"
+                            <button
+                                type="button"
                                 onClick={() => {
                                     cleanup();
-                                    router.flushAll();
+                                    confirmLogout();
                                 }}
                                 data-test="logout-button"
                             >
@@ -86,7 +86,7 @@ export function AppSidebar() {
                                 <span className={sidebarLabelClass}>
                                     Log out
                                 </span>
-                            </Link>
+                            </button>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
                 </SidebarMenu>

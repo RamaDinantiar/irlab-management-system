@@ -5,7 +5,7 @@ import { formatCountdown, formatTimeRange } from '@/lib/datetime';
 import type { PraktikanDashboard } from '@/types';
 
 /**
- * PRD FR-PD-2: kelas berikutnya — mata kuliah, modul, ruang, jam, asisten,
+ * PRD FR-PD-2: kelas berikutnya — mata kuliah, materi pertemuan, ruang, jam, asisten,
  * nomor kursi saya, hitung mundur. Gaya kartu gradient Figma.
  */
 export function NextClassCard({
@@ -42,11 +42,11 @@ export function NextClassCard({
                     ? 'Sedang berlangsung'
                     : `Mulai ${formatCountdown(nextClass.startsAt, now)} lagi`}
             </span>
-            <span className="pr-10 text-h3 font-bold">
+            <span className="pr-10 text-h3 font-bold text-balance">
                 {nextClass.course} · {nextClass.className}
             </span>
-            {nextClass.module && (
-                <span className="font-mono text-sm">{nextClass.module}</span>
+            {nextClass.topic && (
+                <span className="font-mono text-sm">{nextClass.topic}</span>
             )}
             <span className="font-mono text-sm">
                 {formatTimeRange(nextClass.startsAt, nextClass.endsAt)}

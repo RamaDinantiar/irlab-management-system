@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Enums\Role;
+use Carbon\CarbonImmutable;
 use Database\Factories\AnnouncementFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * Pengumuman global (Admin, target peran & masa tayang) atau per kelas
@@ -21,10 +21,10 @@ use Illuminate\Support\Carbon;
  * @property string $body
  * @property bool $pinned
  * @property list<string>|null $target_roles
- * @property Carbon $publish_at
- * @property Carbon|null $expire_at
+ * @property CarbonImmutable $publish_at
+ * @property CarbonImmutable|null $expire_at
  * @property int|null $created_by
- * @property Carbon|null $notified_at
+ * @property CarbonImmutable|null $notified_at
  * @property-read LabClass|null $labClass
  * @property-read User|null $author
  */
@@ -95,16 +95,16 @@ class Announcement extends Model
     /**
      * Penerima notifikasi.
      *
-     * @return list<int>
+     * @return array<int, int>
      */
     public function audienceIds(): array
     {
         if ($this->scope === 'class') {
-            return Enrollment::where('class_id', $this->class_id)->pluck('user_id')->all();
+            return Enrollment::where('class_id', $this->class_id)->pluck('user_id')->map(fn ($id) => (int) $id)->all();
         }
 
         return User::where('is_active', true)
             ->when($this->target_roles, fn ($q) => $q->whereIn('role', $this->target_roles))
-            ->pluck('id')->all();
+            ->pluck('id')->map(fn ($id) => (int) $id)->all();
     }
 }

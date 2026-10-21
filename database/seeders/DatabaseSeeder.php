@@ -17,17 +17,24 @@ class DatabaseSeeder extends Seeder
     use WithoutModelEvents;
 
     /**
-     * Akun demo per peran (persona PRD Bagian 2). Kata sandi semua: "password".
+     * Lokal: akun demo per peran (persona PRD Bagian 2), kata sandi semua "password".
+     * Di luar local/testing hanya Admin tetap (AdminSeeder) — tanpa data demo.
      */
     public function run(): void
     {
+        if (! app()->environment(['local', 'testing'])) {
+            $this->call(AdminSeeder::class);
+
+            return;
+        }
+
         $rina = User::factory()->create([
             'nim' => '202331001',
             'name' => 'Rina Praktikan',
             'email' => 'praktikan@irlab.test',
         ]);
 
-        $dimas = User::factory()->asisten(Position::Sekretaris)->create([
+        $dimas = User::factory()->asisten(Position::SekretarisBendahara)->create([
             'nim' => '202131002',
             'name' => 'Dimas Asisten',
             'email' => 'asisten@irlab.test',
@@ -40,7 +47,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $michael = User::factory()->asisten()->create(['nim' => '202131010', 'name' => 'Michael Christia', 'email' => 'michael@irlab.test', 'cohort_year' => 2021]);
-        $yozika = User::factory()->asisten(Position::Bendahara)->create(['nim' => '202131011', 'name' => 'Yozika Arvio', 'email' => 'yozika@irlab.test', 'cohort_year' => 2021]);
+        $yozika = User::factory()->asisten(Position::SekretarisBendahara)->create(['nim' => '202131011', 'name' => 'Yozika Arvio', 'email' => 'yozika@irlab.test', 'cohort_year' => 2021]);
 
         // Semester contoh: arsip lama (bisa dihapus permanen), arsip, aktif, draft.
         Semester::factory()->archived()->create(['name' => 'Ganjil 2022/2023', 'start_date' => '2022-08-22', 'end_date' => '2022-12-16']);
@@ -60,13 +67,15 @@ class DatabaseSeeder extends Seeder
         $byCode = [];
 
         foreach ([$previous, $active] as $semester) {
+            $byCode[$semester->id] = collect();
+
             foreach ($courses as [$code, $name, [$pre, $post, $report], $assistants]) {
                 $course = Course::factory()->for($semester)->create([
                     'code' => $code, 'name' => $name, 'credits' => 3,
                     'weight_pretest' => $pre, 'weight_posttest' => $post, 'weight_report' => $report,
                 ]);
                 $course->assistants()->attach(collect($assistants)->pluck('id'));
-                $byCode[$semester->id][$code] = $course;
+                $byCode[$semester->id]->put($code, $course);
             }
         }
 
@@ -85,16 +94,17 @@ class DatabaseSeeder extends Seeder
             ['IF-3205', 'Kelas A', 5, '10:10', '11:50', $lab, [$michael]],
         ];
 
-        $created = [];
+        $created = collect();
 
         foreach ($classes as [$code, $name, $day, $start, $end, $room, $assistants]) {
-            $created["{$code} {$name}"] = LabClass::factory()->create([
+            $class = LabClass::factory()->create([
                 'course_id' => $byCode[$active->id][$code]->id,
                 'semester_id' => $active->id,
                 'name' => $name, 'day_of_week' => $day, 'start_time' => $start, 'end_time' => $end,
                 'room_id' => $room->id, 'quota' => 30,
             ]);
-            $created["{$code} {$name}"]->assistants()->attach(collect($assistants)->pluck('id'));
+            $class->assistants()->attach(collect($assistants)->pluck('id'));
+            $created->put("{$code} {$name}", $class);
         }
 
         // Anggota kelas: Rina (4 kelas seperti contoh Figma) + 60 praktikan contoh.

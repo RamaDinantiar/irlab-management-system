@@ -3,6 +3,7 @@
 namespace App\Actions\Fortify;
 
 use App\Concerns\PasswordValidationRules;
+use App\Concerns\ProfileValidationRules;
 use App\Enums\Role;
 use App\Models\AuditLog;
 use App\Models\Setting;
@@ -23,7 +24,7 @@ use Laravel\Fortify\Contracts\CreatesNewUsers;
  */
 class CreateNewUser implements CreatesNewUsers
 {
-    use PasswordValidationRules;
+    use PasswordValidationRules, ProfileValidationRules;
 
     /** Maks. percobaan daftar per IP per jam. */
     private const MAX_ATTEMPTS = 10;
@@ -48,33 +49,29 @@ class CreateNewUser implements CreatesNewUsers
 
         $input['email'] = Str::lower(trim((string) ($input['email'] ?? '')));
         $input['nim'] = trim((string) ($input['nim'] ?? ''));
-        $domains = self::domains();
-
+        $input['phone'] = self::normalizePhone($input['phone'] ?? null);
         Validator::make($input, [
             'name' => ['required', 'string', 'max:255'],
             'nim' => ['required', 'regex:/^\d{5,20}$/', Rule::unique(User::class)],
             'major' => ['required', 'string', Rule::in(self::MAJORS)],
             'cohort_year' => ['nullable', 'integer', 'between:2000,2100'],
-            'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class), function (string $attribute, mixed $value, Closure $fail) use ($domains) {
-                // Cocokkan domain persis setelah "@" terakhir (sub-domain & domain tiruan ditolak).
-                $domain = Str::afterLast((string) $value, '@');
-                if (! in_array($domain, $domains, true)) {
-                    $fail('Gunakan email kampus (@'.implode(', @', $domains).').');
-                }
-            }],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique(User::class), self::campusEmailRule()],
+            'phone' => $this->phoneRules(),
             'password' => $this->passwordRules(),
             'terms' => ['accepted'],
         ], [
             'nim.regex' => 'NIM harus 5–20 digit angka.',
             'nim.unique' => 'NIM ini sudah terdaftar. Gunakan Lupa Password bila Anda pemiliknya.',
             'email.unique' => 'Email ini sudah terdaftar. Gunakan Lupa Password bila Anda pemiliknya.',
+            'phone.regex' => 'Nomor HP tidak valid. Contoh: 081234567890.',
             'terms.accepted' => 'Setujui Ketentuan Layanan Lab IR terlebih dahulu.',
-        ], ['name' => 'nama lengkap', 'nim' => 'NIM', 'major' => 'program studi', 'cohort_year' => 'angkatan', 'password' => 'kata sandi'])->validate();
+        ], ['name' => 'nama lengkap', 'nim' => 'NIM', 'major' => 'program studi', 'cohort_year' => 'angkatan', 'phone' => 'nomor HP', 'password' => 'kata sandi'])->validate();
 
         $user = new User([
             'name' => $input['name'],
             'nim' => $input['nim'],
             'email' => $input['email'],
+            'phone' => $input['phone'],
             'password' => $input['password'],
             'major' => $input['major'],
             'cohort_year' => $input['cohort_year'] ?: null,
@@ -84,6 +81,21 @@ class CreateNewUser implements CreatesNewUsers
         AuditLog::record('user.self_registered', $user, null, ['nim' => $user->nim, 'email' => $user->email]);
 
         return $user;
+    }
+
+    /**
+     * Email harus ber-domain kampus: cocokkan domain persis setelah "@" terakhir
+     * (sub-domain & domain tiruan ditolak).
+     */
+    public static function campusEmailRule(): Closure
+    {
+        $domains = self::domains();
+
+        return function (string $attribute, mixed $value, Closure $fail) use ($domains) {
+            if (! in_array(Str::afterLast((string) $value, '@'), $domains, true)) {
+                $fail('Gunakan email kampus (@'.implode(', @', $domains).').');
+            }
+        };
     }
 
     /**

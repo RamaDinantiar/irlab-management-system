@@ -32,7 +32,7 @@ class ShiftSwapController extends Controller
             'reason' => ['required', 'string', 'min:5', 'max:500'],
         ], [], ['to_user_id' => 'asisten tujuan', 'reason' => 'alasan']);
 
-        $created = $swap->request($request->user(), Shift::findOrFail($validated['shift_id']), (int) $validated['to_user_id'], $validated['reason']);
+        $created = $swap->request($request->user(), Shift::whereKey($validated['shift_id'])->firstOrFail(), (int) $validated['to_user_id'], $validated['reason']);
         Inertia::flash('toast', ['type' => 'success', 'message' => "Pengajuan tukar shift dikirim ke {$created->toUser->name}."]);
 
         return back();

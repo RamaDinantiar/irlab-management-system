@@ -45,6 +45,7 @@ class ClassTest extends TestCase
             'semester_id' => $this->semester->id,
             'course_id' => $this->course->id,
             'name' => 'Kelas A',
+            'lecturer' => 'Dine Tiara Kusuma, ST., M.Kom',
             'day_of_week' => 1,
             'start_time' => '07:20',
             'end_time' => '09:50',
@@ -76,6 +77,16 @@ class ClassTest extends TestCase
         $this->assertSame(ApprovalStatus::Approved, $class->approval_status);
         $this->assertMatchesRegularExpression('/^['.JoinToken::ALPHABET.']{6}$/', $class->join_token);
         $this->assertDoesNotMatchRegularExpression('/[O0I1]/', $class->join_token);
+    }
+
+    public function test_the_lecturer_name_is_required()
+    {
+        foreach (['', '   '] as $lecturer) {
+            $this->post(route('admin.classes.store'), $this->payload(['lecturer' => $lecturer]))
+                ->assertSessionHasErrors('lecturer');
+        }
+
+        $this->assertSame(0, LabClass::count());
     }
 
     public function test_room_clashes_are_rejected()

@@ -44,6 +44,9 @@ class ClassRequest extends FormRequest
         ];
     }
 
+    /**
+     * @return array<int, callable>
+     */
     public function after(): array
     {
         $class = $this->route('class');

@@ -50,11 +50,14 @@ class ClassProposalRequest extends FormRequest
         return $rules;
     }
 
+    /**
+     * @return array<int, callable>
+     */
     public function after(): array
     {
         $class = $this->route('class');
         $assistantIds = $class instanceof LabClass && $class->approval_status === ApprovalStatus::Approved
-            ? $class->assistants()->pluck('users.id')->all()
+            ? $class->assistants()->pluck('users.id')->map(fn ($id) => (int) $id)->all()
             : [$this->user()->id];
 
         return [$this->scheduleConflicts($this->semesterId(), $assistantIds, $class instanceof LabClass ? $class->id : null)];

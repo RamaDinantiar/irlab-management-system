@@ -30,7 +30,7 @@ class PublishGrades
 
             if ($grades->isNotEmpty()) {
                 AuditLog::record('grade.published', $target->task, null, ['class_id' => $target->class_id, 'count' => $grades->count()]);
-                GradesPublished::dispatch($target, $grades->pluck('submission.user_id')->all());
+                GradesPublished::dispatch($target, $grades->pluck('submission.user_id')->map(fn ($id) => (int) $id)->all());
             }
 
             return $grades->count();

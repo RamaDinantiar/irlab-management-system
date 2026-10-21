@@ -6,11 +6,13 @@ import AuditLogController from '@/actions/App/Http/Controllers/Admin/AuditLogCon
 import { EmptyState } from '@/components/empty-state';
 import { PageHeader } from '@/components/page-header';
 import { Pagination } from '@/components/pagination';
+import { SelectField } from '@/components/select-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
 import type { Paginated } from '@/types';
+import { DateField } from '@/components/pickers/date-field';
 
 type Log = {
     id: number;
@@ -44,9 +46,9 @@ const fmt = (iso: string) =>
 const show = (v: unknown) =>
     v === null || v === undefined
         ? '—'
-        : typeof v === 'object'
-          ? JSON.stringify(v)
-          : String(v);
+        : typeof v === 'string'
+          ? v
+          : JSON.stringify(v);
 
 /** Perbedaan sebelum → sesudah per kunci. */
 function Diff({
@@ -143,59 +145,46 @@ export default function AuditLogs({
 
                 <div className="flex flex-wrap items-end gap-3 border bg-card p-4">
                     <label className="grid gap-1 text-xs font-medium">
-                        Modul
-                        <select
+                        Fitur
+                        <SelectField
                             value={filters.module}
-                            onChange={(e) => go({ module: e.target.value })}
-                            className="h-9 border border-input bg-white px-2 text-sm font-normal"
-                        >
-                            <option value="">Semua</option>
-                            {modules.map((m) => (
-                                <option key={m} value={m}>
-                                    {m}
-                                </option>
-                            ))}
-                        </select>
+                            onValueChange={(v) => go({ module: v })}
+                            options={[
+                                { value: '', label: 'Semua' },
+                                ...modules.map((m) => ({ value: m, label: m })),
+                            ]}
+                            className="min-w-40 data-[size=default]:h-9"
+                        />
                     </label>
                     <label className="grid gap-1 text-xs font-medium">
                         Pelaku
-                        <select
-                            value={filters.user ?? ''}
-                            onChange={(e) =>
-                                go({
-                                    user: e.target.value
-                                        ? Number(e.target.value)
-                                        : null,
-                                })
+                        <SelectField
+                            value={filters.user}
+                            onValueChange={(v) =>
+                                go({ user: v ? Number(v) : null })
                             }
-                            className="h-9 border border-input bg-white px-2 text-sm font-normal"
-                        >
-                            <option value="">Semua</option>
-                            {actors.map((a) => (
-                                <option key={a.id} value={a.id}>
-                                    {a.name}
-                                </option>
-                            ))}
-                        </select>
+                            options={[
+                                { value: '', label: 'Semua' },
+                                ...actors.map((a) => ({
+                                    value: a.id,
+                                    label: a.name,
+                                })),
+                            ]}
+                            className="min-w-40 data-[size=default]:h-9"
+                        />
                     </label>
                     <label className="grid gap-1 text-xs font-medium">
                         Dari
-                        <Input
-                            type="date"
+                        <DateField
                             value={filters.from ?? ''}
-                            onChange={(e) =>
-                                go({ from: e.target.value || null })
-                            }
-                            className="h-9"
+                            onChange={(value) => go({ from: value || null })}
                         />
                     </label>
                     <label className="grid gap-1 text-xs font-medium">
                         Sampai
-                        <Input
-                            type="date"
+                        <DateField
                             value={filters.to ?? ''}
-                            onChange={(e) => go({ to: e.target.value || null })}
-                            className="h-9"
+                            onChange={(value) => go({ to: value || null })}
                         />
                     </label>
                     <form

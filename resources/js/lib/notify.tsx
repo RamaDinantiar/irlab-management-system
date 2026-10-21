@@ -104,7 +104,7 @@ function show(type: ToastType, message: string, title?: string) {
 
 /**
  * Toast bergaya Figma. Contoh:
- *   notify.success('Berhasil menyimpan 5 nilai praktikan untuk Modul 04.');
+ *   notify.success('Berhasil menyimpan 5 nilai praktikan untuk Pertemuan 04.');
  *   notify.error('Kursi baru saja diambil', 'Kontrak gagal');
  */
 export const notify = {

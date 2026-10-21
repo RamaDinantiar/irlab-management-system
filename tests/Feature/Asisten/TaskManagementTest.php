@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Asisten;
 
+use App\Actions\Meeting\SyncMeetingSessions;
 use App\Enums\TaskType;
 use App\Models\Course;
 use App\Models\LabClass;
@@ -57,7 +58,7 @@ class TaskManagementTest extends TestCase
             'intent' => 'publish',
             'course_id' => $this->course->id,
             'type' => 'posttest',
-            'title' => 'Post-Test Modul 04',
+            'title' => 'Post-Test Pertemuan 04',
             'body' => json_encode(['type' => 'doc', 'content' => [['type' => 'codeBlock', 'attrs' => ['language' => 'python'], 'content' => [['type' => 'text', 'text' => 'print(1)']]]]]),
             'max_score' => 100,
             'allowed_formats' => ['pdf'],
@@ -123,7 +124,9 @@ class TaskManagementTest extends TestCase
 
     public function test_a_pretest_opens_when_the_session_starts()
     {
-        $meeting = Meeting::factory()->for($this->classA, 'labClass')->create(['number' => 3]);
+        // Kelas 07.20–09.50; sesi mulai otomatis pada jam mulai.
+        $this->travelTo(today()->setTime(7, 0));
+        $meeting = Meeting::factory()->for($this->classA, 'labClass')->create(['number' => 3, 'date' => today()]);
 
         $this->post(route('asisten.tasks.store'), $this->payload([
             'type' => 'pretest',
@@ -135,8 +138,10 @@ class TaskManagementTest extends TestCase
         $this->assertSame($meeting->id, $target->meeting_id);
         $this->assertSame('scheduled', $target->state());
 
-        $this->post(route('asisten.sessions.start', $meeting));
+        $this->travelTo(today()->setTime(7, 20));
+        app(SyncMeetingSessions::class)();
 
+        $this->assertNotNull($meeting->fresh()->started_at);
         $target->refresh();
         $this->assertSame('open', $target->state());
         $this->assertEqualsWithDelta(15, $target->open_at->diffInMinutes($target->due_at), 0.1);
@@ -249,9 +254,10 @@ class TaskManagementTest extends TestCase
 
     public function test_the_form_knows_which_class_sessions_are_running_today()
     {
-        // Sesi kemarin yang baru dimulai hari ini tetap dihitung berjalan; sesi yang diakhiri tidak.
-        $running = Meeting::factory()->create(['class_id' => $this->classA->id, 'number' => 3, 'date' => today()->subDay(), 'started_at' => now()->subMinutes(10)]);
-        Meeting::factory()->create(['class_id' => $this->classB->id, 'number' => 3, 'date' => today(), 'started_at' => now()->subHour(), 'ended_at' => now()->subMinutes(5)]);
+        // Dalam jam kelas (07.20–09.50) sesi otomatis berjalan; yang diakhiri lebih awal tidak.
+        $this->travelTo(today()->setTime(8, 0));
+        $running = Meeting::factory()->create(['class_id' => $this->classA->id, 'number' => 3, 'date' => today()]);
+        Meeting::factory()->create(['class_id' => $this->classB->id, 'number' => 3, 'date' => today(), 'ended_at' => now()->subMinutes(5)]);
 
         $this->get(route('asisten.tasks.index', ['type' => 'post-test']))
             ->assertInertia(fn (Assert $page) => $page
@@ -259,7 +265,7 @@ class TaskManagementTest extends TestCase
                 ->where('courses.0.classes.1.session', null)
             );
 
-        // Akhiri Sesi → mode Sesi Berjalan tidak tersedia lagi.
+        // Akhiri Lebih Awal → mode Sesi Berjalan tidak tersedia lagi.
         $this->post(route('asisten.sessions.end', $running))->assertSessionHasNoErrors();
         $this->assertNotNull($running->fresh()->ended_at);
         $this->post(route('asisten.sessions.end', $running))->assertStatus(422);

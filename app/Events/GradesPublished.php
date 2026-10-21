@@ -13,7 +13,7 @@ class GradesPublished
     use Dispatchable;
 
     /**
-     * @param  list<int>  $userIds
+     * @param  array<int, int>  $userIds
      */
     public function __construct(public readonly TaskTarget $target, public readonly array $userIds) {}
 }

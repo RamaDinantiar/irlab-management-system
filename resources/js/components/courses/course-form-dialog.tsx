@@ -17,6 +17,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
+import { courseColorOptions, scheduleColors } from '@/lib/schedule-colors';
 import { cn } from '@/lib/utils';
 import type { AssistantOption, CourseRow } from '@/types';
 import type { RouteFormDefinition } from '@/wayfinder';
@@ -31,7 +32,7 @@ const WEIGHT_FIELDS: { key: keyof Weights; name: string; label: string }[] = [
 
 /**
  * Form Mata Kuliah (US-D02-1): kode, nama, SKS, bobot (total wajib 100%).
- * Admin juga memilih asisten pengampu; Asisten memakai form yang sama untuk
+ * Admin juga memilih warna jadwal & asisten pengampu; Asisten memakai form yang sama untuk
  * mengajukan / merevisi pengajuan (FR-AS-02).
  */
 export function CourseFormDialog({
@@ -43,6 +44,7 @@ export function CourseFormDialog({
     course,
     semesterId,
     assistants,
+    defaultColor,
 }: {
     /** Hasil `Controller.action.form(...)` dari Wayfinder. */
     action: RouteFormDefinition<'post'>;
@@ -53,8 +55,10 @@ export function CourseFormDialog({
     course?: CourseRow;
     /** Admin, mata kuliah baru: semester tujuan. */
     semesterId?: number;
-    /** Admin saja: pilihan asisten pengampu. */
+    /** Admin saja: pilihan asisten pengampu (juga menampilkan pilihan warna). */
     assistants?: AssistantOption[];
+    /** Admin, mata kuliah baru: warna awal yang belum dipakai. */
+    defaultColor?: CourseRow['color'];
 }) {
     const [open, setOpen] = useState(false);
     const [weights, setWeights] = useState<Weights>(
@@ -199,6 +203,50 @@ export function CourseFormDialog({
                                     }
                                 />
                             </fieldset>
+
+                            {assistants && (
+                                <fieldset className="grid gap-2">
+                                    <legend className="mb-2 text-sm font-medium">
+                                        Warna di jadwal
+                                    </legend>
+                                    <div className="flex flex-wrap gap-2">
+                                        {courseColorOptions.map((option) => (
+                                            <label
+                                                key={option.value}
+                                                className="flex cursor-pointer items-center gap-2 border bg-white px-3 py-1.5 text-sm has-checked:border-primary-700 has-checked:bg-primary-50 has-checked:font-medium has-focus-visible:ring-2 has-focus-visible:ring-ring"
+                                            >
+                                                <input
+                                                    type="radio"
+                                                    name="color"
+                                                    value={option.value}
+                                                    defaultChecked={
+                                                        (course?.color ??
+                                                            defaultColor) ===
+                                                        option.value
+                                                    }
+                                                    className="sr-only"
+                                                />
+                                                <span
+                                                    aria-hidden
+                                                    className={cn(
+                                                        'size-3 rounded-full',
+                                                        scheduleColors[
+                                                            option.value
+                                                        ].dot,
+                                                    )}
+                                                />
+                                                {option.label}
+                                            </label>
+                                        ))}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">
+                                        Tanda warna mata kuliah di jadwal
+                                        Asisten &amp; Praktikan. Pilih warna
+                                        yang berbeda tiap mata kuliah.
+                                    </p>
+                                    <InputError message={errors.color} />
+                                </fieldset>
+                            )}
 
                             {assistants && (
                                 <fieldset className="grid gap-2">

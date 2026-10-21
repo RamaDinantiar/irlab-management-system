@@ -159,9 +159,10 @@ export default function PraktikanGrades({
                         Penilaian (Grade)
                     </h1>
                     <p className="max-w-2xl text-sm text-muted-foreground">
-                        Rekapitulasi capaian nilai modul, pre-test, post-test,
-                        laporan, dan umpan balik asisten laboratorium. Nilai
-                        muncul setelah dipublikasikan asisten.
+                        Rekapitulasi capaian nilai per pertemuan: pre-test,
+                        post-test, laporan, dan umpan balik asisten
+                        laboratorium. Nilai muncul setelah dipublikasikan
+                        asisten.
                     </p>
                 </div>
 

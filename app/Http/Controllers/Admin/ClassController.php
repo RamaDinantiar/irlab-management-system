@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Actions\LabClass\ManageClassAccess;
 use App\Actions\LabClass\ReviewClass;
+use App\Actions\Schedule\NotifyScheduleChange;
 use App\Enums\ApprovalStatus;
 use App\Enums\Role;
 use App\Http\Controllers\Controller;
@@ -81,11 +82,12 @@ class ClassController extends Controller
         return to_route('admin.classes.index', ['semester' => $semester->id]);
     }
 
-    public function update(ClassRequest $request, LabClass $class): RedirectResponse
+    public function update(ClassRequest $request, LabClass $class, NotifyScheduleChange $notify): RedirectResponse
     {
         $before = [...$class->only(['course_id', 'name', 'day_of_week', 'start_time', 'end_time', 'room_id', 'quota']), 'assistant_ids' => $class->assistants()->pluck('users.id')->all()];
 
         $class->update($request->safe()->except(['assistant_ids', 'confirm_conflicts']));
+        $notify->forClass($class);
         $class->assistants()->sync($request->validated('assistant_ids', []));
 
         AuditLog::record('class.updated', $class, $before, $request->validated());

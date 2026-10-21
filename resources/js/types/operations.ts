@@ -70,8 +70,6 @@ export type ReportRow = {
     activity: string;
     material: string | null;
     notes: string;
-    presentCount: number;
-    labCondition: 'baik' | 'kendala_ringan' | 'kendala_berat';
     assistants: { id: number; name: string; lead: boolean }[];
     author: string;
     status: ReportStatus;
@@ -99,8 +97,11 @@ export type PendingShift = {
 
 export type ExportRow = {
     id: number;
-    type: 'zip' | 'pdf' | 'excel';
+    /** 'pdf' hanya untuk riwayat ekspor lama (sebelum rekap berformat Word). */
+    type: 'zip' | 'docx' | 'excel' | 'pdf';
     month: string;
+    /** Tanggal laporan untuk Single DOC (YYYY-MM-DD). */
+    date: string | null;
     scope: 'mine' | 'all';
     status: 'queued' | 'processing' | 'done' | 'empty' | 'failed';
     progress: number;

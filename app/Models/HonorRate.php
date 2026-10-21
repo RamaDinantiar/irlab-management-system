@@ -2,16 +2,16 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * Tarif honor asisten per jam beserta riwayatnya (FR-ADM-10).
  *
  * @property int $id
  * @property int $rate_per_hour
- * @property Carbon $effective_from
+ * @property CarbonImmutable $effective_from
  * @property int|null $set_by
  */
 class HonorRate extends Model

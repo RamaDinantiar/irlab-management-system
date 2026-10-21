@@ -20,6 +20,8 @@ import {
 } from '@/components/ui/table';
 import { useNow } from '@/hooks/use-now';
 import { formatRelative } from '@/lib/datetime';
+import { courseColorOptions, scheduleColors } from '@/lib/schedule-colors';
+import { cn } from '@/lib/utils';
 import type { AssistantOption, CourseRow, SemesterOption } from '@/types';
 
 type Props = {
@@ -46,6 +48,24 @@ function AssistantNames({ course }: { course: CourseRow }) {
     );
 }
 
+function ColorDot({ course }: { course: CourseRow }) {
+    const label = courseColorOptions.find(
+        (o) => o.value === course.color,
+    )?.label;
+
+    return (
+        <span
+            role="img"
+            aria-label={`Warna jadwal: ${label ?? course.color}`}
+            title={label}
+            className={cn(
+                'size-2.5 shrink-0 rounded-full',
+                scheduleColors[course.color].dot,
+            )}
+        />
+    );
+}
+
 /** Admin › Mata Kuliah (US-D02, FR-ADM-03). */
 export default function CoursesIndex({
     semesters,
@@ -56,6 +76,11 @@ export default function CoursesIndex({
 }: Props) {
     const now = useNow();
     const editable = semester?.editable ?? false;
+    const usedColors = new Set(courses.map((c) => c.color));
+    const nextColor = (
+        courseColorOptions.find((o) => !usedColors.has(o.value)) ??
+        courseColorOptions[0]
+    ).value;
 
     const actions = (course: CourseRow) =>
         course.canEdit && (
@@ -98,6 +123,7 @@ export default function CoursesIndex({
                                 submitLabel="Tambah"
                                 semesterId={semester.id}
                                 assistants={assistants}
+                                defaultColor={nextColor}
                                 trigger={
                                     <Button>
                                         <Plus /> Tambah Mata Kuliah
@@ -227,7 +253,10 @@ export default function CoursesIndex({
                                                         {course.code}
                                                     </TableCell>
                                                     <TableCell>
-                                                        <span className="font-bold">
+                                                        <span className="flex items-center gap-2 font-bold">
+                                                            <ColorDot
+                                                                course={course}
+                                                            />
                                                             {course.name}
                                                         </span>
                                                         {course.approvalStatus ===
@@ -271,7 +300,8 @@ export default function CoursesIndex({
                                                 {course.code} · {course.credits}{' '}
                                                 SKS
                                             </p>
-                                            <p className="font-bold">
+                                            <p className="flex items-center gap-2 font-bold">
+                                                <ColorDot course={course} />
                                                 {course.name}
                                             </p>
                                             <p className="text-sm">

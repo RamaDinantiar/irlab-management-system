@@ -38,7 +38,7 @@ return new class extends Migration
         Schema::create('exports', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
-            $table->string('type', 20); // zip | pdf | excel
+            $table->string('type', 20); // zip | docx | excel (pdf = ekspor lama)
             $table->json('params_json');
             $table->string('status', 20)->default('queued'); // queued | processing | done | empty | failed
             $table->unsignedSmallInteger('progress')->default(0);

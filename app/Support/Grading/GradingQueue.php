@@ -17,7 +17,7 @@ use App\Models\User;
 class GradingQueue
 {
     /**
-     * @return list<array{id: string, course: string, className: string, task: string, type: string, graded: int, submitted: int, href: string}>
+     * @return array<int, array{id: string, course: string, className: string, task: string, type: string, graded: int, submitted: int, href: string}>
      */
     public static function for(User $user, int $limit = 5): array
     {

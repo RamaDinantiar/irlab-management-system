@@ -30,7 +30,7 @@ class CourseFactory extends Factory
     {
         return $this->state(fn () => [
             'approval_status' => ApprovalStatus::Pending,
-            'proposed_by' => $proposer?->id ?? User::factory()->asisten(),
+            'proposed_by' => $proposer->id ?? User::factory()->asisten(),
         ]);
     }
 }

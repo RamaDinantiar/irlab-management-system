@@ -26,7 +26,7 @@ class RemindDeadlines
                     ->pluck('user_id')->all();
 
                 Notify::send($pending, 'deadline', "Tenggat besok: {$target->task->title}",
-                    "{$target->labClass->course->name} · {$target->labClass->name} — tenggat ".$target->due_at->locale('id')->translatedFormat('l, d M Y H:i').' WIB.',
+                    "{$target->labClass->course->name} · {$target->labClass->name} — tenggat ".$target->due_at->translatedFormat('l, d M Y H:i').' WIB.',
                     '/praktikan/tasks/'.$target->id, mail: true);
 
                 $target->forceFill(['reminded_at' => now()])->save();

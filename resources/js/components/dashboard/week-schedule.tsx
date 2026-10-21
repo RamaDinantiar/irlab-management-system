@@ -79,10 +79,13 @@ export function WeekSchedule({
     weekStart,
     today,
     events,
+    title = 'Jadwal Minggu Ini',
 }: {
     weekStart: string;
     today: number;
     events: ScheduleEvent[];
+    /** Judul kartu, mis. "Jadwal Minggu Depan" saat menavigasi minggu. */
+    title?: string;
 }) {
     const slots = [...new Set(events.map((event) => event.start))].sort();
     const at = (day: number, slot: string) =>
@@ -98,7 +101,7 @@ export function WeekSchedule({
                     id="week-schedule-title"
                     className="text-h2 font-bold text-primary-900"
                 >
-                    Jadwal Minggu Ini
+                    {title}
                 </h2>
                 <p className="font-mono text-sm text-muted-foreground">
                     {formatWeekRange(weekStart)}
@@ -111,7 +114,7 @@ export function WeekSchedule({
                         className="size-8 text-primary-200"
                         aria-hidden
                     />
-                    Tidak ada sesi kelas atau shift minggu ini.
+                    Tidak ada sesi kelas atau shift pada minggu ini.
                 </div>
             ) : (
                 <>

@@ -2,6 +2,7 @@
 
 namespace App\Notifications;
 
+use App\Models\User;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
@@ -33,12 +34,12 @@ class LabNotification extends Notification
     /**
      * @return array<string, mixed>
      */
-    public function toArray(object $notifiable): array
+    public function toArray(User $notifiable): array
     {
         return ['kind' => $this->kind, 'title' => $this->title, 'body' => $this->body, 'url' => $this->url];
     }
 
-    public function toMail(object $notifiable): MailMessage
+    public function toMail(User $notifiable): MailMessage
     {
         $message = (new MailMessage)->subject($this->title)->greeting("Halo, {$notifiable->name}")->line($this->body);
 

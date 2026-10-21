@@ -25,7 +25,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @property bool $allow_late
  * @property string|null $late_penalty
  * @property string|null $late_penalty_unit
- * @property list<string> $allowed_formats
+ * @property list<'pdf'|'zip'|'image'> $allowed_formats
  * @property string $text_answer
  * @property string $status
  * @property int|null $meeting_number

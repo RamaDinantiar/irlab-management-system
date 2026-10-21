@@ -12,18 +12,11 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import GradeController from '@/actions/App/Http/Controllers/Asisten/GradeController';
 import { EmptyState } from '@/components/empty-state';
 import InputError from '@/components/input-error';
+import { LabeledSelect } from '@/components/labeled-select';
 import { StatusBadge } from '@/components/status-badge';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
 import {
     Table,
@@ -64,6 +57,8 @@ export type GradeTarget = {
     id: number;
     classId: number;
     className: string;
+    course: string;
+    meetingNumber: number | null;
     title: string;
     type: TaskType;
     maxScore: number;
@@ -98,11 +93,16 @@ export default function GradesIndex({
     rows,
 }: {
     type: TaskType | null;
-    classes: SelectOption[];
+    classes: (SelectOption & {
+        name: string;
+        courseId: number;
+        course: string;
+    })[];
     targets: {
         id: number;
         label: string;
         type: TaskType;
+        meetingNumber: number | null;
         submitted: number;
         graded: number;
     }[];
@@ -276,6 +276,25 @@ export default function GradesIndex({
         }
     };
 
+    // Kartu pilihan: Mata Kuliah → Kelas → Pertemuan.
+    const courses = useMemo(
+        () =>
+            [...new Map(classes.map((c) => [c.courseId, c.course]))].map(
+                ([id, label]) => ({ value: id, label }),
+            ),
+        [classes],
+    );
+    const selectedCourseId = classes.find(
+        (c) => c.id === selected.classId,
+    )?.courseId;
+    const meetings = useMemo(
+        () =>
+            [...targets].sort(
+                (a, b) => (a.meetingNumber ?? 99) - (b.meetingNumber ?? 99),
+            ),
+        [targets],
+    );
+
     const percent =
         target && target.submitted > 0
             ? Math.round((target.graded / target.submitted) * 1000) / 10
@@ -335,83 +354,63 @@ export default function GradesIndex({
                     />
                 ) : (
                     <>
-                        <div className="grid gap-3 md:grid-cols-2">
-                            <div className="grid gap-1.5 border bg-card px-3 py-2">
-                                <Label
-                                    htmlFor="grade-class"
-                                    className="text-xs font-normal"
-                                >
-                                    Pilih Kelas
-                                </Label>
-                                <Select
-                                    value={
-                                        selected.classId
-                                            ? String(selected.classId)
-                                            : undefined
-                                    }
-                                    onValueChange={(v) =>
-                                        navigate({ class: Number(v) })
-                                    }
-                                >
-                                    <SelectTrigger
-                                        id="grade-class"
-                                        className="h-8 border-0 px-0 font-bold"
-                                    >
-                                        <SelectValue />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {classes.map((option) => (
-                                            <SelectItem
-                                                key={option.id}
-                                                value={String(option.id)}
-                                            >
-                                                {option.label}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-                            <div className="grid gap-1.5 border bg-card px-3 py-2">
-                                <Label
-                                    htmlFor="grade-task"
-                                    className="text-xs font-normal"
-                                >
-                                    Pilih Tugas
-                                </Label>
-                                <Select
-                                    value={
-                                        selected.targetId
-                                            ? String(selected.targetId)
-                                            : undefined
-                                    }
-                                    onValueChange={(v) =>
-                                        navigate({
-                                            class:
-                                                selected.classId ?? undefined,
-                                            target: Number(v),
-                                        })
-                                    }
-                                    disabled={targets.length === 0}
-                                >
-                                    <SelectTrigger
-                                        id="grade-task"
-                                        className="h-8 border-0 px-0 font-bold"
-                                    >
-                                        <SelectValue placeholder="Belum ada tugas terbit" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        {targets.map((option) => (
-                                            <SelectItem
-                                                key={option.id}
-                                                value={String(option.id)}
-                                            >
-                                                {option.label} · {option.graded}
-                                                /{option.submitted}
-                                            </SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
+                        <div className="grid gap-3 md:grid-cols-3">
+                            <LabeledSelect
+                                id="grade-course"
+                                label="Pilih Mata Kuliah"
+                                value={selectedCourseId}
+                                onValueChange={(v) =>
+                                    navigate({
+                                        class: classes.find(
+                                            (c) => c.courseId === Number(v),
+                                        )?.id,
+                                    })
+                                }
+                                options={courses}
+                            />
+                            <LabeledSelect
+                                id="grade-class"
+                                label="Pilih Kelas"
+                                value={selected.classId}
+                                onValueChange={(v) =>
+                                    navigate({ class: Number(v) })
+                                }
+                                options={classes
+                                    .filter(
+                                        (c) => c.courseId === selectedCourseId,
+                                    )
+                                    .map((option) => ({
+                                        value: option.id,
+                                        label: option.name,
+                                    }))}
+                            />
+                            <LabeledSelect
+                                id="grade-task"
+                                label="Pilih Pertemuan"
+                                value={selected.targetId}
+                                onValueChange={(v) =>
+                                    navigate({
+                                        class: selected.classId ?? undefined,
+                                        target: Number(v),
+                                    })
+                                }
+                                placeholder="Belum ada tugas terbit"
+                                disabled={targets.length === 0}
+                                options={meetings.map((option) => ({
+                                    value: option.id,
+                                    label: [
+                                        option.meetingNumber
+                                            ? `Pertemuan ${option.meetingNumber}`
+                                            : null,
+                                        type
+                                            ? null
+                                            : TASK_TYPE_LABEL[option.type],
+                                        option.label,
+                                    ]
+                                        .filter(Boolean)
+                                        .join(' · '),
+                                }))}
+                            />
                         </div>
 
                         {target && (

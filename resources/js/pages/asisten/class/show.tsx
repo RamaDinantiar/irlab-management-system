@@ -123,7 +123,7 @@ function RemoveMemberDialog({
 }
 
 /**
- * Asisten › detail kelas › Anggota (FR-AC-03): NIM, nama, jurusan, kursi,
+ * Asisten › detail kelas › Mahasiswa (FR-AC-03): NIM, nama, jurusan, kursi,
  * rata-rata nilai; keluarkan, ekspor Excel, import praktikan.
  */
 export default function AsistenClassShow({
@@ -134,7 +134,7 @@ export default function AsistenClassShow({
     members: Member[];
 }) {
     return (
-        <ClassDetailLayout klass={klass} title="Anggota">
+        <ClassDetailLayout klass={klass} title="Mahasiswa">
             <div className="flex flex-wrap items-center justify-between gap-2">
                 <p className="text-sm text-muted-foreground">
                     {members.length} praktikan ·{' '}
@@ -176,7 +176,7 @@ export default function AsistenClassShow({
             {members.length === 0 ? (
                 <EmptyState
                     icon={Users}
-                    title="Belum ada anggota"
+                    title="Belum ada mahasiswa"
                     description={
                         klass.joinToken
                             ? `Bagikan kode ${klass.joinToken} ke praktikan agar mereka dapat bergabung.`

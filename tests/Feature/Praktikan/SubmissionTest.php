@@ -76,6 +76,19 @@ class SubmissionTest extends TestCase
             );
     }
 
+    public function test_the_detail_shows_the_class_schedule_and_assistants()
+    {
+        $class = $this->target->labClass;
+        $class->assistants()->attach(User::factory()->asisten()->create(['name' => 'Rama Dinantiar']));
+
+        $this->get(route('praktikan.tasks.show', $this->target))
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('task.assistants', ['Rama Dinantiar'])
+                ->where('task.schedule.dayOfWeek', $class->day_of_week)
+                ->where('task.schedule.startTime', $class->startClock())
+            );
+    }
+
     public function test_only_the_allowed_formats_are_accepted()
     {
         $this->submit(['file' => Pdf::zip(['main.py' => 'x'])])->assertSessionHasErrors('file');

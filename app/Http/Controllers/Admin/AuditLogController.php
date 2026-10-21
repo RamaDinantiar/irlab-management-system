@@ -39,7 +39,7 @@ class AuditLogController extends Controller
             ->through(fn (AuditLog $log) => [
                 'id' => $log->id,
                 'action' => $log->action,
-                'actor' => $log->user?->name ?? 'Sistem',
+                'actor' => $log->user->name ?? 'Sistem',
                 'actorRole' => $log->user?->role->value,
                 'target' => $log->auditable_type ? Str::headline(class_basename($log->auditable_type)).' #'.$log->auditable_id : null,
                 'before' => $log->before_json,

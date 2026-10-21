@@ -75,109 +75,123 @@ export function SeatMap({
             : segments.map((_, i) => `Blok ${i + 1}`);
 
     return (
-        <div className="overflow-x-auto">
-            {/* Lebar minimum tetap (bukan max-content) agar nama panjang membungkus; layar sempit → geser horizontal. */}
+        <div className="grid gap-4">
+            {/* Papan tulis di luar area geser agar selalu terlihat utuh di layar sempit. */}
             <div
                 className={cn(
-                    'grid gap-4',
-                    compact ? 'w-max min-w-full' : 'min-w-[44rem]',
+                    'grid justify-items-center gap-1 bg-primary-50 px-4 py-3 text-center',
+                    compact && 'py-2',
                 )}
             >
+                <span
+                    aria-hidden
+                    className="h-2 w-1/2 min-w-40 bg-primary-200"
+                />
+                <span className="text-sm font-bold text-primary-800">
+                    Papan Tulis
+                </span>
+                <span className="text-[11px] text-primary-700">
+                    Depan Ruang Laboratorium (Front)
+                </span>
+            </div>
+            {!compact && (
+                <p className="text-xs text-muted-foreground md:hidden">
+                    Geser denah ke samping untuk melihat semua kursi.
+                </p>
+            )}
+            <div className="overflow-x-auto">
+                {/* Lebar minimum tetap (bukan max-content) agar nama panjang membungkus; layar sempit → geser horizontal. */}
                 <div
                     className={cn(
-                        'grid justify-items-center gap-1 bg-primary-50 px-4 py-3 text-center',
-                        compact && 'py-2',
+                        'grid gap-4',
+                        compact ? 'w-max min-w-full' : 'min-w-[44rem]',
                     )}
                 >
-                    <span
-                        aria-hidden
-                        className="h-2 w-1/2 min-w-40 bg-primary-200"
-                    />
-                    <span className="text-sm font-bold text-primary-800">
-                        Papan Tulis
-                    </span>
-                    <span className="text-[11px] text-primary-700">
-                        Depan Ruang Laboratorium (Front)
-                    </span>
-                </div>
-
-                <div
-                    className={cn(
-                        'flex gap-4',
-                        compact ? 'justify-between gap-6' : 'gap-6',
-                    )}
-                >
-                    {segments.map((cols, index) => (
-                        <section
-                            key={cols[0]}
-                            aria-label={titles[index]}
-                            style={{ flex: `${cols.length} 1 0%` }}
-                            className={cn(
-                                'min-w-0',
-                                !compact && 'bg-primary-50/70 p-4',
-                            )}
-                        >
-                            {!compact && segments.length > 1 && (
-                                <h3 className="mb-4 text-xs font-bold tracking-wide text-primary-800 uppercase">
-                                    {titles[index]}
-                                </h3>
-                            )}
-                            <div
+                    <div
+                        className={cn(
+                            'flex gap-4',
+                            compact ? 'justify-between gap-6' : 'gap-6',
+                        )}
+                    >
+                        {segments.map((cols, index) => (
+                            <section
+                                key={cols[0]}
+                                aria-label={titles[index]}
+                                style={{ flex: `${cols.length} 1 0%` }}
                                 className={cn(
-                                    'grid',
-                                    compact ? 'gap-2' : 'gap-3',
+                                    'min-w-0',
+                                    !compact && 'bg-primary-50/70 p-4',
                                 )}
-                                style={{
-                                    gridTemplateColumns: `repeat(${cols.length}, ${compact ? '2.75rem' : 'minmax(5.25rem, 1fr)'})`,
-                                    gridTemplateRows: `repeat(${layout.rows}, auto)`,
-                                }}
                             >
-                                {Array.from({ length: layout.rows }, (_, r) =>
-                                    cols.map((col, c) => {
-                                        const cell = byPosition.get(
-                                            `${r + 1}:${col}`,
-                                        );
-                                        const style = {
-                                            gridRow: r + 1,
-                                            gridColumn: c + 1,
-                                        };
-
-                                        if (!cell) {
-                                            return (
-                                                <div
-                                                    key={`${r}:${col}`}
-                                                    style={style}
-                                                    aria-hidden
-                                                />
-                                            );
-                                        }
-
-                                        return (
-                                            <SeatTile
-                                                key={cell.id}
-                                                style={style}
-                                                cell={cell}
-                                                occupant={bySeat.get(cell.id)}
-                                                compact={compact}
-                                                selected={
-                                                    selectedId === cell.id
-                                                }
-                                                selectable={
-                                                    !!onSelect &&
-                                                    (isSelectable?.(
-                                                        cell,
-                                                        bySeat.get(cell.id),
-                                                    ) ??
-                                                        false)
-                                                }
-                                                onSelect={onSelect}
-                                            />
-                                        );
-                                    }),
+                                {!compact && segments.length > 1 && (
+                                    <h3 className="mb-4 text-xs font-bold tracking-wide text-primary-800 uppercase">
+                                        {titles[index]}
+                                    </h3>
                                 )}
-                            </div>
-                        </section>
-                    ))}
+                                <div
+                                    className={cn(
+                                        'grid',
+                                        compact ? 'gap-2' : 'gap-3',
+                                    )}
+                                    style={{
+                                        gridTemplateColumns: `repeat(${cols.length}, ${compact ? '2.75rem' : 'minmax(5.25rem, 1fr)'})`,
+                                        gridTemplateRows: `repeat(${layout.rows}, auto)`,
+                                    }}
+                                >
+                                    {Array.from(
+                                        { length: layout.rows },
+                                        (_, r) =>
+                                            cols.map((col, c) => {
+                                                const cell = byPosition.get(
+                                                    `${r + 1}:${col}`,
+                                                );
+                                                const style = {
+                                                    gridRow: r + 1,
+                                                    gridColumn: c + 1,
+                                                };
+
+                                                if (!cell) {
+                                                    return (
+                                                        <div
+                                                            key={`${r}:${col}`}
+                                                            style={style}
+                                                            aria-hidden
+                                                        />
+                                                    );
+                                                }
+
+                                                return (
+                                                    <SeatTile
+                                                        key={cell.id}
+                                                        style={style}
+                                                        cell={cell}
+                                                        occupant={bySeat.get(
+                                                            cell.id,
+                                                        )}
+                                                        compact={compact}
+                                                        selected={
+                                                            selectedId ===
+                                                            cell.id
+                                                        }
+                                                        selectable={
+                                                            !!onSelect &&
+                                                            (isSelectable?.(
+                                                                cell,
+                                                                bySeat.get(
+                                                                    cell.id,
+                                                                ),
+                                                            ) ??
+                                                                false)
+                                                        }
+                                                        onSelect={onSelect}
+                                                    />
+                                                );
+                                            }),
+                                    )}
+                                </div>
+                            </section>
+                        ))}
+                    </div>
                 </div>
             </div>
         </div>

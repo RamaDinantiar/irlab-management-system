@@ -1,16 +1,20 @@
-import { Head, Link } from '@inertiajs/react';
+import { Head, Link, usePoll } from '@inertiajs/react';
 import { ClipboardPlus, FlaskConical, Play, SquarePen } from 'lucide-react';
 import { ActivityFeed } from '@/components/dashboard/activity-feed';
 import { AlertLinks } from '@/components/dashboard/alert-links';
 import { GradingQueue } from '@/components/dashboard/grading-queue';
 import { HighlightCard } from '@/components/dashboard/highlight-card';
+import { LiveSessionAssistant } from '@/components/dashboard/live-session-assistant';
 import { MetricCard } from '@/components/dashboard/metric-card';
 import { NextShiftCard } from '@/components/dashboard/next-shift-card';
 import { WeekSchedule } from '@/components/dashboard/week-schedule';
 import { DashboardGreeting } from '@/components/dashboard-greeting';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import type { AsistenDashboard as AsistenDashboardData } from '@/types';
+import type {
+    AsistenDashboard as AsistenDashboardData,
+    AsistenLiveSession,
+} from '@/types';
 
 /**
  * Dashboard Asisten — Figma "Dashboard" + PRD FR-AD.
@@ -18,9 +22,14 @@ import type { AsistenDashboard as AsistenDashboardData } from '@/types';
  */
 export default function AsistenDashboard({
     dashboard,
+    liveSessions,
 }: {
     dashboard: AsistenDashboardData;
+    liveSessions: AsistenLiveSession[];
 }) {
+    // Sesi mulai otomatis & jumlah pengumpulan test ikut terbarui tanpa reload.
+    usePoll(30_000, { only: ['liveSessions'] });
+
     return (
         <>
             <Head title="Dashboard" />
@@ -30,7 +39,7 @@ export default function AsistenDashboard({
                         {dashboard.isSample && (
                             <Badge
                                 variant="warning"
-                                title="Sebagian data dashboard masih contoh sampai modulnya dibangun."
+                                title="Sebagian data dashboard masih contoh sampai fiturnya dibangun."
                             >
                                 <FlaskConical aria-hidden /> Data contoh
                             </Badge>
@@ -46,7 +55,7 @@ export default function AsistenDashboard({
                     >
                         <Button asChild>
                             <Link href="/asisten/sessions" prefetch>
-                                <Play /> Mulai Sesi Kelas
+                                <Play /> Sesi Kelas
                             </Link>
                         </Button>
                         <Button variant="outline" asChild>
@@ -56,13 +65,20 @@ export default function AsistenDashboard({
                         </Button>
                         <Button variant="outline" asChild>
                             <Link href="/asisten/grade" prefetch>
-                                <SquarePen /> Buka Grading
+                                <SquarePen /> Buka Penilaian
                             </Link>
                         </Button>
                     </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                {liveSessions.map((session) => (
+                    <LiveSessionAssistant
+                        key={session.meetingId}
+                        session={session}
+                    />
+                ))}
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <HighlightCard
                         title="Tulis Laporan Ngawas"
                         description="Segera isi riwayat kelas setelah kelas selesai."
@@ -88,17 +104,17 @@ export default function AsistenDashboard({
 
                 <AlertLinks alerts={dashboard.alerts} />
 
-                <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+                <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
                     <WeekSchedule
                         weekStart={dashboard.week.start}
                         today={dashboard.week.today}
                         events={dashboard.week.events}
                     />
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
-                        <GradingQueue items={dashboard.gradingQueue} />
-                        <ActivityFeed items={dashboard.activities} />
-                    </div>
+                    <GradingQueue items={dashboard.gradingQueue} />
                 </div>
+
+                {/* Selebar halaman agar kolom kanan tidak jauh lebih panjang dari jadwal. */}
+                <ActivityFeed items={dashboard.activities} />
             </div>
         </>
     );

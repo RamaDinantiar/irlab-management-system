@@ -74,7 +74,7 @@ class SubmitTask
                     'submitted_at' => $now,
                     'is_late' => $lateMinutes > 0,
                     'late_minutes' => $lateMinutes,
-                    'version' => ($previous?->version ?? 0) + 1,
+                    'version' => ($previous->version ?? 0) + 1,
                     'is_current' => true,
                 ]);
 

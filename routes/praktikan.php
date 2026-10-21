@@ -7,6 +7,7 @@ use App\Http\Controllers\Praktikan\ProgramController;
 use App\Http\Controllers\Praktikan\ScheduleController;
 use App\Http\Controllers\Praktikan\SeatController;
 use App\Http\Controllers\Praktikan\TaskController;
+use App\Http\Middleware\EnsureProgramsAvailable;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -34,6 +35,8 @@ Route::get('seats/{class}/contract', [SeatController::class, 'create'])->name('s
 Route::post('classes/{class}/seat-contracts', [SeatController::class, 'store'])->middleware('throttle:20,1')->name('seats.store');
 
 // FR-PP: Program (etalase, pendaftaran, Program Saya).
-Route::get('program/{type?}', [ProgramController::class, 'index'])->where('type', 'workshop|quick-tutor|recruitment')->name('programs.index');
-Route::get('programs/{program}', [ProgramController::class, 'show'])->name('programs.show');
-Route::post('programs/{program}/registrations', [ProgramController::class, 'register'])->middleware('throttle:10,1')->name('programs.register');
+Route::middleware(EnsureProgramsAvailable::class)->group(function () {
+    Route::get('program/{type?}', [ProgramController::class, 'index'])->where('type', 'workshop|quick-tutor|recruitment')->name('programs.index');
+    Route::get('programs/{program}', [ProgramController::class, 'show'])->name('programs.show');
+    Route::post('programs/{program}/registrations', [ProgramController::class, 'register'])->middleware('throttle:10,1')->name('programs.register');
+});

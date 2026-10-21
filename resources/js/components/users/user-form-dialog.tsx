@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import UserController from '@/actions/App/Http/Controllers/Admin/UserController';
 import InputError from '@/components/input-error';
+import { positionLabels } from '@/config/navigation';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -26,7 +27,7 @@ import {
 import { Spinner } from '@/components/ui/spinner';
 import type { Position, Role, UserRow } from '@/types';
 
-/** US-D04: buat/ubah akun, peran, dan jabatan (Sekretaris/Bendahara khusus Asisten). */
+/** US-D04: buat/ubah akun, peran, dan jabatan (divisi Asisten Umum / Sekretaris/Bendahara). */
 export function UserFormDialog({
     user,
     trigger,
@@ -114,7 +115,7 @@ export function UserFormDialog({
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="user-position">
-                                        Jabatan
+                                        Divisi
                                     </Label>
                                     <Select
                                         name="position"
@@ -132,13 +133,12 @@ export function UserFormDialog({
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="none">
-                                                Tanpa jabatan
+                                                {positionLabels.none}
                                             </SelectItem>
-                                            <SelectItem value="sekretaris">
-                                                Sekretaris
-                                            </SelectItem>
-                                            <SelectItem value="bendahara">
-                                                Bendahara
+                                            <SelectItem value="sekretaris_bendahara">
+                                                {
+                                                    positionLabels.sekretaris_bendahara
+                                                }
                                             </SelectItem>
                                         </SelectContent>
                                     </Select>

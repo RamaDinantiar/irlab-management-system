@@ -2,7 +2,7 @@
 
 namespace App\Http\Controllers\Asisten;
 
-use App\Events\MeetingStarted;
+use App\Actions\Meeting\SyncMeetingSessions;
 use App\Http\Controllers\Asisten\Concerns\AuthorizesClassAssistant;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\MeetingResource;
@@ -17,18 +17,20 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * FR-AD-01 "Mulai Sesi Kelas": pilih sesi → tandai dimulai (started_at),
- * buka Pre-test terjadwal, siapkan draft laporan ngawas; presensi di layar sama.
+ * FR-AD-01 Sesi Kelas: sesi mulai & selesai otomatis sesuai jam kelas
+ * (SyncMeetingSessions); asisten mengisi presensi & bisa mengakhiri lebih awal.
  */
 class SessionController extends Controller
 {
     use AuthorizesClassAssistant;
 
     /** Sesi hari ini dan 7 hari ke depan dari kelas yang diampu. */
-    public function index(Request $request): Response
+    public function index(Request $request, SyncMeetingSessions $sync): Response
     {
+        $sync->throttled();
         $semester = Semester::current();
 
         $meetings = $semester
@@ -47,7 +49,7 @@ class SessionController extends Controller
                 'startedAt' => $meeting->started_at?->toIso8601String(),
                 'endedAt' => $meeting->ended_at?->toIso8601String(),
                 'running' => $meeting->isRunning(),
-                'moduleTitle' => $meeting->module_title,
+                'topic' => $meeting->topic,
                 'class' => [
                     'id' => $meeting->labClass->id,
                     'name' => $meeting->labClass->name,
@@ -60,15 +62,17 @@ class SessionController extends Controller
         ]);
     }
 
-    public function show(Request $request, Meeting $meeting): Response
+    public function show(Request $request, Meeting $meeting, SyncMeetingSessions $sync): Response
     {
+        $sync->throttled();
+        $meeting->refresh();
         $class = $meeting->labClass;
         $this->authorizeAssistant($request, $class);
 
         $statuses = $meeting->attendances()->pluck('status', 'user_id');
 
         return Inertia::render('asisten/sessions/show', [
-            'meeting' => (new MeetingResource($meeting->load(['moduleFile', 'responsibleAssistant'])))->resolve(),
+            'meeting' => (new MeetingResource($meeting->load('responsibleAssistant')))->resolve(),
             'klass' => [
                 'id' => $class->id,
                 'name' => $class->name,
@@ -89,29 +93,70 @@ class SessionController extends Controller
         ]);
     }
 
-    public function start(Request $request, Meeting $meeting): RedirectResponse
+    /**
+     * Unduh presensi satu pertemuan sebagai CSV: blok info pertemuan, tabel
+     * presensi, lalu rekap. Pemisah ";" + BOM UTF-8 agar langsung rapi per
+     * kolom saat dibuka di Excel berbahasa Indonesia.
+     */
+    public function exportAttendance(Request $request, Meeting $meeting): StreamedResponse
     {
-        $this->authorizeAssistant($request, $meeting->labClass, write: true);
+        $class = $meeting->labClass->load(['course', 'room', 'assistants']);
+        $this->authorizeAssistant($request, $class);
 
-        if ($meeting->started_at === null) {
-            $meeting->update(['started_at' => now(), 'responsible_assistant_id' => $meeting->responsible_assistant_id ?? $request->user()->id]);
-            AuditLog::record('meeting.started', $meeting);
-            MeetingStarted::dispatch($meeting, $request->user());
-        }
+        $statuses = $meeting->attendances()->pluck('status', 'user_id');
+        $students = $class->enrollments()->with('user:id,nim,name')->get()->sortBy(fn (Enrollment $e) => $e->user->nim)->values();
+        $label = fn (?string $status) => $status ? ucfirst($status) : 'Belum diisi';
+        $counts = $students->countBy(fn (Enrollment $e) => $label($statuses[$e->user_id] ?? null));
+        $date = $meeting->date;
 
-        Inertia::flash('toast', ['type' => 'success', 'message' => "Sesi pertemuan {$meeting->number} dimulai. Silakan isi presensi."]);
+        $filename = str("presensi {$class->course->code} {$class->name} pertemuan {$meeting->number} {$meeting->date->toDateString()}")->slug().'.csv';
 
-        return back();
+        return response()->streamDownload(function () use ($meeting, $class, $students, $statuses, $label, $counts, $date) {
+            $out = fopen('php://output', 'w');
+            if ($out === false) {
+                return;
+            }
+
+            fwrite($out, "\u{FEFF}");
+            // Sel diawali = + - @ diberi ' agar tidak dijalankan sebagai rumus oleh Excel.
+            $row = fn (array $cells) => fputcsv($out, array_map(fn ($cell) => is_string($cell) && preg_match('/^[=+\-@]/', $cell) ? "'".$cell : $cell, $cells), ';');
+
+            $row(['PRESENSI PRAKTIKUM']);
+            $row(['Mata Kuliah', "{$class->course->code} · {$class->course->name}"]);
+            $row(['Kelas', $class->name]);
+            $row(['Pertemuan', $meeting->number.($meeting->topic ? " · {$meeting->topic}" : '')]);
+            $row(['Tanggal', $date->translatedFormat('l, j F Y')]);
+            $row(['Jam', "{$class->startClock()} – {$class->endClock()} WIB"]);
+            $row(['Ruang', $class->room->name]);
+            $row(['Asisten', $meeting->responsibleAssistant->name ?? $class->assistants->pluck('name')->join(', ')]);
+            $row([]);
+
+            $row(['No', 'NIM', 'Nama', 'Status']);
+            foreach ($students as $i => $enrollment) {
+                $row([$i + 1, $enrollment->user->nim, $enrollment->user->name, $label($statuses[$enrollment->user_id] ?? null)]);
+            }
+            $row([]);
+
+            $row(['Rekap', 'Jumlah']);
+            foreach (['Hadir', 'Izin', 'Sakit', 'Alfa', 'Belum diisi'] as $status) {
+                $row([$status, $counts[$status] ?? 0]);
+            }
+            $row(['Total', $students->count()]);
+            $row([]);
+            $row(['Diunduh', now()->translatedFormat('j F Y H:i').' WIB']);
+
+            fclose($out);
+        }, $filename, ['Content-Type' => 'text/csv; charset=UTF-8']);
     }
 
     /**
-     * "Akhiri Sesi": sesi tidak lagi berjalan; Post/Pre-Test mode Sesi Berjalan
-     * tidak tersedia lagi untuk kelas ini sampai sesi berikutnya dimulai.
+     * "Akhiri Lebih Awal": sesi berhenti sebelum jam selesai kelas; Post/Pre-Test
+     * mode Sesi Berjalan tidak tersedia lagi untuk kelas ini.
      */
     public function end(Request $request, Meeting $meeting): RedirectResponse
     {
         $this->authorizeAssistant($request, $meeting->labClass, write: true);
-        abort_unless($meeting->started_at !== null && $meeting->ended_at === null, 422, 'Sesi ini belum dimulai atau sudah diakhiri.');
+        abort_unless($meeting->isRunning(), 422, 'Sesi ini tidak sedang berjalan.');
 
         $meeting->update(['ended_at' => now()]);
         AuditLog::record('meeting.ended', $meeting);
@@ -128,6 +173,8 @@ class SessionController extends Controller
     {
         $class = $meeting->labClass;
         $this->authorizeAssistant($request, $class, write: true);
+        // Presensi dibuka sejak jam mulai kelas dan tetap bisa dikoreksi sesudahnya.
+        abort_unless($meeting->hasStarted(), 422, 'Presensi dibuka saat sesi dimulai ('.$meeting->startsAt()->format('H.i').').');
 
         $memberIds = $class->enrollments()->pluck('user_id')->all();
         $validated = $request->validate([

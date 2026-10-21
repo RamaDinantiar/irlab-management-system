@@ -43,6 +43,7 @@ class UserController extends Controller
                 'active' => $query->where('is_active', true),
                 'inactive' => $query->where('is_active', false),
                 'must_change' => $query->where('must_change_password', true),
+                default => $query,
             })
             ->orderByRaw("CASE role WHEN 'admin' THEN 0 WHEN 'asisten' THEN 1 ELSE 2 END")
             ->orderBy('name')
@@ -79,7 +80,7 @@ class UserController extends Controller
 
     public function store(UserRequest $request, CreateUserAccount $create): RedirectResponse
     {
-        [$user, $password] = $create($request->validated());
+        [$user, $password] = $create($request->accountData());
 
         Inertia::flash('credentials', ['name' => $user->name, 'login' => $user->nim ?? $user->email, 'password' => $password]);
         Inertia::flash('toast', ['type' => 'success', 'message' => "Akun {$user->name} dibuat. Email aktivasi dikirim ke {$user->email}."]);

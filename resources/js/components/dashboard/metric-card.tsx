@@ -15,7 +15,7 @@ export function MetricCard({
         <Link
             href={href}
             prefetch
-            className="group relative flex min-h-36 flex-col justify-end gap-1 border bg-card p-5 transition-shadow hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
+            className="group relative flex h-full min-h-36 flex-col justify-end gap-1 border bg-card p-5 transition-shadow hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none"
         >
             <span className="absolute top-4 right-4 flex size-9 items-center justify-center rounded-full bg-primary-200 text-primary-900 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5">
                 <ArrowUpRight className="size-5" aria-hidden />

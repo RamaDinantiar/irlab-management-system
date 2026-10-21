@@ -26,8 +26,8 @@ class RegisterForProgram
     public function __construct(private FileStore $files) {}
 
     /**
-     * @param  array<string, mixed>  $answers  field_id → nilai
-     * @param  array<string, UploadedFile>  $uploads  field_id → file
+     * @param  array<int|string, mixed>  $answers  field_id → nilai
+     * @param  array<int|string, UploadedFile>  $uploads  field_id → file
      */
     public function __invoke(User $user, Program $program, array $answers, array $uploads): ProgramRegistration
     {
@@ -78,9 +78,10 @@ class RegisterForProgram
 
     /**
      * @param  Collection<int, ProgramFormField>  $fields
-     * @param  array<string, mixed>  $answers
-     * @param  array<string, UploadedFile>  $uploads
-     * @return array<string, mixed>
+     *                                                     Kunci = ID field (string angka dari form otomatis menjadi int di PHP).
+     * @param  array<int|string, mixed>  $answers
+     * @param  array<int|string, UploadedFile>  $uploads
+     * @return array<int|string, mixed>
      */
     private function validate($fields, array $answers, array $uploads): array
     {
@@ -89,21 +90,29 @@ class RegisterForProgram
 
         foreach ($fields as $field) {
             $key = (string) $field->id;
-            $value = $field->type === 'file' ? ($uploads[$key] ?? null) : trim((string) ($answers[$key] ?? ''));
+            if ($field->type === 'file') {
+                $upload = $uploads[$key] ?? null;
 
-            if ($field->required && ($value === null || $value === '')) {
-                $errors["answers.{$key}"] = "{$field->label} wajib diisi.";
+                if ($upload === null) {
+                    if ($field->required) {
+                        $errors["answers.{$key}"] = "{$field->label} wajib diisi.";
+                    }
+
+                    continue;
+                }
+
+                $formats = $field->rules_json['formats'] ?? ['pdf'];
+                if (! in_array(strtolower($upload->getClientOriginalExtension()), $formats, true)) {
+                    $errors["answers.{$key}"] = "{$field->label}: format harus ".strtoupper(implode(', ', $formats)).'.';
+                }
 
                 continue;
             }
 
-            if ($field->type === 'file') {
-                if ($value) {
-                    $formats = $field->rules_json['formats'] ?? ['pdf'];
-                    if (! in_array(strtolower($value->getClientOriginalExtension()), $formats, true)) {
-                        $errors["answers.{$key}"] = "{$field->label}: format harus ".strtoupper(implode(', ', $formats)).'.';
-                    }
-                }
+            $value = trim((string) ($answers[$key] ?? ''));
+
+            if ($field->required && $value === '') {
+                $errors["answers.{$key}"] = "{$field->label} wajib diisi.";
 
                 continue;
             }

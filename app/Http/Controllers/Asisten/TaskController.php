@@ -40,6 +40,8 @@ class TaskController extends Controller
         return Inertia::render('asisten/tasks/index', [
             ...$this->indexProps($request, $type),
             'openCreate' => true,
+            // Pintasan dari panel "Sesi Berlangsung": kelas langsung dipilih.
+            'createClassId' => $request->integer('class') ?: null,
         ]);
     }
 
@@ -105,7 +107,7 @@ class TaskController extends Controller
         $copy = DB::transaction(function () use ($task, $request) {
             $copy = $task->replicate(['status']);
             $copy->fill(['title' => "{$task->title} (salinan)", 'status' => 'draft', 'created_by' => $request->user()->id]);
-            $copy->semester_id = Semester::current()?->id ?? $task->semester_id;
+            $copy->semester_id = Semester::current()->id ?? $task->semester_id;
             $copy->save();
 
             AuditLog::record('task.duplicated', $copy, null, ['source_task_id' => $task->id]);
@@ -211,7 +213,7 @@ class TaskController extends Controller
             ->when(! $user->isAdmin(), fn ($q) => $q->whereHas('assistants', fn ($a) => $a->whereKey($user->id)))
             ->with(['classes' => fn ($q) => $q->where('approval_status', ApprovalStatus::Approved)->taughtBy($user)->withCount('enrollments')->orderBy('name')
                 // Sesi yang sedang berjalan → Post/Pre-Test cukup jam mulai & selesai.
-                ->with(['meetings' => fn ($m) => $m->running()->orderByDesc('started_at')])])
+                ->with(['meetings' => fn ($m) => $m->running()->orderByDesc('date')])])
             ->orderBy('code')
             ->get();
 
@@ -228,7 +230,7 @@ class TaskController extends Controller
                     'members' => $class->enrollments_count,
                     'session' => ($meeting = $class->meetings->first()) ? [
                         'meetingNumber' => $meeting->number,
-                        'startedAt' => $meeting->started_at->toIso8601String(),
+                        'startedAt' => ($meeting->started_at ?? $meeting->startsAt())->toIso8601String(),
                     ] : null,
                 ])->values(),
             ]),

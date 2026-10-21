@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\MorphMany;
  * @property int $id
  * @property int $program_id
  * @property int $user_id
- * @property array<string, mixed>|null $answers_json
+ * @property array<int|string, mixed>|null $answers_json kunci = ID field
  * @property int|null $current_stage_id
  * @property string $status
  * @property array<string, array{result: string, note: ?string, by: ?string, at: string}>|null $stage_results

@@ -4,6 +4,7 @@ namespace App\Http\Resources;
 
 use App\Models\Course;
 use App\Models\User;
+use App\Support\CourseColor;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -24,6 +25,7 @@ class CourseResource extends JsonResource
             'semesterId' => $this->semester_id,
             'code' => $this->code,
             'name' => $this->name,
+            'color' => CourseColor::for($this->resource),
             'credits' => $this->credits,
             'weights' => [
                 'pretest' => $this->weight_pretest,

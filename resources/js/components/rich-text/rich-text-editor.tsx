@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
+import { SelectField } from '@/components/select-field';
 import { CODE_LANGUAGES } from '@/lib/lowlight';
 import { cn } from '@/lib/utils';
 import { richTextExtensions } from './extensions';
@@ -193,27 +194,21 @@ export function RichTextEditor({
                         <SquareCode className="size-4" />
                     </ToolbarButton>
                     {state.codeBlock && (
-                        <select
+                        <SelectField
                             aria-label="Bahasa blok kode"
+                            size="sm"
                             value={state.language}
-                            onChange={(event) =>
+                            onValueChange={(language) =>
                                 chain()
-                                    .updateAttributes('codeBlock', {
-                                        language: event.target.value,
-                                    })
+                                    .updateAttributes('codeBlock', { language })
                                     .run()
                             }
-                            className="h-8 border border-input bg-white px-2 font-mono text-xs"
-                        >
-                            {CODE_LANGUAGES.map((language) => (
-                                <option
-                                    key={language.value}
-                                    value={language.value}
-                                >
-                                    {language.label}
-                                </option>
-                            ))}
-                        </select>
+                            options={CODE_LANGUAGES.map((language) => ({
+                                value: language.value,
+                                label: language.label,
+                            }))}
+                            className="w-auto min-w-32 font-mono text-xs"
+                        />
                     )}
                     <span className="ml-auto flex">
                         <ToolbarButton

@@ -6,6 +6,7 @@ use App\Models\Setting;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Database\Query\Builder as QueryBuilder;
+use Illuminate\Foundation\DevCommands;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Event;
@@ -28,6 +29,11 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureDefaults();
+
+        // `composer run dev` ikut menjalankan scheduler (sesi otomatis, pengingat, dll.).
+        if ($this->app->runningInConsole()) {
+            DevCommands::artisan('schedule:work', 'scheduler');
+        }
 
         // FR-ADM-10: pengaturan Admin menimpa default config.
         if (! $this->app->runningUnitTests()) {

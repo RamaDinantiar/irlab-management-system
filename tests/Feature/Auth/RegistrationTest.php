@@ -22,7 +22,7 @@ class RegistrationTest extends TestCase
     {
         return [
             'name' => 'Sinta Mahasiswa', 'nim' => '202331099', 'major' => 'S1 Teknik Informatika', 'cohort_year' => 2023,
-            'email' => 'sinta@itpln.ac.id', 'password' => 'rahasia123', 'password_confirmation' => 'rahasia123', 'terms' => '1',
+            'email' => 'sinta@itpln.ac.id', 'phone' => '0812-3456-7890', 'password' => 'rahasia123', 'password_confirmation' => 'rahasia123', 'terms' => '1',
             ...$overrides,
         ];
     }
@@ -43,12 +43,22 @@ class RegistrationTest extends TestCase
         $user = User::where('nim', '202331099')->sole();
         $this->assertSame(Role::Praktikan, $user->role);
         $this->assertSame('sinta@itpln.ac.id', $user->email);
+        $this->assertSame('081234567890', $user->phone);
         $this->assertNull($user->email_verified_at);
         $this->assertTrue($user->is_active);
         Notification::assertSentTo($user, VerifyEmail::class);
 
         // Belum verifikasi → portal belum dapat dipakai.
         $this->get(route('praktikan.dashboard'))->assertRedirect(route('verification.notice'));
+    }
+
+    public function test_a_valid_phone_number_is_required()
+    {
+        foreach (['', '12345', '0212345678', '08abc1234567'] as $phone) {
+            $this->post(route('register.store'), $this->payload(['phone' => $phone]))->assertSessionHasErrors('phone');
+        }
+
+        $this->assertSame(0, User::count());
     }
 
     public function test_non_campus_and_look_alike_domains_are_rejected()
@@ -87,7 +97,6 @@ class RegistrationTest extends TestCase
     {
         $this->actingAs(User::factory()->admin()->create())->put(route('admin.system-settings.update'), [
             'idle_minutes' => 30, 'limit_pdf_mb' => 10, 'limit_zip_mb' => 20, 'limit_image_mb' => 5,
-            'pdf_header_title' => 'Lab IR', 'pdf_header_subtitle' => 'IT PLN',
             'registration_open' => '0', 'registration_domains' => '@ITPLN.ac.id',
         ])->assertSessionHasNoErrors();
 

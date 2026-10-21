@@ -7,13 +7,12 @@ use App\Models\Announcement;
 use App\Models\LabClass;
 use App\Models\User;
 use App\Support\Notifications\Notify;
-use Illuminate\Database\Seeder;
 
 /**
  * Pengumuman contoh (global & per kelas) + beberapa notifikasi agar lonceng
  * akun demo terisi.
  */
-class AnnouncementSeeder extends Seeder
+class AnnouncementSeeder extends DemoSeeder
 {
     public function run(NotifyAnnouncements $notify): void
     {
@@ -35,7 +34,7 @@ class AnnouncementSeeder extends Seeder
         ]);
         Announcement::create([
             'scope' => 'class', 'class_id' => $ir->id, 'created_by' => $dimas->id, 'publish_at' => now()->subHours(6),
-            'title' => 'Modul 05 sudah dapat diunduh',
+            'title' => 'Persiapan Pertemuan 05',
             'body' => 'Silakan pelajari sebelum pre-test minggu depan. Bawa laptop dengan Python 3.11.',
         ]);
         Announcement::create([
@@ -45,7 +44,7 @@ class AnnouncementSeeder extends Seeder
         ]);
         $notify();
 
-        Notify::send($rina, 'grade', 'Nilai dipublikasikan', 'Nilai Post-Test Modul 05 · Machine Learning sudah dapat dilihat.', '/praktikan/grade');
+        Notify::send($rina, 'grade', 'Nilai dipublikasikan', 'Nilai Post-Test Pertemuan 05 · Machine Learning sudah dapat dilihat.', '/praktikan/grade');
         Notify::send($dimas, 'shift', 'Permintaan tukar shift', 'Yozika Arvio meminta Anda menggantikan shift Jaga Lab.', '/asisten/schedule');
         Notify::send($dimas, 'report', 'Laporan ngawas menunggu verifikasi', 'Ada laporan Diajukan yang perlu diverifikasi.', '/asisten/report?tab=verify');
     }

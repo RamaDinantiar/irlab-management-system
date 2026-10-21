@@ -9,20 +9,20 @@ import { Spinner } from '@/components/ui/spinner';
 import { login } from '@/routes';
 import { email } from '@/routes/password';
 
-/** FR-AUTH-04: tautan reset berlaku 60 menit; pesan selalu generik. */
-export default function ForgotPassword({ status }: { status?: string }) {
+/**
+ * Lupa password langkah 1: email kampus. Email yang belum terdaftar atau
+ * di luar domain kampus langsung diberi tahu; yang terdaftar dikirimi kode OTP.
+ */
+export default function ForgotPassword({
+    domains,
+    email: lastEmail,
+}: {
+    domains: string[];
+    email: string | null;
+}) {
     return (
         <>
             <Head title="Lupa Password" />
-
-            {status && (
-                <p
-                    role="status"
-                    className="mb-6 border border-success/30 bg-success-soft px-4 py-3 text-sm text-success"
-                >
-                    {status}
-                </p>
-            )}
 
             <Form {...email.form()} className="flex flex-col gap-6">
                 {({ processing, errors }) => (
@@ -43,10 +43,16 @@ export default function ForgotPassword({ status }: { status?: string }) {
                                     required
                                     autoFocus
                                     autoComplete="email"
-                                    placeholder="nama@itpln.ac.id"
+                                    defaultValue={lastEmail ?? ''}
+                                    placeholder={`nama@${domains[0] ?? 'itpln.ac.id'}`}
                                     className="h-12 pl-11"
                                 />
                             </div>
+                            <p className="text-sm text-muted-foreground">
+                                Hanya email kampus (
+                                {domains.map((d) => `@${d}`).join(', ')}) yang
+                                terdaftar di IR Lab.
+                            </p>
                             <InputError message={errors.email} />
                         </div>
 
@@ -57,7 +63,7 @@ export default function ForgotPassword({ status }: { status?: string }) {
                             data-test="email-password-reset-link-button"
                         >
                             {processing && <Spinner />}
-                            Kirim Tautan Reset
+                            Kirim Kode
                         </Button>
 
                         <TextLink
@@ -77,5 +83,5 @@ export default function ForgotPassword({ status }: { status?: string }) {
 ForgotPassword.layout = {
     title: 'Lupa Password?',
     description:
-        'Masukkan email instansi Anda. Kami akan mengirim tautan untuk mengatur ulang kata sandi (berlaku 60 menit).',
+        'Masukkan email kampus Anda. Kami akan mengirim kode 6 digit untuk mengatur ulang kata sandi.',
 };

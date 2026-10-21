@@ -30,6 +30,8 @@
     --color-primary-50: #e8f3f6; /* Light — latar halaman */
     --color-primary-100: #e5f4f9; /* header tabel, panel info */
     --color-primary-200: #b8d9e2; /* Light :active — border kartu */
+    --color-primary-300: #8cc3d1; /* antara 200 & 500 — border aksen */
+    --color-primary-400: #4fa6bc; /* antara 200 & 500 — hover border */
     --color-primary-500: #1a86a0; /* Normal */
     --color-primary-600: #177990; /* Normal :hover — latar sidebar (teks 14px putih ≥ 4.5:1) */
     --color-primary-700: #146578; /* Dark — judul, teks link */
@@ -161,6 +163,48 @@
     --sidebar-accent-foreground: oklch(0.985 0 0);
     --sidebar-border: oklch(0.269 0 0);
     --sidebar-ring: oklch(0.439 0 0);
+}
+
+/*
+ * Scrollbar sesuai tema: tipis, sudut tajam, thumb teal muda (teal saat hover).
+ * Di sidebar (latar teal) thumb putih transparan. Warna diatur lewat variabel
+ * agar elemen di dalam sidebar ikut mewarisinya.
+ */
+:root {
+    --scrollbar-track: transparent;
+    --scrollbar-thumb: var(--color-primary-200);
+    --scrollbar-thumb-hover: var(--color-primary-500);
+}
+
+[data-sidebar='sidebar'] {
+    --scrollbar-thumb: rgb(255 255 255 / 0.35);
+    --scrollbar-thumb-hover: rgb(255 255 255 / 0.6);
+}
+
+/* Firefox & Chrome 121+ (standar). */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+/* Safari & Chrome lama. */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+    background: var(--scrollbar-track);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 0;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover);
 }
 
 /* Konten rich text: soal (Tiptap), jawaban & feedback (Markdown). */

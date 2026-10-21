@@ -17,7 +17,7 @@ class MeetingFactory extends Factory
             'class_id' => LabClass::factory(),
             'number' => fake()->unique()->numberBetween(1, 200),
             'date' => now()->toDateString(),
-            'module_title' => 'Modul '.fake()->words(2, true),
+            'topic' => ucfirst(fake()->word().' '.fake()->word()),
         ];
     }
 }

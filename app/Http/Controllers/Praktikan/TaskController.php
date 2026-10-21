@@ -9,6 +9,7 @@ use App\Models\Semester;
 use App\Models\StoredFile;
 use App\Models\Submission;
 use App\Models\TaskTarget;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -28,7 +29,7 @@ class TaskController extends Controller
             ->when($taskType, fn ($q) => $q->whereHas('task', fn ($t) => $t->where('type', $taskType)))
             ->with(['task.course', 'labClass', 'submissions' => fn ($q) => $q->where('user_id', $user->id)->where('is_current', true)])
             ->get()
-            ->sortBy(fn (TaskTarget $target) => [$target->state() === 'open' ? 0 : 1, $target->due_at?->timestamp ?? PHP_INT_MAX]);
+            ->sortBy(fn (TaskTarget $target) => [$target->state() === 'open' ? 0 : 1, $target->due_at->timestamp ?? PHP_INT_MAX]);
 
         return Inertia::render('praktikan/tasks/index', [
             'type' => $taskType?->value,
@@ -40,7 +41,7 @@ class TaskController extends Controller
     {
         $this->authorizeView($request, $target);
         $user = $request->user();
-        $target->load(['task.course', 'task.attachments', 'labClass', 'meeting']);
+        $target->load(['task.course', 'task.attachments', 'labClass.room', 'labClass.assistants', 'meeting']);
         $task = $target->task;
 
         $history = Submission::where('task_target_id', $target->id)->where('user_id', $user->id)
@@ -57,7 +58,15 @@ class TaskController extends Controller
                 'latePenaltyUnit' => $task->late_penalty_unit,
                 'allowedFormats' => $task->allowed_formats,
                 'textAnswer' => $task->text_answer,
-                'meeting' => $target->meeting ? ['number' => $target->meeting->number, 'title' => $target->meeting->module_title] : null,
+                'meeting' => $target->meeting ? ['number' => $target->meeting->number, 'title' => $target->meeting->topic] : null,
+                // Figma "Matakuliah Aktif" & "Informasi Asisten".
+                'schedule' => [
+                    'dayOfWeek' => $target->labClass->day_of_week,
+                    'startTime' => $target->labClass->startClock(),
+                    'endTime' => $target->labClass->endClock(),
+                    'room' => $target->labClass->room->name,
+                ],
+                'assistants' => $target->labClass->assistants->pluck('name')->values(),
                 'limits' => ['pdf' => (int) config('lab.files.limits.pdf') / 1024, 'zip' => (int) config('lab.files.limits.zip') / 1024],
             ],
             'history' => $history->map(fn (Submission $submission) => [
@@ -93,7 +102,7 @@ class TaskController extends Controller
     /**
      * Target tugas terbit yang sudah dibuka untuk kelas praktikan.
      *
-     * @return \Illuminate\Database\Eloquent\Builder<TaskTarget>
+     * @return Builder<TaskTarget>
      */
     private function visibleTargets(int $userId)
     {

@@ -21,6 +21,24 @@ class UserRequest extends FormRequest
     }
 
     /**
+     * Data tervalidasi dalam bentuk yang diharapkan CreateUserAccount.
+     *
+     * @return array{nim: string|null, name: string, email: string, major: string|null, cohort_year: int|null, role: string, position: string}
+     */
+    public function accountData(): array
+    {
+        return [
+            'nim' => $this->filled('nim') ? $this->string('nim')->toString() : null,
+            'name' => $this->string('name')->toString(),
+            'email' => $this->string('email')->toString(),
+            'major' => $this->filled('major') ? $this->string('major')->toString() : null,
+            'cohort_year' => $this->filled('cohort_year') ? $this->integer('cohort_year') : null,
+            'role' => $this->string('role')->toString(),
+            'position' => $this->string('position')->toString(),
+        ];
+    }
+
+    /**
      * @return array<string, ValidationRule|array<mixed>|string>
      */
     public function rules(): array
@@ -39,18 +57,23 @@ class UserRequest extends FormRequest
         ];
     }
 
+    /**
+     * @return array<int, callable>
+     */
     public function after(): array
     {
         return [function (Validator $validator) {
             // Jabatan hanya untuk Asisten.
             if ($this->input('role') !== Role::Asisten->value && $this->input('position', 'none') !== Position::None->value) {
-                $validator->errors()->add('position', 'Jabatan Sekretaris/Bendahara hanya untuk Asisten.');
+                $validator->errors()->add('position', 'Divisi Sekretaris/Bendahara hanya untuk Asisten.');
             }
 
             // Admin tidak dapat menurunkan perannya sendiri (mencegah lab tanpa Admin).
             $user = $this->route('user');
             if ($user instanceof User && $user->is($this->user()) && $this->input('role') !== Role::Admin->value) {
                 $validator->errors()->add('role', 'Anda tidak dapat mengubah peran akun Anda sendiri.');
+            } elseif ($user instanceof User && $user->isLastActiveAdmin() && $this->input('role') !== Role::Admin->value) {
+                $validator->errors()->add('role', 'Admin aktif terakhir tidak dapat diubah perannya.');
             }
         }];
     }
@@ -60,7 +83,7 @@ class UserRequest extends FormRequest
      */
     public function attributes(): array
     {
-        return ['role' => 'peran', 'position' => 'jabatan', 'nim' => 'NIM', 'name' => 'nama', 'major' => 'jurusan', 'cohort_year' => 'angkatan'];
+        return ['role' => 'peran', 'position' => 'divisi', 'nim' => 'NIM', 'name' => 'nama', 'major' => 'jurusan', 'cohort_year' => 'angkatan'];
     }
 
     /**

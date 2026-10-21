@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use App\Enums\SemesterStatus;
+use Carbon\CarbonImmutable;
 use Database\Factories\SemesterFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Carbon;
 
 /**
  * Semester akademik (US-D01, FR-ADM-02). Data operasional lain akan memakai
@@ -16,13 +16,13 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property string $name
- * @property Carbon $start_date
- * @property Carbon $end_date
+ * @property CarbonImmutable $start_date
+ * @property CarbonImmutable $end_date
  * @property SemesterStatus $status
- * @property Carbon|null $activated_at
- * @property Carbon|null $archived_at
- * @property Carbon $created_at
- * @property Carbon $updated_at
+ * @property CarbonImmutable|null $activated_at
+ * @property CarbonImmutable|null $archived_at
+ * @property CarbonImmutable $created_at
+ * @property CarbonImmutable $updated_at
  */
 #[Fillable(['name', 'start_date', 'end_date'])]
 class Semester extends Model

@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Notification;
 class Notify
 {
     /**
-     * @param  iterable<User>|User|list<int>  $users
+     * @param  iterable<User>|User|array<int, int>  $users
      */
     public static function send(iterable|User $users, string $kind, string $title, string $body, ?string $url = null, bool $mail = false): void
     {
@@ -31,7 +31,7 @@ class Notify
     }
 
     /**
-     * @param  iterable<User>|User|list<int>  $users
+     * @param  iterable<User>|User|array<int, int>  $users
      * @return Collection<int, User>
      */
     private static function resolve(iterable|User $users): Collection

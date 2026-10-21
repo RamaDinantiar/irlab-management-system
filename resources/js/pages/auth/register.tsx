@@ -6,6 +6,7 @@ import {
     KeyRound,
     Lock,
     Mail,
+    Phone,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useState } from 'react';
@@ -212,6 +213,27 @@ export default function Register({
                             </p>
                         </div>
 
+                        <Field
+                            id="phone"
+                            label="Nomor HP / WhatsApp"
+                            icon={Phone}
+                            error={errors.phone}
+                        >
+                            {(p) => (
+                                <Input
+                                    {...p}
+                                    name="phone"
+                                    type="tel"
+                                    required
+                                    inputMode="tel"
+                                    autoComplete="tel"
+                                    maxLength={20}
+                                    placeholder="Contoh: 081234567890"
+                                    className={cn(p.className, 'font-mono')}
+                                />
+                            )}
+                        </Field>
+
                         <div className="grid gap-2">
                             <Label htmlFor="password">Kata Sandi Portal</Label>
                             <PasswordInput
@@ -333,5 +355,5 @@ export default function Register({
 Register.layout = {
     title: 'Daftar Akun',
     description:
-        'Lengkapi data akademik untuk sinkronisasi jadwal dan modul praktikum.',
+        'Lengkapi data akademik untuk sinkronisasi jadwal dan pertemuan praktikum.',
 };

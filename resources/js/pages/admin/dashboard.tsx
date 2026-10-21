@@ -33,7 +33,7 @@ export default function AdminDashboard({
                         {dashboard.isSample && (
                             <Badge
                                 variant="warning"
-                                title="Sebagian data dashboard masih contoh sampai modulnya dibangun."
+                                title="Sebagian data dashboard masih contoh sampai fiturnya dibangun."
                             >
                                 <FlaskConical aria-hidden /> Data contoh
                             </Badge>
@@ -63,7 +63,7 @@ export default function AdminDashboard({
                     </div>
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <SemesterCard semester={dashboard.semester} />
                     <MetricCard
                         value={dashboard.approvals.length}
@@ -90,12 +90,12 @@ export default function AdminDashboard({
                     <StatCard label="Mata kuliah" value={counts.courses} />
                 </div>
 
-                <div className="grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-                    <div className="grid gap-4">
+                <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
+                    <div className="grid min-w-0 grid-cols-1 gap-4">
                         <ApprovalQueue items={dashboard.approvals} />
                         <AuditLogFeed items={dashboard.auditLogs} />
                     </div>
-                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-1">
                         <GradingQueue
                             items={dashboard.gradingQueue}
                             gradeHref="/admin/grade"

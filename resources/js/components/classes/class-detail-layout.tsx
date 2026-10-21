@@ -25,11 +25,11 @@ export function ClassDetailLayout({
     const { isCurrentUrl } = useCurrentUrl();
     const tabs = [
         {
-            label: `Anggota (${klass.membersCount})`,
+            label: `Mahasiswa (${klass.membersCount})`,
             href: ClassDetailController.members.url(klass.id),
         },
         {
-            label: 'Pertemuan & Modul',
+            label: 'Pertemuan',
             href: ClassDetailController.meetings.url(klass.id),
         },
         {

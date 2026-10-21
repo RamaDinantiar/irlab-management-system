@@ -15,7 +15,7 @@ class ProgramFactory extends Factory
     {
         return [
             'type' => ProgramType::Workshop,
-            'title' => 'Workshop '.fake()->words(3, true),
+            'title' => 'Workshop '.fake()->word().' '.fake()->word().' '.fake()->word(),
             'category' => 'Artificial Intelligence',
             'description' => fake()->paragraph(),
             'speaker_name' => fake()->name(),

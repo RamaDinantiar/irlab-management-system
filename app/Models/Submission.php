@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Contracts\HasFiles;
 use App\Enums\Role;
+use Carbon\CarbonImmutable;
 use Database\Factories\SubmissionFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -11,7 +12,6 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Carbon;
 
 /**
  * Pengumpulan tugas (US-P02). Setiap kirim ulang = versi baru; hanya
@@ -21,7 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int $task_target_id
  * @property int $user_id
  * @property string|null $text_answer
- * @property Carbon $submitted_at
+ * @property CarbonImmutable $submitted_at
  * @property bool $is_late
  * @property int $late_minutes
  * @property int $version

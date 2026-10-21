@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { PROGRAM_STATUS } from '@/types';
 import type { ProgramCard, ProgramOptions, ProgramTypeInfo } from '@/types';
+import { useClipboard } from '@/hooks/use-clipboard';
 
 type Props = {
     type: ProgramTypeInfo;
@@ -68,7 +69,7 @@ function ProgramTile({ p, type }: { p: ProgramCard; type: ProgramTypeInfo }) {
         ? Math.min(100, Math.round((p.registered / p.quota) * 100))
         : null;
     const full = pct !== null && pct >= 100;
-    const [copied, setCopied] = useState(false);
+    const [copied, copy] = useClipboard();
     const link = `${window.location.origin}/praktikan/programs/${p.id}`;
 
     return (
@@ -191,14 +192,13 @@ function ProgramTile({ p, type }: { p: ProgramCard; type: ProgramTypeInfo }) {
                 {p.accepting ? (
                     <button
                         type="button"
-                        onClick={() => {
-                            void navigator.clipboard?.writeText(link);
-                            setCopied(true);
-                        }}
+                        onClick={() => void copy(link)}
                         className="inline-flex items-center gap-1 text-xs font-medium text-primary-700 hover:underline"
                     >
                         <Link2 className="size-3.5" aria-hidden />{' '}
-                        {copied ? 'Tautan disalin' : 'Salin Link Registrasi'}
+                        {copied === link
+                            ? 'Tautan disalin'
+                            : 'Salin Link Registrasi'}
                     </button>
                 ) : (
                     <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">

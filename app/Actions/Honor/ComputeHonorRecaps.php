@@ -61,7 +61,7 @@ class ComputeHonorRecaps
     }
 
     /**
-     * Bendahara menyetujui seluruh rekap Draft satu bulan → Final.
+     * Sekretaris/Bendahara menyetujui seluruh rekap Draft satu bulan → Final.
      */
     public function approve(User $approver, string $month): int
     {

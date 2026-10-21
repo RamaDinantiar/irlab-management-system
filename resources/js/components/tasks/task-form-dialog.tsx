@@ -45,8 +45,11 @@ import { Spinner } from '@/components/ui/spinner';
 import { formatSchedule } from '@/lib/days';
 import { formatFileSize } from '@/lib/files';
 import { TASK_TYPE_LABEL, toLocalInput } from '@/lib/task';
+import { todayWib } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 import type { TaskFormData, TaskFormOptions, TaskType } from '@/types';
+import { TimeField } from '@/components/pickers/time-field';
+import { DateTimeField } from '@/components/pickers/date-time-field';
 
 type TargetDraft = {
     included: boolean;
@@ -63,10 +66,6 @@ type TargetDraft = {
 type ClassOption = TaskFormOptions['courses'][number]['classes'][number];
 
 const WIB = 'Asia/Jakarta';
-
-/** Tanggal hari ini (WIB) dalam format YYYY-MM-DD. */
-const todayWib = () =>
-    new Intl.DateTimeFormat('en-CA', { timeZone: WIB }).format(new Date());
 
 /** Jam WIB "HH:mm" untuk sekarang + offset menit. */
 const clockWib = (offsetMinutes = 0) =>
@@ -147,6 +146,7 @@ export function TaskFormDialog({
     onOpenChange,
     task,
     defaultType,
+    defaultClassId,
     typeLocked,
     courses,
     limits,
@@ -155,6 +155,8 @@ export function TaskFormDialog({
     onOpenChange: (open: boolean) => void;
     task: TaskFormData | null;
     defaultType: TaskType;
+    /** Pintasan dari panel "Sesi Berlangsung": kelas ini langsung dialokasikan. */
+    defaultClassId?: number | null;
     /** Halaman per jenis (Post-Test/Pre-Test/Laporan) mengunci jenis tugas. */
     typeLocked: boolean;
 } & TaskFormOptions) {
@@ -174,6 +176,7 @@ export function TaskFormDialog({
                     key={task?.id ?? 'new'}
                     task={task}
                     defaultType={defaultType}
+                    defaultClassId={defaultClassId}
                     typeLocked={typeLocked}
                     courses={courses}
                     limits={limits}
@@ -187,6 +190,7 @@ export function TaskFormDialog({
 function TaskFormBody({
     task,
     defaultType,
+    defaultClassId,
     typeLocked,
     courses,
     limits,
@@ -194,16 +198,33 @@ function TaskFormBody({
 }: {
     task: TaskFormData | null;
     defaultType: TaskType;
+    defaultClassId?: number | null;
     typeLocked: boolean;
     onDone: () => void;
 } & TaskFormOptions) {
     const [type, setType] = useState<TaskType>(task?.type ?? defaultType);
     const [courseId, setCourseId] = useState<number | null>(
-        task?.courseId ?? courses[0]?.id ?? null,
+        task?.courseId ??
+            courses.find((option) =>
+                option.classes.some((klass) => klass.id === defaultClassId),
+            )?.id ??
+            courses[0]?.id ??
+            null,
     );
     const [title, setTitle] = useState(task?.title ?? '');
+    // Dari panel "Sesi Berlangsung": Pre/Post-Test langsung ke pertemuan yang berjalan.
+    const liveSession =
+        !task && defaultType !== 'report'
+            ? courses
+                  .flatMap((option) => option.classes)
+                  .find((klass) => klass.id === defaultClassId)?.session
+            : null;
     const [meeting, setMeeting] = useState(
-        task?.meetingNumber ? String(task.meetingNumber) : NO_MEETING,
+        task?.meetingNumber
+            ? String(task.meetingNumber)
+            : liveSession
+              ? String(liveSession.meetingNumber)
+              : NO_MEETING,
     );
     const [allowLate, setAllowLate] = useState(task?.allowLate ?? false);
     const [allocationError, setAllocationError] = useState<string>();
@@ -226,7 +247,9 @@ function TaskFormBody({
                         klass.id,
                         {
                             // Alokasi tidak dicentang otomatis — wajib dipilih asisten.
-                            included: !!saved,
+                            included:
+                                !!saved ||
+                                (!task && klass.id === defaultClassId),
                             mode: !task && klass.session ? 'now' : 'scheduled',
                             startTime: clockWib(),
                             endTime:
@@ -470,7 +493,7 @@ function TaskFormBody({
 
                                 <Card
                                     icon={SlidersHorizontal}
-                                    title="Pengaturan Kelas & Modul Terkait"
+                                    title="Pengaturan Kelas & Pertemuan Terkait"
                                 >
                                     <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_11rem]">
                                         <div className="grid gap-2">
@@ -697,7 +720,7 @@ function TaskFormBody({
                                                 onClick={() =>
                                                     fileInput.current?.click()
                                                 }
-                                                className="border-primary-300 flex items-center justify-center gap-2 border-2 border-dashed px-4 py-3 text-sm font-medium text-primary-700 hover:bg-primary-50 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+                                                className="flex items-center justify-center gap-2 border-2 border-dashed border-primary-300 px-4 py-3 text-sm font-medium text-primary-700 hover:bg-primary-50 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
                                             >
                                                 <FilePlus2
                                                     className="size-4"
@@ -1102,9 +1125,9 @@ function TaskFormBody({
                         </fieldset>
                     </div>
 
-                    {/* Footer — Figma: bilah teal */}
-                    <div className="flex flex-wrap items-center gap-3 bg-gradient-to-r from-primary-700 to-primary px-5 py-4 md:px-6">
-                        <p className="mr-auto flex items-center gap-2 text-xs text-white/90">
+                    {/* Footer — Figma: bilah teal. Di HP: satu baris tombol berlabel ringkas. */}
+                    <div className="flex items-center gap-2 bg-gradient-to-r from-primary-700 to-primary px-4 py-3 sm:flex-wrap sm:gap-3 sm:px-5 sm:py-4 md:px-6">
+                        <p className="mr-auto hidden items-center gap-2 text-xs text-white/90 sm:flex">
                             <ShieldCheck className="size-4" aria-hidden />
                             Sistem Pengawasan Terintegrasi Lab IR
                         </p>
@@ -1126,10 +1149,17 @@ function TaskFormBody({
                                     intent.current &&
                                     (intent.current.value = 'draft')
                                 }
-                                className="border-2 border-white bg-transparent text-white hover:bg-white/10 hover:text-white"
+                                className="min-w-0 flex-1 border-2 border-white bg-transparent px-2 text-white hover:bg-white/10 hover:text-white sm:flex-none sm:px-4"
                             >
-                                {processing ? <Spinner /> : <Save />} Simpan
-                                sebagai Draft
+                                {processing ? <Spinner /> : <Save />}
+                                {/* Satu elemen teks agar jarak antarkata tidak ikut gap tombol. */}
+                                <span>
+                                    Simpan
+                                    <span className="hidden sm:inline">
+                                        {' sebagai'}
+                                    </span>{' '}
+                                    Draft
+                                </span>
                             </Button>
                         )}
                         {!readOnly && (
@@ -1157,12 +1187,19 @@ function TaskFormBody({
                                         intent.current.value = 'publish';
                                     }
                                 }}
-                                className="bg-white text-primary-700 hover:bg-primary-50"
+                                className="min-w-0 flex-1 bg-white px-2 text-primary-700 hover:bg-primary-50 sm:flex-none sm:px-4"
                             >
                                 {processing ? <Spinner /> : <Send />}{' '}
-                                {published
-                                    ? 'Simpan Perubahan'
-                                    : `Publikasikan ${label}`}
+                                {published ? (
+                                    'Simpan Perubahan'
+                                ) : (
+                                    <span>
+                                        Publikasikan
+                                        <span className="hidden sm:inline">
+                                            {` ${label}`}
+                                        </span>
+                                    </span>
+                                )}
                             </Button>
                         )}
                     </div>
@@ -1325,7 +1362,7 @@ function TargetTiming({
                                       timeZone: WIB,
                                   }).format(new Date(klass.session.startedAt)),
                               )} WIB.`
-                            : 'Sesi kelas ini belum dimulai hari ini — mulai sesi untuk memakai mode Sesi Berjalan, atau jadwalkan.'}
+                            : 'Sesi kelas ini sedang tidak berlangsung — mode Sesi Berjalan tersedia otomatis selama jam kelas, atau jadwalkan.'}
                     </p>
                 </div>
             )}
@@ -1356,15 +1393,14 @@ function TargetTiming({
                             >
                                 Jam Mulai
                             </Label>
-                            <Input
+                            <TimeField
                                 id={`start-${klass.id}`}
-                                type="time"
                                 required
                                 value={target.startTime}
-                                onChange={(event) =>
-                                    onChange({ startTime: event.target.value })
+                                onChange={(value) =>
+                                    onChange({ startTime: value })
                                 }
-                                className="h-11"
+                                label="Jam mulai"
                             />
                         </div>
                         <div className="grid gap-1.5">
@@ -1374,16 +1410,15 @@ function TargetTiming({
                             >
                                 Jam Selesai
                             </Label>
-                            <Input
+                            <TimeField
                                 id={`end-${klass.id}`}
-                                type="time"
                                 required
                                 value={target.endTime}
-                                onChange={(event) =>
-                                    onChange({ endTime: event.target.value })
+                                onChange={(value) =>
+                                    onChange({ endTime: value })
                                 }
-                                className="h-11"
-                                aria-invalid={invalidRange || !!error}
+                                invalid={invalidRange || !!error}
+                                label="Jam selesai"
                             />
                         </div>
                     </div>
@@ -1459,15 +1494,14 @@ function TargetTiming({
                                 >
                                     Waktu Buka
                                 </Label>
-                                <Input
+                                <DateTimeField
                                     id={`open-${klass.id}`}
                                     name={`${prefix}[open_at]`}
-                                    type="datetime-local"
                                     value={target.openAt}
-                                    onChange={(event) =>
-                                        onChange({ openAt: event.target.value })
+                                    onChange={(value) =>
+                                        onChange({ openAt: value })
                                     }
-                                    className="h-11"
+                                    label="Waktu buka"
                                 />
                             </div>
                             <div className="grid gap-1.5">
@@ -1477,16 +1511,15 @@ function TargetTiming({
                                 >
                                     Batas Pengumpulan
                                 </Label>
-                                <Input
+                                <DateTimeField
                                     id={`due-${klass.id}`}
                                     name={`${prefix}[due_at]`}
-                                    type="datetime-local"
                                     value={target.dueAt}
-                                    onChange={(event) =>
-                                        onChange({ dueAt: event.target.value })
+                                    onChange={(value) =>
+                                        onChange({ dueAt: value })
                                     }
-                                    className="h-11"
-                                    aria-invalid={!!error}
+                                    invalid={!!error}
+                                    label="Batas pengumpulan"
                                 />
                             </div>
                         </div>

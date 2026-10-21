@@ -21,8 +21,6 @@ class Setting extends Model
         'limit_pdf_mb' => 10,
         'limit_zip_mb' => 20,
         'limit_image_mb' => 5,
-        'pdf_header_title' => 'Laboratorium Information Retrieval',
-        'pdf_header_subtitle' => 'Sistem Manajemen Laboratorium',
         // Pendaftaran mandiri praktikan (hanya email kampus).
         'registration_open' => true,
         'registration_domains' => 'itpln.ac.id',

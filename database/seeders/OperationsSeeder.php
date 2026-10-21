@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use App\Actions\Honor\ComputeHonorRecaps;
 use App\Actions\Shift\GenerateClassShifts;
-use App\Models\Attendance;
 use App\Models\HonorRate;
 use App\Models\HonorRecap;
 use App\Models\Meeting;
@@ -15,13 +14,12 @@ use App\Models\ShiftSwap;
 use App\Models\SupervisionReport;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Database\Seeder;
 
 /**
  * Shift (dari jadwal kelas + jaga lab), laporan ngawas berbagai status,
  * tukar shift, tarif & rekap honor — agar Schedule/Report/Generate terisi.
  */
-class OperationsSeeder extends Seeder
+class OperationsSeeder extends DemoSeeder
 {
     private const NOTES = [
         'Praktikum berjalan lancar. Asisten menjelaskan materi lalu praktikan mengerjakan latihan terbimbing; seluruh PC berfungsi normal.',
@@ -73,7 +71,6 @@ class OperationsSeeder extends Seeder
             };
             $verifier = $shift->user_id === $dimas->id ? $admin : $dimas;
             $meeting = $shift->class_id ? Meeting::where('class_id', $shift->class_id)->whereDate('date', $shift->date)->first() : null;
-            $present = $meeting ? Attendance::where('meeting_id', $meeting->id)->where('status', 'hadir')->count() : 0;
 
             $report = SupervisionReport::create([
                 'semester_id' => $semester->id,
@@ -85,9 +82,7 @@ class OperationsSeeder extends Seeder
                 'start_time' => $shift->start_time,
                 'end_time' => $shift->end_time,
                 'activity' => $shift->displayTitle(),
-                'material' => $meeting ? preg_replace('/^Modul \d+ · /', '', $meeting->module_title) : 'Pemeliharaan & jaga lab',
-                'present_count' => $present,
-                'lab_condition' => $i % 5 === 2 ? 'kendala_ringan' : 'baik',
+                'material' => $meeting->topic ?? 'Pemeliharaan & jaga lab',
                 'notes' => self::NOTES[$i % count(self::NOTES)],
                 'status' => $status,
                 'submitted_at' => $status === 'draft' ? null : $shift->endsAt()->addMinutes(30),
@@ -112,7 +107,7 @@ class OperationsSeeder extends Seeder
             ShiftSwap::create(['shift_id' => $past->id, 'from_user_id' => $michael->id, 'to_user_id' => $dimas->id, 'reason' => 'Izin sakit.', 'status' => 'approved', 'responded_at' => $past->date->subDays(2)]);
         }
 
-        // Rekap honor: bulan lalu Final (disetujui Bendahara), bulan ini Draft.
+        // Rekap honor: bulan lalu Final (disetujui Sekretaris/Bendahara), bulan ini Draft.
         $previous = $today->subMonth()->format('Y-m');
         $honor($previous);
         HonorRecap::where('month', $previous)->update(['status' => 'final', 'approved_by' => $yozika->id, 'approved_at' => $today->startOfMonth()->addDays(1)]);

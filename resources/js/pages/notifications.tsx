@@ -96,7 +96,7 @@ export default function Notifications({
                                                     n.id,
                                                 )}
                                                 className={cn(
-                                                    'flex gap-4 px-5 py-4 hover:bg-primary-50',
+                                                    'flex flex-wrap gap-x-4 gap-y-1 px-4 py-4 hover:bg-primary-50 sm:flex-nowrap sm:px-5',
                                                     !n.read &&
                                                         'bg-primary-50/60',
                                                 )}
@@ -127,7 +127,8 @@ export default function Notifications({
                                                         {n.body}
                                                     </span>
                                                 </span>
-                                                <span className="shrink-0 text-xs text-muted-foreground">
+                                                {/* HP: waktu turun ke bawah isi agar teks tidak terjepit. */}
+                                                <span className="w-full shrink-0 pl-14 text-xs text-muted-foreground sm:w-auto sm:pl-0">
                                                     {formatRelative(
                                                         n.createdAt,
                                                     )}

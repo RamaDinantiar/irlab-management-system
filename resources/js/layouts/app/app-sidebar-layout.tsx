@@ -3,6 +3,7 @@ import { AppShell } from '@/components/app-shell';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AppSidebarHeader } from '@/components/app-sidebar-header';
 import { IdleSessionGuard } from '@/components/idle-session-guard';
+import { LogoutConfirmDialog } from '@/components/logout-confirm-dialog';
 import type { AppLayoutProps } from '@/types';
 
 export default function AppSidebarLayout({
@@ -20,6 +21,7 @@ export default function AppSidebarLayout({
                 </div>
             </AppContent>
             <IdleSessionGuard />
+            <LogoutConfirmDialog />
         </AppShell>
     );
 }

@@ -2,9 +2,9 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * Tahap timeline rekrutmen (FR-APR-03-1).
@@ -13,8 +13,8 @@ use Illuminate\Support\Carbon;
  * @property int $program_id
  * @property int $order
  * @property string $name
- * @property Carbon|null $start_at
- * @property Carbon|null $end_at
+ * @property CarbonImmutable|null $start_at
+ * @property CarbonImmutable|null $end_at
  */
 class ProgramStage extends Model
 {

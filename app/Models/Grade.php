@@ -2,11 +2,11 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Database\Factories\GradeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
  * Nilai & feedback satu submission (US-A02, FR-AG). Hanya status `published`
@@ -17,9 +17,9 @@ use Illuminate\Support\Carbon;
  * @property string|null $score
  * @property string|null $feedback
  * @property int|null $graded_by
- * @property Carbon|null $graded_at
+ * @property CarbonImmutable|null $graded_at
  * @property string $status
- * @property Carbon|null $published_at
+ * @property CarbonImmutable|null $published_at
  * @property int $version
  * @property-read Submission $submission
  * @property-read User|null $grader

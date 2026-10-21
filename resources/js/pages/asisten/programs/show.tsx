@@ -22,6 +22,7 @@ import ProgramController from '@/actions/App/Http/Controllers/Asisten/ProgramCon
 import { EmptyState } from '@/components/empty-state';
 import InputError from '@/components/input-error';
 import { ProgramFormDialog } from '@/components/programs/program-form-dialog';
+import { SelectField } from '@/components/select-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -47,6 +48,7 @@ import type {
     ProgramStageRow,
     RegistrationStatus,
 } from '@/types';
+import { DateField } from '@/components/pickers/date-field';
 
 type Registration = {
     id: number;
@@ -588,24 +590,20 @@ function FormBuilder({
                                 >
                                     Jenis
                                 </Label>
-                                <select
+                                <SelectField
                                     id={`f-type-${i}`}
                                     disabled={locked}
                                     value={f.type}
-                                    onChange={(e) =>
+                                    onValueChange={(v) =>
                                         set(i, {
-                                            type: e.target
-                                                .value as ProgramField['type'],
+                                            type: v as ProgramField['type'],
                                         })
                                     }
-                                    className="h-10 border border-input bg-white px-3 text-sm"
-                                >
-                                    {FIELD_TYPES.map(([v, l]) => (
-                                        <option key={v} value={v}>
-                                            {l}
-                                        </option>
-                                    ))}
-                                </select>
+                                    options={FIELD_TYPES.map(([v, l]) => ({
+                                        value: v,
+                                        label: l,
+                                    }))}
+                                />
                             </div>
                             <label className="flex items-center gap-2 pb-2.5 text-sm">
                                 <Checkbox
@@ -884,23 +882,15 @@ function Timeline({
                                 }
                                 className="min-w-40 flex-1"
                             />
-                            <Input
+                            <DateField
                                 aria-label="Mulai"
-                                type="date"
                                 value={s.startAt ?? ''}
-                                onChange={(e) =>
-                                    set(i, { startAt: e.target.value })
-                                }
-                                className="w-40"
+                                onChange={(value) => set(i, { startAt: value })}
                             />
-                            <Input
+                            <DateField
                                 aria-label="Selesai"
-                                type="date"
                                 value={s.endAt ?? ''}
-                                onChange={(e) =>
-                                    set(i, { endAt: e.target.value })
-                                }
-                                className="w-40"
+                                onChange={(value) => set(i, { endAt: value })}
                             />
                             <Button
                                 type="button"
@@ -1166,7 +1156,7 @@ export default function ProgramShow(props: Props) {
                 {recruitment && program.status === 'draft' && (
                     <section
                         aria-labelledby="ready-title"
-                        className="border-primary-300 grid gap-3 border bg-primary-50 p-5"
+                        className="grid gap-3 border border-primary-300 bg-primary-50 p-5"
                     >
                         <h2 id="ready-title" className="font-bold">
                             Checklist Kesiapan · Mode Persiapan

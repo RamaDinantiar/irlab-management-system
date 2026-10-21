@@ -21,7 +21,7 @@ class LabClassFactory extends Factory
     {
         return [
             'course_id' => Course::factory(),
-            'semester_id' => fn (array $attributes) => Course::find($attributes['course_id'])->semester_id,
+            'semester_id' => fn (array $attributes) => Course::whereKey($attributes['course_id'])->firstOrFail()->semester_id,
             'name' => 'Kelas '.fake()->unique()->randomLetter(),
             'day_of_week' => 1,
             'start_time' => '07:20',
@@ -36,7 +36,7 @@ class LabClassFactory extends Factory
     {
         return $this->state(fn () => [
             'approval_status' => ApprovalStatus::Pending,
-            'proposed_by' => $proposer?->id ?? User::factory()->asisten(),
+            'proposed_by' => $proposer->id ?? User::factory()->asisten(),
             'join_token' => null,
         ]);
     }

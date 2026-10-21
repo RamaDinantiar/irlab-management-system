@@ -1,12 +1,5 @@
 import { Form, Link } from '@inertiajs/react';
-import {
-    CalendarPlus,
-    FileText,
-    Pencil,
-    Play,
-    Plus,
-    Wand2,
-} from 'lucide-react';
+import { CalendarPlus, Pencil, Play, Plus, Wand2 } from 'lucide-react';
 import { useState } from 'react';
 import MeetingController from '@/actions/App/Http/Controllers/Asisten/MeetingController';
 import SessionController from '@/actions/App/Http/Controllers/Asisten/SessionController';
@@ -38,7 +31,7 @@ import {
     TableHeader,
     TableRow,
 } from '@/components/ui/table';
-import { formatDate, formatRelative } from '@/lib/datetime';
+import { formatDate } from '@/lib/datetime';
 import type { ClassRow, MeetingRow, SelectOption } from '@/types';
 
 function GenerateDialog({ klass }: { klass: ClassRow }) {
@@ -101,7 +94,7 @@ function GenerateDialog({ klass }: { klass: ClassRow }) {
     );
 }
 
-/** Asisten › detail kelas › Pertemuan & Modul (FR-AC-04). */
+/** Asisten › detail kelas › Pertemuan (FR-AC-04). */
 export default function ClassMeetings({
     klass,
     meetings,
@@ -115,7 +108,7 @@ export default function ClassMeetings({
         Math.max(0, ...meetings.map((meeting) => meeting.number)) + 1;
 
     return (
-        <ClassDetailLayout klass={klass} title="Pertemuan & Modul">
+        <ClassDetailLayout klass={klass} title="Pertemuan">
             {klass.canEdit && (
                 <div className="flex flex-wrap gap-2">
                     <GenerateDialog klass={klass} />
@@ -145,7 +138,7 @@ export default function ClassMeetings({
                             <TableRow>
                                 <TableHead>No</TableHead>
                                 <TableHead>Tanggal</TableHead>
-                                <TableHead>Modul</TableHead>
+                                <TableHead>Materi</TableHead>
                                 <TableHead>Penanggung Jawab</TableHead>
                                 <TableHead>Sesi</TableHead>
                                 <TableHead className="text-right">
@@ -165,45 +158,8 @@ export default function ClassMeetings({
                                     <TableCell className="font-mono text-sm whitespace-nowrap">
                                         {formatDate(meeting.date)}
                                     </TableCell>
-                                    <TableCell className="min-w-56 whitespace-normal">
-                                        <span className="block font-bold">
-                                            {meeting.moduleTitle ?? '—'}
-                                        </span>
-                                        {meeting.moduleFile ? (
-                                            <span className="mt-1 flex flex-wrap items-center gap-2">
-                                                <a
-                                                    href={
-                                                        meeting.moduleFile.url
-                                                    }
-                                                    target="_blank"
-                                                    rel="noreferrer"
-                                                    className="inline-flex items-center gap-1 text-sm text-primary-700 underline"
-                                                >
-                                                    <FileText
-                                                        className="size-3.5"
-                                                        aria-hidden
-                                                    />{' '}
-                                                    {meeting.moduleFile.name}
-                                                </a>
-                                                {meeting.moduleReleased ? (
-                                                    <Badge variant="success">
-                                                        Dirilis
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge variant="warning">
-                                                        Rilis{' '}
-                                                        {meeting.moduleReleaseAt &&
-                                                            formatRelative(
-                                                                meeting.moduleReleaseAt,
-                                                            )}
-                                                    </Badge>
-                                                )}
-                                            </span>
-                                        ) : (
-                                            <span className="text-xs text-muted-foreground">
-                                                Modul belum diunggah
-                                            </span>
-                                        )}
+                                    <TableCell className="min-w-56 font-bold whitespace-normal">
+                                        {meeting.topic ?? '—'}
                                     </TableCell>
                                     <TableCell className="text-sm">
                                         {meeting.responsibleAssistant?.name ??
@@ -263,7 +219,7 @@ export default function ClassMeetings({
                                                                 meeting.id,
                                                             )}
                                                             title={`Hapus pertemuan ${meeting.number}?`}
-                                                            description="Pertemuan dan file modulnya dihapus."
+                                                            description="Pertemuan ini akan dihapus."
                                                         />
                                                     )}
                                                 </>

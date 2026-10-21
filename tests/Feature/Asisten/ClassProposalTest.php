@@ -43,6 +43,7 @@ class ClassProposalTest extends TestCase
         return [
             'course_id' => $this->course->id,
             'name' => 'Kelas D',
+            'lecturer' => 'Dine Tiara Kusuma, ST., M.Kom',
             'day_of_week' => 3,
             'start_time' => '13:00',
             'end_time' => '14:40',
@@ -105,5 +106,19 @@ class ClassProposalTest extends TestCase
         $class->assistants()->attach($this->asisten);
 
         $this->post(route('asisten.classes.token', $class))->assertSessionHasErrors('class');
+    }
+
+    public function test_class_list_shows_own_classes_for_assistants_and_all_for_admins()
+    {
+        $mine = LabClass::factory()->create(['course_id' => $this->course->id, 'semester_id' => $this->course->semester_id]);
+        $mine->assistants()->attach($this->asisten);
+        LabClass::factory()->create(['course_id' => $this->course->id, 'semester_id' => $this->course->semester_id]);
+
+        $this->get(route('asisten.class.index'))
+            ->assertInertia(fn ($page) => $page->has('classes', 1)->where('classes.0.id', $mine->id));
+
+        // FR-ADM-11: Admin melihat seluruh kelas semester ini.
+        $this->actingAs(User::factory()->admin()->create())->get(route('asisten.class.index'))
+            ->assertInertia(fn ($page) => $page->has('classes', 2));
     }
 }

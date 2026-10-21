@@ -22,8 +22,6 @@ class SupervisionReportFactory extends Factory
             'end_time' => '16:00',
             'activity' => 'Jaga Lab',
             'material' => 'Pemeliharaan',
-            'present_count' => 20,
-            'lab_condition' => 'baik',
             'notes' => 'Kegiatan berjalan lancar.',
             'status' => 'draft',
             'editable_until' => now()->addDay()->endOfDay(),

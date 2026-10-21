@@ -328,7 +328,7 @@ export default function RoomLayoutEditor({
 
                     <section
                         aria-label="Grid denah"
-                        className="grid gap-3 overflow-x-auto border bg-card p-4"
+                        className="grid min-w-0 gap-3 border bg-card p-4"
                     >
                         <div className="grid justify-items-center gap-1 bg-primary-50 py-2 text-center text-sm font-bold text-primary-800">
                             <span
@@ -337,77 +337,89 @@ export default function RoomLayoutEditor({
                             />{' '}
                             Papan Tulis (Depan)
                         </div>
-                        <div
-                            className="grid w-max gap-1.5 select-none"
-                            style={{
-                                gridTemplateColumns: `repeat(${room.cols}, 3.5rem)`,
-                            }}
-                        >
-                            {Array.from({ length: room.rows }, (_, r) =>
-                                Array.from({ length: room.cols }, (_, c) => {
-                                    const k = key(r + 1, c + 1);
-                                    const cell = cells.get(k);
-                                    const isLocked =
-                                        !!cell?.id && locked.has(cell.id);
+                        {/* Papan tulis di luar area geser agar selalu terlihat utuh. */}
+                        <div className="overflow-x-auto">
+                            <div
+                                className="grid w-max gap-1.5 select-none"
+                                style={{
+                                    gridTemplateColumns: `repeat(${room.cols}, 3.5rem)`,
+                                }}
+                            >
+                                {Array.from({ length: room.rows }, (_, r) =>
+                                    Array.from(
+                                        { length: room.cols },
+                                        (_, c) => {
+                                            const k = key(r + 1, c + 1);
+                                            const cell = cells.get(k);
+                                            const isLocked =
+                                                !!cell?.id &&
+                                                locked.has(cell.id);
 
-                                    return (
-                                        <button
-                                            key={k}
-                                            type="button"
-                                            aria-label={`Baris ${r + 1} kolom ${c + 1}: ${cell ? (cell.type === 'seat' ? cell.label : cell.type === 'assistant_desk' ? 'meja asisten' : 'nonaktif') : 'lorong'}`}
-                                            onPointerDown={() => {
-                                                setPainting(tool !== 'select');
-                                                apply(r + 1, c + 1);
-                                            }}
-                                            onPointerEnter={() =>
-                                                painting && apply(r + 1, c + 1)
-                                            }
-                                            className={cn(
-                                                'relative flex size-14 flex-col items-center justify-center border text-[11px] leading-tight font-bold focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
-                                                !cell &&
-                                                    'border-dashed border-slate-200 bg-white text-slate-300',
-                                                cell?.type === 'seat' &&
-                                                    'border-primary-500 bg-primary-50 font-mono text-primary-800',
-                                                cell?.type === 'seat' &&
-                                                    cell.label &&
-                                                    duplicate.has(
-                                                        cell.label.toUpperCase(),
-                                                    ) &&
-                                                    'border-destructive bg-danger-soft text-destructive',
-                                                cell?.type ===
-                                                    'assistant_desk' &&
-                                                    'border-dashed border-primary-600 bg-white text-primary-700',
-                                                cell?.type === 'disabled' &&
-                                                    'border-slate-300 bg-slate-200 text-slate-500',
-                                                active === k &&
-                                                    'ring-2 ring-primary-800',
-                                            )}
-                                        >
-                                            {cell?.type === 'seat' &&
-                                                (cell.label ?? '?')}
-                                            {cell?.type ===
-                                                'assistant_desk' && (
-                                                <Monitor
-                                                    className="size-4"
-                                                    aria-hidden
-                                                />
-                                            )}
-                                            {cell?.type === 'disabled' && (
-                                                <Ban
-                                                    className="size-4"
-                                                    aria-hidden
-                                                />
-                                            )}
-                                            {isLocked && (
-                                                <Lock
-                                                    className="absolute top-0.5 right-0.5 size-3"
-                                                    aria-hidden
-                                                />
-                                            )}
-                                        </button>
-                                    );
-                                }),
-                            )}
+                                            return (
+                                                <button
+                                                    key={k}
+                                                    type="button"
+                                                    aria-label={`Baris ${r + 1} kolom ${c + 1}: ${cell ? (cell.type === 'seat' ? cell.label : cell.type === 'assistant_desk' ? 'meja asisten' : 'nonaktif') : 'lorong'}`}
+                                                    onPointerDown={() => {
+                                                        setPainting(
+                                                            tool !== 'select',
+                                                        );
+                                                        apply(r + 1, c + 1);
+                                                    }}
+                                                    onPointerEnter={() =>
+                                                        painting &&
+                                                        apply(r + 1, c + 1)
+                                                    }
+                                                    className={cn(
+                                                        'relative flex size-14 flex-col items-center justify-center border text-[11px] leading-tight font-bold focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none',
+                                                        !cell &&
+                                                            'border-dashed border-slate-200 bg-white text-slate-300',
+                                                        cell?.type === 'seat' &&
+                                                            'border-primary-500 bg-primary-50 font-mono text-primary-800',
+                                                        cell?.type === 'seat' &&
+                                                            cell.label &&
+                                                            duplicate.has(
+                                                                cell.label.toUpperCase(),
+                                                            ) &&
+                                                            'border-destructive bg-danger-soft text-destructive',
+                                                        cell?.type ===
+                                                            'assistant_desk' &&
+                                                            'border-dashed border-primary-600 bg-white text-primary-700',
+                                                        cell?.type ===
+                                                            'disabled' &&
+                                                            'border-slate-300 bg-slate-200 text-slate-500',
+                                                        active === k &&
+                                                            'ring-2 ring-primary-800',
+                                                    )}
+                                                >
+                                                    {cell?.type === 'seat' &&
+                                                        (cell.label ?? '?')}
+                                                    {cell?.type ===
+                                                        'assistant_desk' && (
+                                                        <Monitor
+                                                            className="size-4"
+                                                            aria-hidden
+                                                        />
+                                                    )}
+                                                    {cell?.type ===
+                                                        'disabled' && (
+                                                        <Ban
+                                                            className="size-4"
+                                                            aria-hidden
+                                                        />
+                                                    )}
+                                                    {isLocked && (
+                                                        <Lock
+                                                            className="absolute top-0.5 right-0.5 size-3"
+                                                            aria-hidden
+                                                        />
+                                                    )}
+                                                </button>
+                                            );
+                                        },
+                                    ),
+                                )}
+                            </div>
                         </div>
                     </section>
                 </div>

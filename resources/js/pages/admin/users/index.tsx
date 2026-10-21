@@ -28,7 +28,7 @@ import { CredentialsDialog } from '@/components/users/credentials-dialog';
 import { ImportUsersDialog } from '@/components/users/import-users-dialog';
 import { UserFormDialog } from '@/components/users/user-form-dialog';
 import { UserRowActions } from '@/components/users/user-row-actions';
-import { roleLabels } from '@/config/navigation';
+import { positionLabels, roleLabels } from '@/config/navigation';
 import type { Paginated, UserRow } from '@/types';
 
 type Filters = { search: string; role: string; status: string };
@@ -41,10 +41,8 @@ function RoleCell({ user }: { user: UserRow }) {
             <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
                 {roleLabels[user.role]}
             </Badge>
-            {user.position !== 'none' && (
-                <Badge variant="outline" className="capitalize">
-                    {user.position}
-                </Badge>
+            {user.role === 'asisten' && (
+                <Badge variant="outline">{positionLabels[user.position]}</Badge>
             )}
         </span>
     );

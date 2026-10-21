@@ -39,9 +39,10 @@ class ClassController extends Controller
 
         $myClasses = $semester
             ? LabClass::forSemester($semester)
-                ->where(fn ($query) => $query
+                // FR-ADM-11: Admin melihat seluruh kelas; Asisten kelas yang diampu/diajukan.
+                ->when(! $user->isAdmin(), fn ($query) => $query->where(fn ($q) => $q
                     ->taughtBy($user)
-                    ->orWhere('proposed_by', $user->id))
+                    ->orWhere('proposed_by', $user->id)))
                 ->with(['course', 'room', 'assistants', 'semester'])
                 ->withCount('enrollments')
                 ->orderBy('day_of_week')->orderBy('start_time')->get()
@@ -54,7 +55,6 @@ class ClassController extends Controller
                 'courses' => $myCourses->map(fn (Course $c) => ['id' => $c->id, 'label' => "{$c->code} · {$c->name}"])->values(),
                 'rooms' => Room::orderBy('name')->get(['id', 'name'])->map(fn (Room $r) => ['id' => $r->id, 'label' => $r->name]),
             ],
-            'courses' => CourseResource::collection($myCourses)->resolve(),
             'proposals' => CourseResource::collection($myProposals)->resolve(),
         ]);
     }

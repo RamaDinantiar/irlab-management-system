@@ -13,14 +13,16 @@ export type MeetingRow = {
     number: number;
     /** "YYYY-MM-DD". */
     date: string;
-    moduleTitle: string | null;
-    moduleFile?: FileLink | null;
-    moduleReleaseAt: string | null;
-    moduleReleased: boolean;
+    topic: string | null;
     responsibleAssistant?: { id: number; name: string } | null;
     startedAt: string | null;
     endedAt: string | null;
-    /** Dimulai hari ini dan belum diakhiri. */
+    /** Jam mulai & selesai sesi (tanggal pertemuan + jam kelas). */
+    startsAt: string;
+    endsAt: string;
+    /** Jam mulai sudah lewat — presensi dapat diisi. */
+    started: boolean;
+    /** Sedang dalam jam kelas dan tidak diakhiri lebih awal. */
     running: boolean;
     attendanceCount?: number;
 };

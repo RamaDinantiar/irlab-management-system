@@ -3,7 +3,6 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
     Dialog,
     DialogClose,
@@ -24,11 +23,11 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { Spinner } from '@/components/ui/spinner';
-import { toLocalInput } from '@/lib/task';
 import type { MeetingRow, SelectOption } from '@/types';
 import type { RouteFormDefinition } from '@/wayfinder';
+import { DateField } from '@/components/pickers/date-field';
 
-/** FR-AC-04: tambah/ubah pertemuan + unggah modul PDF + tanggal rilis. */
+/** FR-AC-04: tambah/ubah pertemuan (nomor, tanggal, topik, asisten PJ). */
 export function MeetingFormDialog({
     action,
     meeting,
@@ -55,9 +54,8 @@ export function MeetingFormDialog({
                             : 'Tambah Pertemuan'}
                     </DialogTitle>
                     <DialogDescription>
-                        Modul PDF (maks. 10 MB) baru terlihat praktikan pada
-                        tanggal rilis. Kosongkan tanggal rilis untuk langsung
-                        merilis.
+                        Materi pertemuan tampil di jadwal praktikan dan mengisi
+                        otomatis kolom Materi pada laporan mengawas.
                     </DialogDescription>
                 </DialogHeader>
                 <Form
@@ -66,7 +64,7 @@ export function MeetingFormDialog({
                     onSuccess={() => setOpen(false)}
                     className="grid gap-5"
                 >
-                    {({ processing, errors, progress }) => (
+                    {({ processing, errors }) => (
                         <>
                             <div className="grid gap-5 sm:grid-cols-[8rem_1fr]">
                                 <div className="grid gap-2">
@@ -91,105 +89,31 @@ export function MeetingFormDialog({
                                     <Label htmlFor="meeting-date">
                                         Tanggal
                                     </Label>
-                                    <Input
+                                    <DateField
                                         id="meeting-date"
                                         name="date"
-                                        type="date"
                                         required
-                                        defaultValue={meeting?.date}
-                                        aria-invalid={!!errors.date}
+                                        defaultValue={meeting?.date ?? ''}
+                                        invalid={!!errors.date}
                                     />
                                     <InputError message={errors.date} />
                                 </div>
                             </div>
                             <div className="grid gap-2">
-                                <Label htmlFor="meeting-title">
-                                    Judul modul
+                                <Label htmlFor="meeting-topic">
+                                    Materi pertemuan
                                 </Label>
                                 <Input
-                                    id="meeting-title"
-                                    name="module_title"
+                                    id="meeting-topic"
+                                    name="topic"
                                     maxLength={150}
-                                    defaultValue={meeting?.moduleTitle ?? ''}
-                                    placeholder="Modul 04 · Classification"
+                                    defaultValue={meeting?.topic ?? ''}
+                                    placeholder="Mis. Regresi Linear"
+                                    aria-invalid={!!errors.topic}
                                 />
-                                <InputError message={errors.module_title} />
+                                <InputError message={errors.topic} />
                             </div>
-                            <div className="grid gap-2">
-                                <Label htmlFor="meeting-file">
-                                    File modul (PDF)
-                                </Label>
-                                {meeting?.moduleFile && (
-                                    <p className="text-sm">
-                                        Saat ini:{' '}
-                                        <a
-                                            href={meeting.moduleFile.url}
-                                            className="font-medium text-primary-700 underline"
-                                            target="_blank"
-                                            rel="noreferrer"
-                                        >
-                                            {meeting.moduleFile.name}
-                                        </a>
-                                    </p>
-                                )}
-                                <Input
-                                    id="meeting-file"
-                                    name="module_file"
-                                    type="file"
-                                    accept="application/pdf,.pdf"
-                                    aria-invalid={!!errors.module_file}
-                                />
-                                {progress && (
-                                    <div
-                                        role="progressbar"
-                                        aria-label="Mengunggah"
-                                        aria-valuenow={progress.percentage}
-                                        aria-valuemin={0}
-                                        aria-valuemax={100}
-                                        className="h-1.5 bg-primary-50"
-                                    >
-                                        <div
-                                            className="h-full bg-primary"
-                                            style={{
-                                                width: `${progress.percentage}%`,
-                                            }}
-                                        />
-                                    </div>
-                                )}
-                                {meeting?.moduleFile && (
-                                    <div className="flex items-center gap-2">
-                                        <Checkbox
-                                            id="remove-module"
-                                            name="remove_module"
-                                            value="1"
-                                        />
-                                        <Label
-                                            htmlFor="remove-module"
-                                            className="font-normal"
-                                        >
-                                            Hapus file modul
-                                        </Label>
-                                    </div>
-                                )}
-                                <InputError message={errors.module_file} />
-                            </div>
-                            <div className="grid gap-5 sm:grid-cols-2">
-                                <div className="grid gap-2">
-                                    <Label htmlFor="meeting-release">
-                                        Tanggal rilis modul
-                                    </Label>
-                                    <Input
-                                        id="meeting-release"
-                                        name="module_release_at"
-                                        type="datetime-local"
-                                        defaultValue={toLocalInput(
-                                            meeting?.moduleReleaseAt ?? null,
-                                        )}
-                                    />
-                                    <InputError
-                                        message={errors.module_release_at}
-                                    />
-                                </div>
+                            <div className="grid gap-5">
                                 <div className="grid gap-2">
                                     <Label htmlFor="meeting-assistant">
                                         Asisten penanggung jawab

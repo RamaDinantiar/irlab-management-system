@@ -25,7 +25,7 @@ use OpenSpout\Writer\XLSX\Writer;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
- * Asisten › detail kelas (FR-AC-02): tab Anggota, Pertemuan & Modul, Presensi,
+ * Asisten › detail kelas (FR-AC-02): tab Anggota, Pertemuan, Presensi,
  * Pengaturan, Pengumuman. Denah kursi kelas ada di menu Seats.
  */
 class ClassDetailController extends Controller
@@ -68,7 +68,7 @@ class ClassDetailController extends Controller
 
         return $this->render('asisten/class/meetings', $class, [
             'meetings' => MeetingResource::collection(
-                $class->meetings()->with(['moduleFile', 'responsibleAssistant'])->withCount('attendances')->get(),
+                $class->meetings()->with('responsibleAssistant')->withCount('attendances')->get(),
             )->resolve(),
         ]);
     }
@@ -80,7 +80,7 @@ class ClassDetailController extends Controller
     {
         $this->authorizeAssistant($request, $class);
 
-        $meetings = $class->meetings()->get(['id', 'number', 'date', 'started_at']);
+        $meetings = $class->meetings()->get(['id', 'class_id', 'number', 'date', 'started_at']);
         $records = Attendance::whereIn('meeting_id', $meetings->pluck('id'))->get()
             ->groupBy('user_id')
             ->map(fn ($rows) => $rows->pluck('status', 'meeting_id'));
@@ -96,7 +96,7 @@ class ClassDetailController extends Controller
 
         return $this->render('asisten/class/attendance', $class, [
             'meetings' => $meetings->map(fn ($m) => [
-                'id' => $m->id, 'number' => $m->number, 'date' => $m->date->toDateString(), 'started' => $m->started_at !== null,
+                'id' => $m->id, 'number' => $m->number, 'date' => $m->date->toDateString(), 'started' => $m->hasStarted(),
             ]),
             'students' => $students,
         ]);

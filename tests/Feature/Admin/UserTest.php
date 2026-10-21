@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Actions\User\SetUserActive;
 use App\Enums\Position;
 use App\Enums\Role;
 use App\Models\User;
@@ -11,6 +12,7 @@ use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer as XlsxWriter;
@@ -115,12 +117,12 @@ class UserTest extends TestCase
 
     public function test_positions_are_only_for_assistants()
     {
-        $this->post(route('admin.users.store'), $this->payload(['position' => 'sekretaris']))
-            ->assertSessionHasErrors(['position' => 'Jabatan Sekretaris/Bendahara hanya untuk Asisten.']);
+        $this->post(route('admin.users.store'), $this->payload(['position' => 'sekretaris_bendahara']))
+            ->assertSessionHasErrors(['position' => 'Divisi Sekretaris/Bendahara hanya untuk Asisten.']);
 
-        $this->post(route('admin.users.store'), $this->payload(['role' => 'asisten', 'position' => 'sekretaris']))
+        $this->post(route('admin.users.store'), $this->payload(['role' => 'asisten', 'position' => 'sekretaris_bendahara']))
             ->assertSessionHasNoErrors();
-        $this->assertSame(Position::Sekretaris, User::where('nim', '202331044')->sole()->position);
+        $this->assertSame(Position::SekretarisBendahara, User::where('nim', '202331044')->sole()->position);
     }
 
     public function test_role_changes_are_audited()
@@ -128,7 +130,7 @@ class UserTest extends TestCase
         $user = User::factory()->create();
 
         $this->put(route('admin.users.update', $user), $this->payload([
-            'nim' => $user->nim, 'email' => $user->email, 'role' => 'asisten', 'position' => 'bendahara',
+            'nim' => $user->nim, 'email' => $user->email, 'role' => 'asisten', 'position' => 'sekretaris_bendahara',
         ]))->assertSessionHasNoErrors();
 
         $this->assertSame(Role::Asisten, $user->fresh()->role);
@@ -143,6 +145,53 @@ class UserTest extends TestCase
 
         $this->post(route('admin.users.activation', $this->admin), ['active' => '0'])->assertForbidden();
         $this->assertTrue($this->admin->fresh()->is_active);
+    }
+
+    public function test_the_last_active_admin_can_never_be_deactivated()
+    {
+        $other = User::factory()->admin()->create();
+        app(SetUserActive::class)($other, false);
+        $this->assertFalse($other->fresh()->is_active);
+
+        // Tinggal $this->admin yang aktif — jalur mana pun (bukan hanya UI) ditolak.
+        $this->assertTrue($this->admin->isLastActiveAdmin());
+        $this->expectException(ValidationException::class);
+        app(SetUserActive::class)($this->admin, false);
+    }
+
+    public function test_recover_admin_restores_access_from_the_server()
+    {
+        $user = User::factory()->create(['is_active' => false, 'remember_token' => 'old-token']);
+        DB::table('sessions')->insert(['id' => 'abc', 'user_id' => $user->id, 'payload' => '', 'last_activity' => time()]);
+        $oldHash = $user->password;
+
+        $this->artisan('lab:recover-admin', ['email' => strtoupper($user->email)])
+            ->expectsConfirmation("Jadikan {$user->name} <{$user->email}> Admin aktif dengan kata sandi sementara baru?", 'yes')
+            ->expectsOutputToContain('Kata sandi sementara')
+            ->assertSuccessful();
+
+        $user->refresh();
+        $this->assertSame(Role::Admin, $user->role);
+        $this->assertTrue($user->is_active);
+        $this->assertTrue($user->must_change_password);
+        $this->assertNotSame($oldHash, $user->password);
+        $this->assertDatabaseMissing('sessions', ['user_id' => $user->id]);
+        $this->assertNotSame('old-token', $user->remember_token);
+        $this->assertDatabaseHas('audit_logs', ['action' => 'user.admin_recovered', 'auditable_id' => $user->id]);
+    }
+
+    public function test_recover_admin_changes_nothing_when_declined_or_unknown()
+    {
+        $user = User::factory()->create();
+
+        $this->artisan('lab:recover-admin', ['email' => $user->email])
+            ->expectsConfirmation("Jadikan {$user->name} <{$user->email}> Admin aktif dengan kata sandi sementara baru?", 'no')
+            ->assertFailed();
+        $this->assertSame(Role::Praktikan, $user->fresh()->role);
+
+        $this->artisan('lab:recover-admin', ['email' => 'tidak.ada@itpln.ac.id', '--force' => true])
+            ->expectsOutputToContain('Akun tidak ditemukan')
+            ->assertFailed();
     }
 
     public function test_deactivating_ends_every_session()
@@ -173,6 +222,17 @@ class UserTest extends TestCase
         $this->assertTrue($user->must_change_password);
         $this->assertFalse(Hash::check('password', $user->password));
         Notification::assertSentTo($user, AccountCredentialsNotification::class);
+    }
+
+    public function test_reset_password_ends_every_session()
+    {
+        $user = User::factory()->create(['remember_token' => 'old-token']);
+        DB::table('sessions')->insert(['id' => 'abc', 'user_id' => $user->id, 'payload' => '', 'last_activity' => time()]);
+
+        $this->post(route('admin.users.password', $user))->assertRedirect();
+
+        $this->assertDatabaseMissing('sessions', ['user_id' => $user->id]);
+        $this->assertNotSame('old-token', $user->fresh()->remember_token);
     }
 
     public function test_csv_import_creates_valid_rows_and_reports_failed_rows()

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\ApprovalStatus;
 use App\Enums\Role;
+use Carbon\CarbonImmutable;
 use Database\Factories\LabClassFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
@@ -12,7 +13,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * Kelas praktikum (US-A01, US-D02). Disebut LabClass karena `Class` adalah kata
@@ -22,6 +22,7 @@ use Illuminate\Support\Carbon;
  * @property int $semester_id
  * @property int $course_id
  * @property string $name
+ * @property string|null $lecturer
  * @property int $day_of_week
  * @property string $start_time
  * @property string $end_time
@@ -33,13 +34,13 @@ use Illuminate\Support\Carbon;
  * @property ApprovalStatus $approval_status
  * @property int|null $proposed_by
  * @property int|null $approved_by
- * @property Carbon|null $approved_at
+ * @property CarbonImmutable|null $approved_at
  * @property string|null $rejection_reason
  * @property-read Semester $semester
  * @property-read Course $course
  * @property-read Room $room
  */
-#[Fillable(['course_id', 'name', 'day_of_week', 'start_time', 'end_time', 'room_id', 'quota'])]
+#[Fillable(['course_id', 'name', 'lecturer', 'day_of_week', 'start_time', 'end_time', 'room_id', 'quota'])]
 class LabClass extends Model
 {
     /** @use HasFactory<LabClassFactory> */
@@ -104,7 +105,7 @@ class LabClass extends Model
      */
     public function meetings(): HasMany
     {
-        return $this->hasMany(Meeting::class, 'class_id')->orderBy('number');
+        return $this->hasMany(Meeting::class, 'class_id')->chaperone('labClass')->orderBy('number');
     }
 
     /** Asisten pengampu kelas ini? Admin = superset (FR-ADM-11). */

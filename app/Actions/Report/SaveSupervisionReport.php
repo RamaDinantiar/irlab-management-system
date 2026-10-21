@@ -17,14 +17,14 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * US-A03 / FR-AR-01: buat atau ubah berita acara mengawas. `submit` = kirim
- * ke Sekretaris (Diajukan); tanpa itu tersimpan sebagai Draft.
+ * ke Sekretaris/Bendahara (Diajukan); tanpa itu tersimpan sebagai Draft.
  */
 class SaveSupervisionReport
 {
     public function __construct(private FileStore $files) {}
 
     /**
-     * @param  array{shift_id?: int|null, date: string, start_time: string, end_time: string, class_id?: int|null, activity: string, material?: string|null, present_count: int, lab_condition: string, notes: string, assistant_ids: list<int>, submit?: bool}  $data
+     * @param  array{shift_id?: int|null, date: string, start_time: string, end_time: string, class_id?: int|null, activity: string, material?: string|null, notes: string, assistant_ids: list<int>, submit?: bool}  $data
      */
     public function __invoke(User $author, array $data, ?UploadedFile $photo = null, ?SupervisionReport $report = null): SupervisionReport
     {
@@ -61,7 +61,7 @@ class SaveSupervisionReport
 
             $report ??= new SupervisionReport([
                 'user_id' => $author->id,
-                'semester_id' => Semester::current()?->id ?? $class?->semester_id,
+                'semester_id' => Semester::current()->id ?? $class?->semester_id,
                 'editable_until' => $date->addDay()->endOfDay(),
             ]);
 
@@ -71,11 +71,9 @@ class SaveSupervisionReport
                 'start_time' => $data['start_time'],
                 'end_time' => $data['end_time'],
                 'class_id' => $class?->id,
-                'room_id' => $shift?->room_id ?? $class?->room_id,
+                'room_id' => $shift->room_id ?? $class?->room_id,
                 'activity' => $data['activity'],
                 'material' => $data['material'] ?? null,
-                'present_count' => $data['present_count'],
-                'lab_condition' => $data['lab_condition'],
                 'notes' => $data['notes'],
             ]);
 

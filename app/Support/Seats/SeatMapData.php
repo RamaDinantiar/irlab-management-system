@@ -8,28 +8,29 @@ use App\Models\User;
 
 /**
  * Data denah + penghuni kursi satu kelas untuk komponen React `SeatMap`.
+ *
+ * @phpstan-import-type Layout from RoomLayout
  */
 class SeatMapData
 {
     /**
-     * @return array{layout: array<string, mixed>, occupants: list<array<string, mixed>>}|null
+     * @return array{layout: Layout, occupants: array<int, array<string, mixed>>}
      */
-    public static function for(LabClass $class, ?User $viewer = null, bool $withDetail = false): ?array
+    public static function for(LabClass $class, ?User $viewer = null, bool $withDetail = false): array
     {
         $class->loadMissing('room');
 
-        if (! $class->room) {
-            return null;
-        }
-
         return [
             'layout' => RoomLayout::for($class->room),
-            'occupants' => $class->seatContracts()->get()->map(fn (SeatContract $contract) => [
+            'occupants' => $class->seatContracts()->when($withDetail, fn ($q) => $q->with('user:id,email,phone,avatar_file_id'))->get()->map(fn (SeatContract $contract) => [
                 'seatId' => $contract->seat_id,
                 'contractId' => $withDetail ? $contract->id : null,
                 'name' => $contract->snapshot_name,
                 'nim' => $contract->snapshot_nim,
                 'major' => $withDetail ? $contract->snapshot_major : null,
+                'email' => $withDetail ? $contract->user->email : null,
+                'phone' => $withDetail ? $contract->user->phone : null,
+                'avatar' => $withDetail ? $contract->user->avatar : null,
                 'mine' => $viewer && $contract->user_id === $viewer->id,
             ])->values()->all(),
         ];
@@ -53,7 +54,7 @@ class SeatMapData
             'dayOfWeek' => $class->day_of_week,
             'startTime' => $class->startClock(),
             'endTime' => $class->endClock(),
-            'room' => $class->room?->name,
+            'room' => $class->room->name,
             'assistants' => $class->assistants->pluck('name')->values(),
             'contractOpen' => $class->seat_contract_open,
         ];

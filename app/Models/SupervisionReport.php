@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Contracts\HasFiles;
+use Carbon\CarbonImmutable;
 use Database\Factories\SupervisionReportFactory;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
-use Illuminate\Support\Carbon;
 
 /**
  * Berita acara mengawas (US-A03, FR-AR). Draft → Diajukan → Diverifikasi
@@ -21,35 +22,30 @@ use Illuminate\Support\Carbon;
  * @property int $user_id
  * @property int|null $class_id
  * @property int|null $room_id
- * @property Carbon $date
+ * @property CarbonImmutable $date
  * @property string $start_time
  * @property string $end_time
  * @property string $activity
  * @property string|null $material
- * @property int $present_count
- * @property string $lab_condition
+ * @property int|null $present_count Tidak lagi diisi (data lama).
+ * @property string|null $lab_condition Tidak lagi diisi (data lama).
  * @property string $notes
  * @property string $status
- * @property Carbon|null $submitted_at
+ * @property CarbonImmutable|null $submitted_at
  * @property int|null $verified_by
- * @property Carbon|null $verified_at
+ * @property CarbonImmutable|null $verified_at
  * @property string|null $return_note
- * @property Carbon $editable_until
+ * @property CarbonImmutable $editable_until
  * @property-read User $user
  * @property-read LabClass|null $labClass
  * @property-read Room|null $room
  * @property-read Shift|null $shift
+ * @property-read Collection<int, User&object{pivot: SupervisionReportAssistant}> $assistants
  */
 class SupervisionReport extends Model implements HasFiles
 {
     /** @use HasFactory<SupervisionReportFactory> */
     use HasFactory;
-
-    public const CONDITIONS = [
-        'baik' => 'Baik',
-        'kendala_ringan' => 'Kendala ringan',
-        'kendala_berat' => 'Kendala berat',
-    ];
 
     protected $guarded = ['id'];
 
@@ -82,11 +78,11 @@ class SupervisionReport extends Model implements HasFiles
     /**
      * Tim asisten jaga, urut posisi (1 = Lead).
      *
-     * @return BelongsToMany<User, $this>
+     * @return BelongsToMany<User, $this, SupervisionReportAssistant, 'pivot'>
      */
     public function assistants(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'supervision_report_assistants')->withPivot('position')->orderByPivot('position');
+        return $this->belongsToMany(User::class, 'supervision_report_assistants')->using(SupervisionReportAssistant::class)->withPivot('position')->orderByPivot('position');
     }
 
     /**

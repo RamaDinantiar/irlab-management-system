@@ -2,6 +2,7 @@ import { useForm } from '@inertiajs/react';
 import type { FormEvent, ReactNode } from 'react';
 import { useState } from 'react';
 import InputError from '@/components/input-error';
+import { SelectField } from '@/components/select-field';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -18,6 +19,7 @@ import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import type { AnnouncementRow } from '@/types';
+import { DateTimeField } from '@/components/pickers/date-time-field';
 
 const ROLES = [
     ['praktikan', 'Praktikan'],
@@ -92,45 +94,38 @@ export function AnnouncementFormDialog({
                         <div className="grid gap-4 sm:grid-cols-2">
                             <div className="grid gap-2">
                                 <Label htmlFor="an-scope">Cakupan</Label>
-                                <select
+                                <SelectField
                                     id="an-scope"
                                     value={form.data.scope}
-                                    onChange={(e) =>
+                                    onValueChange={(v) =>
                                         form.setData(
                                             'scope',
-                                            e.target.value as
-                                                | 'global'
-                                                | 'class',
+                                            v as 'global' | 'class',
                                         )
                                     }
-                                    className="h-10 border border-input bg-white px-3 text-sm"
-                                >
-                                    <option value="global">Global</option>
-                                    <option value="class">Satu kelas</option>
-                                </select>
+                                    options={[
+                                        { value: 'global', label: 'Global' },
+                                        { value: 'class', label: 'Satu kelas' },
+                                    ]}
+                                />
                             </div>
                             {form.data.scope === 'class' ? (
                                 <div className="grid gap-2">
                                     <Label htmlFor="an-class">Kelas</Label>
-                                    <select
+                                    <SelectField
                                         id="an-class"
                                         required
                                         value={form.data.class_id}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'class_id',
-                                                e.target.value,
-                                            )
+                                        onValueChange={(v) =>
+                                            form.setData('class_id', v)
                                         }
-                                        className="h-10 border border-input bg-white px-3 text-sm"
-                                    >
-                                        <option value="">Pilih kelas…</option>
-                                        {classOptions.map((c) => (
-                                            <option key={c.id} value={c.id}>
-                                                {c.label}
-                                            </option>
-                                        ))}
-                                    </select>
+                                        placeholder="Pilih kelas…"
+                                        options={classOptions.map((c) => ({
+                                            value: c.id,
+                                            label: c.label,
+                                        }))}
+                                        aria-invalid={!!form.errors.class_id}
+                                    />
                                     <InputError
                                         message={form.errors.class_id}
                                     />
@@ -205,16 +200,16 @@ export function AnnouncementFormDialog({
                         />
                         <InputError message={form.errors.body} />
                     </div>
-                    <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="grid items-start gap-4 sm:grid-cols-2">
                         <div className="grid gap-2">
                             <Label htmlFor="an-publish">Mulai tayang</Label>
-                            <Input
+                            <DateTimeField
                                 id="an-publish"
-                                type="datetime-local"
                                 value={form.data.publish_at}
-                                onChange={(e) =>
-                                    form.setData('publish_at', e.target.value)
+                                onChange={(value) =>
+                                    form.setData('publish_at', value)
                                 }
+                                label="Mulai tayang"
                             />
                             <p className="text-[11px] text-muted-foreground">
                                 Kosong = sekarang.
@@ -224,13 +219,13 @@ export function AnnouncementFormDialog({
                             <Label htmlFor="an-expire">
                                 Akhir tayang (opsional)
                             </Label>
-                            <Input
+                            <DateTimeField
                                 id="an-expire"
-                                type="datetime-local"
                                 value={form.data.expire_at}
-                                onChange={(e) =>
-                                    form.setData('expire_at', e.target.value)
+                                onChange={(value) =>
+                                    form.setData('expire_at', value)
                                 }
+                                label="Akhir tayang (opsional)"
                             />
                             <InputError message={form.errors.expire_at} />
                         </div>

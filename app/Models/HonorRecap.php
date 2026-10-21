@@ -2,12 +2,12 @@
 
 namespace App\Models;
 
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Carbon;
 
 /**
- * Rekap honor bulanan per asisten (FR-AGN-03). Draft → Final setelah disetujui Bendahara.
+ * Rekap honor bulanan per asisten (FR-AGN-03). Draft → Final setelah disetujui Sekretaris/Bendahara.
  *
  * @property int $id
  * @property string $month
@@ -18,7 +18,7 @@ use Illuminate\Support\Carbon;
  * @property int $amount
  * @property string $status
  * @property int|null $approved_by
- * @property Carbon|null $approved_at
+ * @property CarbonImmutable|null $approved_at
  * @property-read User $user
  */
 class HonorRecap extends Model

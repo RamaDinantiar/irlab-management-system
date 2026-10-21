@@ -16,6 +16,7 @@ import { useEffect } from 'react';
 import SeatController from '@/actions/App/Http/Controllers/Praktikan/SeatController';
 import InputError from '@/components/input-error';
 import { displayLabel, SeatLegend, SeatMap } from '@/components/seats/seat-map';
+import { SelectField } from '@/components/select-field';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
@@ -232,24 +233,20 @@ export default function SeatContractForm({
                                 Mata Kuliah & Kelas Praktikum
                                 <span className="text-destructive">*</span>
                             </Label>
-                            <select
+                            <SelectField
                                 id="f-class"
                                 value={cls.id}
-                                onChange={(event) =>
+                                onValueChange={(v) =>
                                     router.get(
-                                        SeatController.create.url(
-                                            Number(event.target.value),
-                                        ),
+                                        SeatController.create.url(Number(v)),
                                     )
                                 }
-                                className="h-11 border border-input bg-white px-3 text-sm focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
-                            >
-                                {options.map((option) => (
-                                    <option key={option.id} value={option.id}>
-                                        {option.label}
-                                    </option>
-                                ))}
-                            </select>
+                                options={options.map((option) => ({
+                                    value: option.id,
+                                    label: option.label,
+                                }))}
+                                className="data-[size=default]:h-11"
+                            />
                             <p className="text-xs text-muted-foreground">
                                 {formatSchedule(
                                     cls.dayOfWeek,

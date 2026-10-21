@@ -2,6 +2,7 @@
 
 namespace App\Listeners;
 
+use App\Enums\Position;
 use App\Events\ExportFinished;
 use App\Events\GradesPublished;
 use App\Events\SeatContractChanged;
@@ -39,7 +40,7 @@ class SendLabNotifications
     public function handleShiftSwapChanged(ShiftSwapChanged $event): void
     {
         $swap = $event->swap->loadMissing(['shift.labClass.course', 'fromUser', 'toUser']);
-        $when = $swap->shift->date->locale('id')->translatedFormat('l, d M').' '.$swap->shift->startClock();
+        $when = $swap->shift->date->translatedFormat('l, d M').' '.$swap->shift->startClock();
 
         match ($swap->status) {
             'pending' => Notify::send([$swap->to_user_id], 'shift', 'Permintaan tukar shift', "{$swap->fromUser->name} meminta Anda menggantikan shift {$swap->shift->displayTitle()} ({$when}).", '/asisten/schedule'),
@@ -56,9 +57,9 @@ class SendLabNotifications
     public function handleReportSubmitted(SupervisionReportSubmitted $event): void
     {
         $report = $event->report->loadMissing('user');
-        $reviewers = User::where('position', 'sekretaris')->where('is_active', true)->whereKeyNot($report->user_id)->get();
+        $reviewers = User::where('position', Position::SekretarisBendahara)->where('is_active', true)->whereKeyNot($report->user_id)->get();
 
-        Notify::send($reviewers, 'report', 'Laporan ngawas menunggu verifikasi', "{$report->user->name} mengirim laporan {$report->date->locale('id')->translatedFormat('d M Y')} · {$report->activity}.", '/asisten/report?tab=verify');
+        Notify::send($reviewers, 'report', 'Laporan ngawas menunggu verifikasi', "{$report->user->name} mengirim laporan {$report->date->translatedFormat('d M Y')} · {$report->activity}.", '/asisten/report?tab=verify');
     }
 
     public function handleReportReviewed(SupervisionReportReviewed $event): void
@@ -67,7 +68,7 @@ class SendLabNotifications
         $verified = $report->status === 'verified';
 
         Notify::send([$report->user_id], 'report', $verified ? 'Laporan ngawas diverifikasi' : 'Laporan ngawas dikembalikan',
-            $verified ? "Laporan {$report->date->locale('id')->translatedFormat('d M Y')} masuk rekap." : "Perbaiki laporan {$report->date->locale('id')->translatedFormat('d M Y')}: {$report->return_note}",
+            $verified ? "Laporan {$report->date->translatedFormat('d M Y')} masuk rekap." : "Perbaiki laporan {$report->date->translatedFormat('d M Y')}: {$report->return_note}",
             '/asisten/report?month='.$report->date->format('Y-m'));
     }
 

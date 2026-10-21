@@ -64,11 +64,18 @@ class GradeController extends Controller
 
         return Inertia::render('asisten/grades/index', [
             'type' => $taskType?->value,
-            'classes' => $classes->map(fn (LabClass $c) => ['id' => $c->id, 'label' => "{$c->course->name} · {$c->name}"])->values(),
+            'classes' => $classes->map(fn (LabClass $c) => [
+                'id' => $c->id,
+                'label' => "{$c->course->name} · {$c->name}",
+                'name' => $c->name,
+                'courseId' => $c->course_id,
+                'course' => $c->course->name,
+            ])->values(),
             'targets' => $targets->map(fn (TaskTarget $t) => [
                 'id' => $t->id,
                 'label' => $t->task->title,
                 'type' => $t->task->type->value,
+                'meetingNumber' => $t->task->meeting_number,
                 'submitted' => $t->submitted_count,
                 'graded' => $t->graded_count,
             ])->values(),
@@ -89,7 +96,7 @@ class GradeController extends Controller
             'grades.*.version' => ['nullable', 'integer'],
         ]);
 
-        $target = TaskTarget::with(['task', 'labClass'])->findOrFail($validated['target_id']);
+        $target = TaskTarget::with(['task', 'labClass'])->whereKey($validated['target_id'])->firstOrFail();
         $this->authorizeAssistant($request, $target->labClass, write: true);
 
         $count = $save($request->user(), $target, $validated['grades']);
@@ -126,7 +133,7 @@ class GradeController extends Controller
 
         $zip = null;
         if ($current && ($current['submission']['file']['mime'] ?? null) === 'application/zip') {
-            $submission = Submission::with('file')->find($current['submission']['id']);
+            $submission = Submission::with('file')->whereKey($current['submission']['id'])->firstOrFail();
             $zip = ZipBrowser::entries($submission->file);
         }
 
@@ -202,11 +209,15 @@ class GradeController extends Controller
     private function targetSummary(TaskTarget $target): array
     {
         $current = Submission::where('task_target_id', $target->id)->where('is_current', true);
+        $target->loadMissing('task.course');
 
         return [
             'id' => $target->id,
             'classId' => $target->class_id,
             'className' => $target->labClass->name,
+            // Header Mode Tinjauan (Figma "SPLIT SCREEN REVIEW").
+            'course' => $target->task->course->name,
+            'meetingNumber' => $target->task->meeting_number,
             'title' => $target->task->title,
             'type' => $target->task->type->value,
             'maxScore' => $target->task->max_score,
@@ -222,7 +233,7 @@ class GradeController extends Controller
     /**
      * Semua anggota kelas + submission terkini & nilainya (US-A02-1).
      *
-     * @return list<array<string, mixed>>
+     * @return array<int, array<string, mixed>>
      */
     private function rows(TaskTarget $target): array
     {

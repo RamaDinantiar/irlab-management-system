@@ -53,7 +53,7 @@ export function NotificationBell() {
                 <Button
                     variant="ghost"
                     size="icon"
-                    className="relative rounded-full"
+                    className="relative size-10 rounded-full text-primary-700 hover:bg-primary-50 hover:text-primary-700"
                     aria-label={
                         unread
                             ? `Notifikasi, ${unread} belum dibaca`

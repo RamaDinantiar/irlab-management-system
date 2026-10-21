@@ -4,13 +4,13 @@ namespace App\Models;
 
 use App\Contracts\HasFiles;
 use App\Enums\ProgramType;
+use Carbon\CarbonImmutable;
 use Database\Factories\ProgramFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Support\Carbon;
 
 /**
  * Program lab (FR-APR): Workshop, Quick Tutor, Rekrutmen Asisten, Maintenance.
@@ -25,8 +25,8 @@ use Illuminate\Support\Carbon;
  * @property string $mode
  * @property string|null $location
  * @property int|null $room_id
- * @property Carbon|null $starts_at
- * @property Carbon|null $ends_at
+ * @property CarbonImmutable|null $starts_at
+ * @property CarbonImmutable|null $ends_at
  * @property int|null $quota
  * @property int|null $fee_internal
  * @property int|null $fee_external
@@ -34,11 +34,12 @@ use Illuminate\Support\Carbon;
  * @property list<string>|null $requirements
  * @property int|null $poster_file_id
  * @property string $status
- * @property Carbon|null $opens_at
- * @property Carbon|null $closes_at
+ * @property CarbonImmutable|null $opens_at
+ * @property CarbonImmutable|null $closes_at
  * @property list<int>|null $staff_ids
  * @property string|null $result_notes
  * @property-read StoredFile|null $poster
+ * @property-read int $accepted_count withCount
  */
 class Program extends Model implements HasFiles
 {

@@ -16,9 +16,9 @@ class TaskFactory extends Factory
     {
         return [
             'course_id' => Course::factory(),
-            'semester_id' => fn (array $attributes) => Course::find($attributes['course_id'])->semester_id,
+            'semester_id' => fn (array $attributes) => Course::whereKey($attributes['course_id'])->firstOrFail()->semester_id,
             'type' => TaskType::Posttest,
-            'title' => 'Post-Test Modul '.fake()->numberBetween(1, 8),
+            'title' => 'Post-Test Pertemuan '.fake()->numberBetween(1, 8),
             'body_json' => ['type' => 'doc', 'content' => [['type' => 'paragraph', 'content' => [['type' => 'text', 'text' => 'Kerjakan soal berikut.']]]]],
             'max_score' => 100,
             'allow_late' => false,

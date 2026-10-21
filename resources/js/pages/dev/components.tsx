@@ -350,7 +350,7 @@ export default function ComponentsCatalog() {
                             variant="outline"
                             onClick={() =>
                                 notify.success(
-                                    'Berhasil menyimpan 5 nilai praktikan untuk Modul 04.',
+                                    'Berhasil menyimpan 5 nilai praktikan untuk Pertemuan 04.',
                                 )
                             }
                         >

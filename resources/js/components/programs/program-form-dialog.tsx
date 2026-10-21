@@ -15,6 +15,7 @@ import type { FormEvent, ReactNode } from 'react';
 import { useRef, useState } from 'react';
 import ProgramController from '@/actions/App/Http/Controllers/Asisten/ProgramController';
 import InputError from '@/components/input-error';
+import { SelectField } from '@/components/select-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -32,11 +33,12 @@ import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import type { ProgramCard, ProgramOptions, ProgramTypeInfo } from '@/types';
+import { DateTimeField } from '@/components/pickers/date-time-field';
 
 const FACILITIES = [
     'E-Sertifikat Terverifikasi',
     'Konsumsi Snack & Makan',
-    'Modul Repo & Starter Code',
+    'Repo & Starter Code',
 ];
 
 const toLocal = (iso: string | null | undefined) => {
@@ -158,7 +160,7 @@ export function ProgramFormDialog({
             <DialogContent className="max-h-[94svh] gap-0 overflow-y-auto p-0 sm:max-w-3xl">
                 <DialogHeader className="sticky top-0 z-10 border-b bg-card px-6 pt-6 pb-4">
                     <DialogTitle className="flex flex-wrap items-center gap-3 text-h2">
-                        <span className="border-primary-300 flex size-10 items-center justify-center border bg-primary-50 text-primary-700">
+                        <span className="flex size-10 items-center justify-center border border-primary-300 bg-primary-50 text-primary-700">
                             <FileText className="size-5" aria-hidden />
                         </span>
                         {title}
@@ -367,17 +369,14 @@ export function ProgramFormDialog({
                                             *
                                         </span>
                                     </Label>
-                                    <Input
+                                    <DateTimeField
                                         id="p-start"
-                                        type="datetime-local"
                                         required
                                         value={form.data.starts_at}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'starts_at',
-                                                e.target.value,
-                                            )
+                                        onChange={(value) =>
+                                            form.setData('starts_at', value)
                                         }
+                                        label="Mulai"
                                     />
                                     <InputError
                                         message={form.errors.starts_at}
@@ -385,16 +384,13 @@ export function ProgramFormDialog({
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="p-end">Selesai</Label>
-                                    <Input
+                                    <DateTimeField
                                         id="p-end"
-                                        type="datetime-local"
                                         value={form.data.ends_at}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'ends_at',
-                                                e.target.value,
-                                            )
+                                        onChange={(value) =>
+                                            form.setData('ends_at', value)
                                         }
+                                        label="Selesai"
                                     />
                                     <InputError message={form.errors.ends_at} />
                                 </div>
@@ -410,24 +406,20 @@ export function ProgramFormDialog({
                                 ) : maintenance ? (
                                     <div className="grid gap-2">
                                         <Label htmlFor="p-room">Ruang</Label>
-                                        <select
+                                        <SelectField
                                             id="p-room"
                                             value={form.data.room_id}
-                                            onChange={(e) =>
-                                                form.setData(
-                                                    'room_id',
-                                                    e.target.value,
-                                                )
+                                            onValueChange={(v) =>
+                                                form.setData('room_id', v)
                                             }
-                                            className="h-10 border border-input bg-white px-3 text-sm"
-                                        >
-                                            <option value="">—</option>
-                                            {options.rooms.map((r) => (
-                                                <option key={r.id} value={r.id}>
-                                                    {r.name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            options={[
+                                                { value: '', label: '—' },
+                                                ...options.rooms.map((r) => ({
+                                                    value: r.id,
+                                                    label: r.name,
+                                                })),
+                                            ]}
+                                        />
                                     </div>
                                 ) : (
                                     <div className="grid gap-2">
@@ -460,32 +452,26 @@ export function ProgramFormDialog({
                                     <Label htmlFor="p-open">
                                         Pendaftaran dibuka
                                     </Label>
-                                    <Input
+                                    <DateTimeField
                                         id="p-open"
-                                        type="datetime-local"
                                         value={form.data.opens_at}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'opens_at',
-                                                e.target.value,
-                                            )
+                                        onChange={(value) =>
+                                            form.setData('opens_at', value)
                                         }
+                                        label="Pendaftaran dibuka"
                                     />
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="p-close">
                                         Pendaftaran ditutup
                                     </Label>
-                                    <Input
+                                    <DateTimeField
                                         id="p-close"
-                                        type="datetime-local"
                                         value={form.data.closes_at}
-                                        onChange={(e) =>
-                                            form.setData(
-                                                'closes_at',
-                                                e.target.value,
-                                            )
+                                        onChange={(value) =>
+                                            form.setData('closes_at', value)
                                         }
+                                        label="Pendaftaran ditutup"
                                     />
                                     <InputError
                                         message={form.errors.closes_at}

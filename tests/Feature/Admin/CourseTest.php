@@ -64,6 +64,31 @@ class CourseTest extends TestCase
             ->assertSessionHasErrors(['weights' => 'Total bobot harus 100% (saat ini 90%).']);
     }
 
+    public function test_admin_picks_the_schedule_color()
+    {
+        $this->post(route('admin.courses.store'), $this->payload(['color' => 'purple']))->assertSessionHasNoErrors();
+        $course = Course::sole();
+        $this->assertSame('purple', $course->color);
+
+        $this->put(route('admin.courses.update', $course), $this->payload(['color' => 'lime']))->assertSessionHasNoErrors();
+        $this->assertSame('lime', $course->fresh()->color);
+
+        $this->put(route('admin.courses.update', $course), $this->payload(['color' => 'teal']))->assertSessionHasErrors('color');
+    }
+
+    public function test_new_courses_get_the_figma_color_or_an_unused_one()
+    {
+        $ml = Course::factory()->for($this->semester)->create(['code' => 'IF-3101', 'name' => 'Machine Learning']);
+        $ir = Course::factory()->for($this->semester)->create(['code' => 'IF-3103', 'name' => 'Information Retrieval']);
+        $nlp = Course::factory()->for($this->semester)->create(['code' => 'IF-3104', 'name' => 'Natural Language Processing']);
+        $irNext = Course::factory()->for(Semester::factory())->create(['code' => 'IF-3103', 'name' => 'Information Retrieval']);
+
+        $this->assertSame('red', $ml->color);
+        $this->assertSame('pink', $ir->color);
+        $this->assertSame('cyan', $nlp->color);
+        $this->assertSame('pink', $irNext->color, 'kode yang sama tetap sewarna antar-semester');
+    }
+
     public function test_code_is_unique_per_semester_only()
     {
         Course::factory()->for($this->semester)->create(['code' => 'IF-3101']);

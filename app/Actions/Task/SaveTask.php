@@ -56,7 +56,7 @@ class SaveTask
             }
 
             $task->save();
-            $this->syncTargets($task, collect($data['targets'] ?? []));
+            $this->syncTargets($task, $request->safe()->collect('targets'));
             $this->syncAttachments($request, $task);
 
             AuditLog::record($publishing ? 'task.published' : 'task.saved', $task, null, ['title' => $task->title, 'targets' => count($data['targets'] ?? [])]);
@@ -106,7 +106,7 @@ class SaveTask
                     $class->enrollments()->pluck('user_id')->all(),
                     'task',
                     "Tugas baru: {$task->title}",
-                    "{$class->course->name} · {$class->name}".($record->due_at ? ' — tenggat '.$record->due_at->locale('id')->translatedFormat('d M Y H:i') : ''),
+                    "{$class->course->name} · {$class->name}".($record->due_at ? ' — tenggat '.$record->due_at->translatedFormat('d M Y H:i') : ''),
                     '/praktikan/tasks/'.$record->id,
                 );
             }

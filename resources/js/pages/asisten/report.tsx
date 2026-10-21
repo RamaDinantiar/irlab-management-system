@@ -22,10 +22,14 @@ import {
     Users,
 } from 'lucide-react';
 import type { FormEvent } from 'react';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ReportController from '@/actions/App/Http/Controllers/Asisten/ReportController';
+import { CalendarFilter } from '@/components/calendar-filter';
 import { EmptyState } from '@/components/empty-state';
 import InputError from '@/components/input-error';
+import { DateField } from '@/components/pickers/date-field';
+import { TimeField } from '@/components/pickers/time-field';
+import { SelectField } from '@/components/select-field';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,17 +44,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Spinner } from '@/components/ui/spinner';
 import { Textarea } from '@/components/ui/textarea';
-import { formatRelative } from '@/lib/datetime';
+import { formatRelative, todayWib } from '@/lib/datetime';
 import { cn } from '@/lib/utils';
 import type { PendingShift, ReportRow, ReportStatus } from '@/types';
 
 type Props = {
-    filters: { month: string; q: string; tab: 'mine' | 'verify' | 'all' };
+    filters: {
+        month: string;
+        date: string | null;
+        q: string;
+        tab: 'mine' | 'verify' | 'all';
+    };
+    /** Tanggal yang punya laporan (titik di kalender). */
+    reportDates: string[];
+    /** Jumlah laporan per tab pada periode terpilih (reviewer saja). */
+    tabCounts: Record<'mine' | 'verify' | 'all', number> | null;
     days: { date: string; reports: ReportRow[] }[];
     isReviewer: boolean;
-    toVerify: number;
     pendingShifts: PendingShift[];
     classOptions: { id: number; course: string; code: string; name: string }[];
+    /** Kunci "classId|YYYY-MM-DD" → materi pertemuan kelas pada tanggal itu. */
+    meetingMaterials: Record<string, { number: number; material: string }>;
     assistantOptions: { id: number; name: string }[];
 };
 
@@ -63,12 +77,6 @@ const STATUS: Record<
     verified: { label: 'Diverifikasi', variant: 'success' },
     returned: { label: 'Dikembalikan', variant: 'destructive' },
 };
-
-const CONDITIONS = {
-    baik: 'Baik',
-    kendala_ringan: 'Kendala ringan',
-    kendala_berat: 'Kendala berat',
-} as const;
 
 const longDate = (iso: string) =>
     new Date(`${iso}T00:00:00`).toLocaleDateString('id-ID', {
@@ -93,8 +101,6 @@ type FormData = {
     class_id: string;
     activity: string;
     material: string;
-    present_count: string;
-    lab_condition: keyof typeof CONDITIONS;
     notes: string;
     assistant_ids: string[];
     photo: File | null;
@@ -114,7 +120,7 @@ function ReportFormDialog({
     props: Props;
 }) {
     const me = usePage().props.auth.user;
-    const today = new Date().toLocaleDateString('sv-SE');
+    const today = todayWib();
     const first = props.pendingShifts[0];
     const fileInput = useRef<HTMLInputElement>(null);
     const [confirming, setConfirming] = useState(false);
@@ -132,8 +138,6 @@ function ReportFormDialog({
                   class_id: report.classId ? String(report.classId) : '',
                   activity: report.activity,
                   material: report.material ?? '',
-                  present_count: String(report.presentCount),
-                  lab_condition: report.labCondition,
                   notes: report.notes,
                   assistant_ids: team(report.assistants.map((a) => a.id)),
                   photo: null,
@@ -147,8 +151,6 @@ function ReportFormDialog({
                   class_id: first?.classId ? String(first.classId) : '',
                   activity: first?.title ?? '',
                   material: '',
-                  present_count: '',
-                  lab_condition: 'baik',
                   notes: '',
                   assistant_ids: team(first?.teamIds ?? [me.id]),
                   photo: null,
@@ -163,6 +165,25 @@ function ReportFormDialog({
         ...new Map(props.classOptions.map((c) => [c.course, c.code])).entries(),
     ];
     const [course, setCourse] = useState(selectedClass?.course ?? '');
+
+    // Materi otomatis dari pertemuan kelas pada tanggal laporan; tetap bisa diubah.
+    // Hanya menimpa bila kolom kosong atau masih berisi isian otomatis sebelumnya.
+    const meeting =
+        props.meetingMaterials[`${form.data.class_id}|${form.data.date}`];
+    // Laporan baru diisi saat dibuka; laporan lama tidak diubah sampai kelas/tanggal berganti.
+    const autoMaterial = useRef(report ? (meeting?.material ?? '') : '');
+    useEffect(() => {
+        const next = meeting?.material ?? '';
+        if (
+            next !== autoMaterial.current &&
+            (form.data.material === '' ||
+                form.data.material === autoMaterial.current)
+        ) {
+            form.setData('material', next);
+        }
+        autoMaterial.current = next;
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [meeting?.material]);
 
     const applyShift = (id: string) => {
         const shift = props.pendingShifts.find((s) => String(s.id) === id);
@@ -225,7 +246,7 @@ function ReportFormDialog({
                     <>
                         <DialogHeader>
                             <DialogTitle className="flex flex-wrap items-center gap-3 text-h2">
-                                <span className="border-primary-300 flex size-10 items-center justify-center border bg-primary-50 text-primary-700">
+                                <span className="flex size-10 items-center justify-center border border-primary-300 bg-primary-50 text-primary-700">
                                     <FileText className="size-5" aria-hidden />
                                 </span>
                                 Laporan Mengawas
@@ -253,24 +274,21 @@ function ReportFormDialog({
                                     <Label htmlFor="r-shift">
                                         Shift (terisi otomatis dari jadwal)
                                     </Label>
-                                    <select
+                                    <SelectField
                                         id="r-shift"
                                         value={form.data.shift_id}
-                                        onChange={(e) =>
-                                            applyShift(e.target.value)
-                                        }
-                                        className="h-10 border border-input bg-white px-3 text-sm"
-                                    >
-                                        {props.pendingShifts.map((s) => (
-                                            <option key={s.id} value={s.id}>
-                                                {longDate(s.date)} · {s.start}–
-                                                {s.end} · {s.title}
-                                            </option>
-                                        ))}
-                                        <option value="">
-                                            Lainnya (isi manual)
-                                        </option>
-                                    </select>
+                                        onValueChange={applyShift}
+                                        options={[
+                                            ...props.pendingShifts.map((s) => ({
+                                                value: s.id,
+                                                label: `${longDate(s.date)} · ${s.start}–${s.end} · ${s.title}`,
+                                            })),
+                                            {
+                                                value: '',
+                                                label: 'Lainnya (isi manual)',
+                                            },
+                                        ]}
+                                    />
                                     <InputError
                                         message={form.errors.shift_id}
                                     />
@@ -285,18 +303,14 @@ function ReportFormDialog({
                                                 *
                                             </span>
                                         </Label>
-                                        <Input
+                                        <DateField
                                             id="r-date"
-                                            type="date"
-                                            required
                                             max={today}
                                             value={form.data.date}
-                                            onChange={(e) =>
-                                                form.setData(
-                                                    'date',
-                                                    e.target.value,
-                                                )
+                                            onChange={(v) =>
+                                                form.setData('date', v)
                                             }
+                                            invalid={!!form.errors.date}
                                         />
                                         <InputError
                                             message={form.errors.date}
@@ -310,29 +324,26 @@ function ReportFormDialog({
                                             </span>
                                         </span>
                                         <div className="grid grid-cols-2 gap-2">
-                                            <Input
-                                                aria-label="Jam mulai"
-                                                type="time"
-                                                required
+                                            <TimeField
+                                                label="Jam mulai"
                                                 value={form.data.start_time}
-                                                onChange={(e) =>
+                                                onChange={(v) =>
                                                     form.setData(
                                                         'start_time',
-                                                        e.target.value,
+                                                        v,
                                                     )
+                                                }
+                                                invalid={
+                                                    !!form.errors.start_time
                                                 }
                                             />
-                                            <Input
-                                                aria-label="Jam selesai"
-                                                type="time"
-                                                required
+                                            <TimeField
+                                                label="Jam selesai"
                                                 value={form.data.end_time}
-                                                onChange={(e) =>
-                                                    form.setData(
-                                                        'end_time',
-                                                        e.target.value,
-                                                    )
+                                                onChange={(v) =>
+                                                    form.setData('end_time', v)
                                                 }
+                                                invalid={!!form.errors.end_time}
                                             />
                                         </div>
                                         <InputError
@@ -363,9 +374,17 @@ function ReportFormDialog({
                                                     className="text-xs"
                                                 >
                                                     Asisten {i + 1}
-                                                    {i === 0 && ' (Lead)'}
+                                                    {i === 0 && (
+                                                        <>
+                                                            {' '}
+                                                            (Lead){' '}
+                                                            <span className="text-destructive">
+                                                                *
+                                                            </span>
+                                                        </>
+                                                    )}
                                                 </Label>
-                                                <select
+                                                <SelectField
                                                     id={`r-team-${i}`}
                                                     required={i === 0}
                                                     value={
@@ -373,28 +392,32 @@ function ReportFormDialog({
                                                             i
                                                         ]
                                                     }
-                                                    onChange={(e) =>
+                                                    onValueChange={(v) =>
                                                         form.setData(
                                                             'assistant_ids',
                                                             form.data.assistant_ids.map(
-                                                                (v, j) =>
+                                                                (x, j) =>
                                                                     j === i
-                                                                        ? e
-                                                                              .target
-                                                                              .value
-                                                                        : v,
+                                                                        ? v
+                                                                        : x,
                                                             ),
                                                         )
                                                     }
-                                                    className="h-9 border border-input bg-white px-3 text-sm"
-                                                >
-                                                    <option value="">-</option>
-                                                    {props.assistantOptions.map(
-                                                        (a) => (
-                                                            <option
-                                                                key={a.id}
-                                                                value={a.id}
-                                                                disabled={
+                                                    placeholder="-"
+                                                    options={[
+                                                        ...(i === 0
+                                                            ? []
+                                                            : [
+                                                                  {
+                                                                      value: '',
+                                                                      label: '-',
+                                                                  },
+                                                              ]),
+                                                        ...props.assistantOptions.map(
+                                                            (a) => ({
+                                                                value: a.id,
+                                                                label: a.name,
+                                                                disabled:
                                                                     form.data.assistant_ids.includes(
                                                                         String(
                                                                             a.id,
@@ -406,14 +429,12 @@ function ReportFormDialog({
                                                                     ] !==
                                                                         String(
                                                                             a.id,
-                                                                        )
-                                                                }
-                                                            >
-                                                                {a.name}
-                                                            </option>
+                                                                        ),
+                                                            }),
                                                         ),
-                                                    )}
-                                                </select>
+                                                    ]}
+                                                    className="data-[size=default]:h-9"
+                                                />
                                             </div>
                                         ))}
                                         <InputError
@@ -426,7 +447,7 @@ function ReportFormDialog({
                                     <div className="grid gap-2">
                                         <span className="flex items-center justify-between text-sm font-medium">
                                             Kode MK
-                                            <span className="border-primary-300 inline-flex items-center gap-1 border bg-primary-50 px-2 py-0.5 text-[10px] text-primary-800">
+                                            <span className="inline-flex items-center gap-1 border border-primary-300 bg-primary-50 px-2 py-0.5 text-[10px] text-primary-800">
                                                 ● Terisi Otomatis
                                             </span>
                                         </span>
@@ -440,72 +461,71 @@ function ReportFormDialog({
                                     </div>
                                     <div className="grid gap-2">
                                         <Label htmlFor="r-course">
-                                            Mata Kuliah
+                                            Mata Kuliah{' '}
+                                            <span className="text-destructive">
+                                                *
+                                            </span>
                                         </Label>
-                                        <select
+                                        <SelectField
                                             id="r-course"
                                             value={course}
-                                            onChange={(e) => {
-                                                setCourse(e.target.value);
+                                            onValueChange={(v) => {
+                                                setCourse(v);
                                                 form.setData('class_id', '');
                                             }}
-                                            className="h-10 border border-input bg-white px-3 text-sm"
-                                        >
-                                            <option value="">
-                                                — Kegiatan non-praktikum —
-                                            </option>
-                                            {courses.map(([name]) => (
-                                                <option key={name} value={name}>
-                                                    {name}
-                                                </option>
-                                            ))}
-                                        </select>
+                                            placeholder="Pilih mata kuliah…"
+                                            options={courses.map(([name]) => ({
+                                                value: name,
+                                                label: name,
+                                            }))}
+                                        />
                                     </div>
-                                    {course && (
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="r-class">
-                                                Kelas
-                                            </Label>
-                                            <select
-                                                id="r-class"
-                                                value={form.data.class_id}
-                                                onChange={(e) => {
-                                                    const cls =
-                                                        props.classOptions.find(
-                                                            (c) =>
-                                                                String(c.id) ===
-                                                                e.target.value,
-                                                        );
-                                                    form.setData((d) => ({
-                                                        ...d,
-                                                        class_id:
-                                                            e.target.value,
-                                                        activity: cls
-                                                            ? `${cls.course} · ${cls.name}`
-                                                            : d.activity,
-                                                    }));
-                                                }}
-                                                className="h-10 border border-input bg-white px-3 text-sm"
-                                            >
-                                                <option value="">
-                                                    Pilih kelas…
-                                                </option>
-                                                {props.classOptions
-                                                    .filter(
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="r-class">
+                                            Kelas{' '}
+                                            <span className="text-destructive">
+                                                *
+                                            </span>
+                                        </Label>
+                                        <SelectField
+                                            id="r-class"
+                                            value={form.data.class_id}
+                                            onValueChange={(v) => {
+                                                const cls =
+                                                    props.classOptions.find(
                                                         (c) =>
-                                                            c.course === course,
-                                                    )
-                                                    .map((c) => (
-                                                        <option
-                                                            key={c.id}
-                                                            value={c.id}
-                                                        >
-                                                            {c.name}
-                                                        </option>
-                                                    ))}
-                                            </select>
-                                        </div>
-                                    )}
+                                                            String(c.id) === v,
+                                                    );
+                                                form.setData((d) => ({
+                                                    ...d,
+                                                    class_id: v,
+                                                    activity: cls
+                                                        ? `${cls.course} · ${cls.name}`
+                                                        : d.activity,
+                                                }));
+                                            }}
+                                            placeholder={
+                                                course
+                                                    ? 'Pilih kelas…'
+                                                    : 'Pilih mata kuliah dulu'
+                                            }
+                                            disabled={!course}
+                                            aria-invalid={
+                                                !!form.errors.class_id
+                                            }
+                                            options={props.classOptions
+                                                .filter(
+                                                    (c) => c.course === course,
+                                                )
+                                                .map((c) => ({
+                                                    value: c.id,
+                                                    label: c.name,
+                                                }))}
+                                        />
+                                        <InputError
+                                            message={form.errors.class_id}
+                                        />
+                                    </div>
                                     <div className="grid gap-2">
                                         <Label htmlFor="r-activity">
                                             Kelas / Kegiatan{' '}
@@ -529,72 +549,19 @@ function ReportFormDialog({
                                             message={form.errors.activity}
                                         />
                                     </div>
-                                    <div className="grid grid-cols-2 gap-3">
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="r-present">
-                                                Praktikan hadir{' '}
-                                                <span className="text-destructive">
-                                                    *
-                                                </span>
-                                            </Label>
-                                            <Input
-                                                id="r-present"
-                                                type="number"
-                                                min={0}
-                                                max={500}
-                                                required
-                                                value={form.data.present_count}
-                                                onChange={(e) =>
-                                                    form.setData(
-                                                        'present_count',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                            />
-                                            <InputError
-                                                message={
-                                                    form.errors.present_count
-                                                }
-                                            />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <Label htmlFor="r-cond">
-                                                Kondisi lab{' '}
-                                                <span className="text-destructive">
-                                                    *
-                                                </span>
-                                            </Label>
-                                            <select
-                                                id="r-cond"
-                                                value={form.data.lab_condition}
-                                                onChange={(e) =>
-                                                    form.setData(
-                                                        'lab_condition',
-                                                        e.target
-                                                            .value as FormData['lab_condition'],
-                                                    )
-                                                }
-                                                className="h-10 border border-input bg-white px-3 text-sm"
-                                            >
-                                                {Object.entries(CONDITIONS).map(
-                                                    ([value, label]) => (
-                                                        <option
-                                                            key={value}
-                                                            value={value}
-                                                        >
-                                                            {label}
-                                                        </option>
-                                                    ),
-                                                )}
-                                            </select>
-                                        </div>
-                                    </div>
                                     <div className="grid gap-2">
                                         <Label htmlFor="r-material">
-                                            Materi
+                                            Materi{' '}
+                                            <span className="text-destructive">
+                                                *
+                                            </span>
                                         </Label>
                                         <Input
                                             id="r-material"
+                                            required
+                                            aria-invalid={
+                                                !!form.errors.material
+                                            }
                                             maxLength={150}
                                             value={form.data.material}
                                             onChange={(e) =>
@@ -604,6 +571,17 @@ function ReportFormDialog({
                                                 )
                                             }
                                             placeholder="Mis. OLAP, Regresi Linear"
+                                        />
+                                        {meeting &&
+                                            form.data.material ===
+                                                meeting.material && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Terisi otomatis dari materi
+                                                    Pertemuan {meeting.number}.
+                                                </p>
+                                            )}
+                                        <InputError
+                                            message={form.errors.material}
                                         />
                                     </div>
                                     <div className="grid gap-2">
@@ -646,9 +624,14 @@ function ReportFormDialog({
 
                             <div className="grid gap-2">
                                 <span className="flex justify-between text-sm font-medium">
-                                    Upload Foto Dokumentasi{' '}
+                                    <span>
+                                        Upload Foto Dokumentasi{' '}
+                                        <span className="text-destructive">
+                                            *
+                                        </span>
+                                    </span>
                                     <span className="text-[11px] font-normal text-muted-foreground">
-                                        Opsional · JPG/PNG maks. 5 MB
+                                        Wajib · JPG/PNG maks. 5 MB
                                     </span>
                                 </span>
                                 <button
@@ -669,7 +652,9 @@ function ReportFormDialog({
                                         'grid justify-items-center gap-1 border-2 border-dashed px-4 py-6 text-center focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none',
                                         dragging
                                             ? 'border-primary-600 bg-primary-50'
-                                            : 'border-slate-300',
+                                            : form.errors.photo
+                                              ? 'border-destructive'
+                                              : 'border-slate-300',
                                     )}
                                 >
                                     <UploadCloud
@@ -752,7 +737,7 @@ function ReportFormDialog({
                             <DialogDescription>
                                 Pastikan data shift, tim asisten jaga, kegiatan,
                                 dan foto dokumentasi sudah benar sebelum dikirim
-                                ke Sekretaris.
+                                ke Sekretaris/Bendahara.
                             </DialogDescription>
                         </DialogHeader>
                         <div className="grid gap-3 bg-muted/50 p-5 text-sm">
@@ -782,9 +767,9 @@ function ReportFormDialog({
                                     <span className="block text-xs text-muted-foreground">
                                         Mata Kuliah / Kegiatan
                                     </span>
-                                    {form.data.activity} · hadir{' '}
-                                    {form.data.present_count || 0} ·{' '}
-                                    {CONDITIONS[form.data.lab_condition]}
+                                    {form.data.activity}
+                                    {form.data.material &&
+                                        ` · ${form.data.material}`}
                                 </span>
                             </p>
                             <p className="flex gap-3">
@@ -820,9 +805,9 @@ function ReportFormDialog({
                             <Info className="size-4 shrink-0" aria-hidden />
                             <span>
                                 <strong>Catatan:</strong> laporan yang dikirim
-                                diteruskan ke Sekretaris untuk diverifikasi;
-                                hanya laporan terverifikasi yang masuk rekap
-                                honor.
+                                diteruskan ke Sekretaris/Bendahara untuk
+                                diverifikasi; hanya laporan terverifikasi yang
+                                masuk rekap honor.
                             </span>
                         </p>
                         <DialogFooter>
@@ -926,7 +911,7 @@ function dayStatus(reports: ReportRow[]): ReportStatus {
 
 /** Asisten › Report — Figma "Report" (Lab Monitoring Report). */
 export default function AsistenReport(props: Props) {
-    const { filters, days, isReviewer, toVerify } = props;
+    const { filters, days, isReviewer } = props;
     const semester = usePage().props.activeSemester;
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<ReportRow | null>(null);
@@ -942,10 +927,39 @@ export default function AsistenReport(props: Props) {
 
     const go = (next: Partial<Props['filters']>) =>
         router.get(
-            ReportController.index.url({ query: { ...filters, ...next } }),
+            ReportController.index.url({
+                query: Object.fromEntries(
+                    Object.entries({ ...filters, ...next }).filter(
+                        ([, v]) => v !== null && v !== '',
+                    ),
+                ),
+            }),
             {},
-            { preserveScroll: true, preserveState: true },
+            { preserveScroll: true, preserveState: true, replace: true },
         );
+
+    // Cari otomatis saat mengetik (jeda 400 ms); kosong = hapus filter.
+    useEffect(() => {
+        if (search.trim() === filters.q) {
+            return;
+        }
+
+        const timer = window.setTimeout(() => go({ q: search.trim() }), 400);
+
+        return () => window.clearTimeout(timer);
+    }, [search]);
+
+    // Data berganti (bulan/tanggal/cari) → buka hari hasil filter.
+    useEffect(() => {
+        setOpenDays(
+            new Set(
+                (filters.q || filters.date ? days : days.slice(0, 2)).map(
+                    (d) => d.date,
+                ),
+            ),
+        );
+    }, [days, filters.q, filters.date]);
+
     const toggle = (date: string) =>
         setOpenDays((s) => {
             const n = new Set(s);
@@ -980,7 +994,7 @@ export default function AsistenReport(props: Props) {
                     </Button>
                 </div>
 
-                <div className="border-primary-300 flex flex-wrap items-center justify-between gap-3 border bg-primary-50 px-4 py-3 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 border border-primary-300 bg-primary-50 px-4 py-3 text-sm">
                     <p className="flex items-start gap-3">
                         <Info
                             className="mt-0.5 size-5 shrink-0 text-primary-700"
@@ -1010,33 +1024,48 @@ export default function AsistenReport(props: Props) {
                     <div
                         role="tablist"
                         aria-label="Cakupan laporan"
-                        className="flex gap-6 border-b border-primary-200"
+                        className="flex flex-wrap gap-2 border bg-card p-4 shadow-sm"
                     >
                         {(
                             [
                                 ['mine', 'Laporan Saya'],
-                                [
-                                    'verify',
-                                    `Perlu Verifikasi${toVerify ? ` (${toVerify})` : ''}`,
-                                ],
+                                ['verify', 'Perlu Verifikasi'],
                                 ['all', 'Semua Laporan'],
                             ] as const
-                        ).map(([value, label]) => (
-                            <button
-                                key={value}
-                                role="tab"
-                                aria-selected={filters.tab === value}
-                                onClick={() => go({ tab: value })}
-                                className={cn(
-                                    '-mb-px border-b-2 px-1 pb-2.5 text-sm font-bold',
-                                    filters.tab === value
-                                        ? 'border-primary-700 text-primary-800'
-                                        : 'border-transparent text-muted-foreground',
-                                )}
-                            >
-                                {label}
-                            </button>
-                        ))}
+                        ).map(([value, label]) => {
+                            const active = filters.tab === value;
+                            const count = props.tabCounts?.[value] ?? 0;
+
+                            return (
+                                <button
+                                    key={value}
+                                    type="button"
+                                    role="tab"
+                                    aria-selected={active}
+                                    onClick={() => go({ tab: value })}
+                                    className={cn(
+                                        'flex items-center gap-2 px-4 py-2 text-sm font-medium',
+                                        active
+                                            ? 'bg-primary-700 text-white'
+                                            : 'hover:bg-primary-50',
+                                    )}
+                                >
+                                    {label}
+                                    <span
+                                        className={cn(
+                                            'flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-[11px] font-bold',
+                                            active
+                                                ? 'bg-white/25'
+                                                : value === 'verify' && count
+                                                  ? 'bg-warning-soft text-warning'
+                                                  : 'bg-primary-100 text-primary-700',
+                                        )}
+                                    >
+                                        {count}
+                                    </span>
+                                </button>
+                            );
+                        })}
                     </div>
                 )}
 
@@ -1055,27 +1084,21 @@ export default function AsistenReport(props: Props) {
                             </span>
                         </h2>
                         {filters.tab !== 'verify' && (
-                            <label className="flex items-center gap-2 border border-primary-700 px-3 py-1.5 text-sm">
-                                <CalendarDays
-                                    className="size-4 text-primary-700"
-                                    aria-hidden
-                                />
-                                <span className="sr-only">Bulan</span>
-                                <input
-                                    type="month"
-                                    value={filters.month}
-                                    onChange={(e) =>
-                                        e.target.value &&
-                                        go({ month: e.target.value })
-                                    }
-                                    className="bg-transparent font-medium focus-visible:outline-none"
-                                />
-                            </label>
+                            <CalendarFilter
+                                month={filters.month}
+                                date={filters.date}
+                                markedDates={props.reportDates}
+                                onSelectMonth={(month) =>
+                                    go({ month, date: null })
+                                }
+                                onSelectDate={(date) => go({ date })}
+                            />
                         )}
                         <form
+                            role="search"
                             onSubmit={(e) => {
                                 e.preventDefault();
-                                go({ q: search });
+                                go({ q: search.trim() });
                             }}
                             className="relative"
                         >
@@ -1086,10 +1109,10 @@ export default function AsistenReport(props: Props) {
                             <Input
                                 type="search"
                                 aria-label="Cari laporan"
-                                placeholder="Cari kata kunci…"
+                                placeholder="Cari hari, tanggal, kelas, asisten…"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
-                                className="w-56 pl-9"
+                                className="h-10 w-64 pl-9"
                             />
                         </form>
                     </div>
@@ -1102,7 +1125,9 @@ export default function AsistenReport(props: Props) {
                                 description={
                                     filters.tab === 'verify'
                                         ? 'Tidak ada laporan yang menunggu verifikasi.'
-                                        : 'Belum ada laporan pada periode ini.'
+                                        : filters.q
+                                          ? `Tidak ada laporan yang cocok dengan “${filters.q}”.`
+                                          : 'Belum ada laporan pada periode ini.'
                                 }
                             />
                         </div>
@@ -1217,19 +1242,6 @@ export default function AsistenReport(props: Props) {
                                                                                 }
                                                                             </Badge>
                                                                         )}
-                                                                        <span className="mt-1 block text-[11px] text-muted-foreground">
-                                                                            Hadir{' '}
-                                                                            {
-                                                                                r.presentCount
-                                                                            }{' '}
-                                                                            ·{' '}
-                                                                            {
-                                                                                CONDITIONS[
-                                                                                    r
-                                                                                        .labCondition
-                                                                                ]
-                                                                            }
-                                                                        </span>
                                                                     </td>
                                                                     <td className="px-3 py-3">
                                                                         <ul className="grid gap-1.5">
@@ -1275,7 +1287,7 @@ export default function AsistenReport(props: Props) {
                                                                         {r.returnNote && (
                                                                             <span className="mt-2 block border-l-2 border-danger bg-danger-soft px-2 py-1 text-danger">
                                                                                 Catatan
-                                                                                Sekretaris:{' '}
+                                                                                verifikator:{' '}
                                                                                 {
                                                                                     r.returnNote
                                                                                 }
@@ -1381,6 +1393,9 @@ export default function AsistenReport(props: Props) {
                                                                                             variant="ghost"
                                                                                             aria-label="Hapus draft"
                                                                                             onClick={() =>
+                                                                                                window.confirm(
+                                                                                                    'Hapus draft laporan ini?',
+                                                                                                ) &&
                                                                                                 router.delete(
                                                                                                     ReportController.destroy.url(
                                                                                                         r.id,

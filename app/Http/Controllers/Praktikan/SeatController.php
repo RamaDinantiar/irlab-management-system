@@ -53,7 +53,7 @@ class SeatController extends Controller
         }
 
         $map = SeatMapData::for($class, $user);
-        $seats = collect($map['layout']['cells'] ?? [])->where('type', 'seat')->count();
+        $seats = collect($map['layout']['cells'])->where('type', 'seat')->count();
 
         return Inertia::render('praktikan/seats/contract', [
             'class' => SeatMapData::classSummary($class),
@@ -62,7 +62,7 @@ class SeatController extends Controller
                 ->map(fn (LabClass $c) => ['id' => $c->id, 'label' => "{$c->course->name} - {$c->name}"])->values(),
             'profile' => ['name' => $user->name, 'nim' => $user->nim, 'major' => $user->major, 'email' => $user->email],
             'map' => $map,
-            'capacity' => ['total' => $seats, 'available' => $seats - count($map['occupants'] ?? [])],
+            'capacity' => ['total' => $seats, 'available' => $seats - count($map['occupants'])],
         ]);
     }
 

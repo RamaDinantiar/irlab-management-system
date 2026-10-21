@@ -2,16 +2,16 @@
 
 namespace Tests\Feature\Files;
 
-use App\Models\LabClass;
-use App\Models\Meeting;
+use App\Models\StoredFile;
+use App\Models\TaskTarget;
 use App\Models\User;
 use App\Support\Files\FileStore;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Tests\Support\Pdf;
 use Tests\TestCase;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 
 /**
  * PRD 8.1 — keamanan file unggahan.
@@ -26,16 +26,16 @@ class FileStoreTest extends TestCase
         Storage::fake('lab');
     }
 
-    private function store(UploadedFile $file, array $kinds = ['pdf', 'zip']): \App\Models\StoredFile
+    private function store(UploadedFile $file, array $kinds = ['pdf', 'zip']): StoredFile
     {
         return app(FileStore::class)->store($file, $kinds, 'test', null, null);
     }
 
     public function test_a_pdf_is_stored_privately_under_a_uuid_with_checksum()
     {
-        $file = $this->store(Pdf::upload('Modul 04.pdf'));
+        $file = $this->store(Pdf::upload('Laporan 04.pdf'));
 
-        $this->assertSame('Modul 04.pdf', $file->original_name);
+        $this->assertSame('Laporan 04.pdf', $file->original_name);
         $this->assertSame('application/pdf', $file->mime);
         $this->assertMatchesRegularExpression('#^test/\d{4}/\d{2}/[0-9a-f-]{36}\.pdf$#', $file->path);
         $this->assertSame(hash('sha256', Pdf::CONTENT), $file->sha256);
@@ -87,13 +87,11 @@ class FileStoreTest extends TestCase
 
     public function test_downloads_require_a_signature_and_permission()
     {
-        $class = LabClass::factory()->create();
-        $meeting = Meeting::factory()->for($class, 'labClass')->create();
-        $file = app(FileStore::class)->store(Pdf::upload(), ['pdf'], 'module', $meeting, null);
-        $meeting->update(['module_file_id' => $file->id]);
+        $target = TaskTarget::factory()->create();
+        $file = app(FileStore::class)->store(Pdf::upload(), ['pdf'], 'task_attachment', $target->task, null);
 
         $member = User::factory()->create();
-        $class->enrollments()->create(['user_id' => $member->id, 'joined_at' => now()]);
+        $target->labClass->enrollments()->create(['user_id' => $member->id, 'joined_at' => now()]);
         $stranger = User::factory()->create();
 
         $this->actingAs($member)->get(route('files.show', $file))->assertForbidden(); // tanpa signature
@@ -104,19 +102,17 @@ class FileStoreTest extends TestCase
         $this->actingAs($stranger)->get($file->url())->assertForbidden();
     }
 
-    public function test_unreleased_modules_are_hidden_from_students()
+    public function test_attachments_of_unopened_tasks_are_hidden_from_students()
     {
-        $class = LabClass::factory()->create();
-        $meeting = Meeting::factory()->for($class, 'labClass')->create(['module_release_at' => now()->addDay()]);
-        $file = app(FileStore::class)->store(Pdf::upload(), ['pdf'], 'module', $meeting, null);
-        $meeting->update(['module_file_id' => $file->id]);
+        $target = TaskTarget::factory()->create(['open_at' => now()->addDay()]);
+        $file = app(FileStore::class)->store(Pdf::upload(), ['pdf'], 'task_attachment', $target->task, null);
         $member = User::factory()->create();
-        $class->enrollments()->create(['user_id' => $member->id, 'joined_at' => now()]);
+        $target->labClass->enrollments()->create(['user_id' => $member->id, 'joined_at' => now()]);
 
         $this->actingAs($member)->get($file->url())->assertForbidden();
 
         $assistant = User::factory()->asisten()->create();
-        $class->assistants()->attach($assistant);
+        $target->task->course->assistants()->attach($assistant);
         $this->actingAs($assistant)->get($file->url())->assertOk();
     }
 }

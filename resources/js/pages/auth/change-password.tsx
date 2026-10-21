@@ -1,10 +1,14 @@
 import { Form, Head } from '@inertiajs/react';
 import { ShieldCheck } from 'lucide-react';
 import { NewPasswordFields } from '@/components/new-password-fields';
-import TextLink from '@/components/text-link';
+import {
+    LogoutConfirmDialog,
+    confirmLogout,
+} from '@/components/logout-confirm-dialog';
+import { textLinkClass } from '@/components/text-link';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
-import { logout } from '@/routes';
+import { cn } from '@/lib/utils';
 import { update } from '@/routes/password/change';
 
 /** FR-AUTH-05: wajib ganti kata sandi sementara pada login pertama. */
@@ -45,16 +49,19 @@ export default function ChangePassword({
                             Simpan & Lanjutkan
                         </Button>
 
-                        <TextLink
-                            href={logout()}
-                            as="button"
-                            className="self-center text-sm"
+                        <button
+                            type="button"
+                            onClick={confirmLogout}
+                            className={cn(textLinkClass, 'self-center text-sm')}
+                            data-test="logout-button"
                         >
                             Keluar
-                        </TextLink>
+                        </button>
                     </>
                 )}
             </Form>
+
+            <LogoutConfirmDialog />
         </>
     );
 }

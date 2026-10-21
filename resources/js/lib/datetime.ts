@@ -1,6 +1,13 @@
 /** PRD 8.5: semua waktu ditampilkan dalam WIB, apa pun zona waktu perangkat. */
 const TIME_ZONE = 'Asia/Jakarta';
 
+const ymd = new Intl.DateTimeFormat('en-CA', { timeZone: TIME_ZONE });
+
+/** Tanggal hari ini di WIB, format YYYY-MM-DD. */
+export function todayWib(): string {
+    return ymd.format(new Date());
+}
+
 const relative = new Intl.RelativeTimeFormat('id', { numeric: 'auto' });
 
 /** "12 menit yang lalu", "kemarin", "dalam 3 jam". */
@@ -91,6 +98,11 @@ export function dayOfMonth(monday: string, day: number): number {
 /** "07:20" → "07.20" (format jam Indonesia, seperti di Figma). */
 export function formatClock(time: string): string {
     return time.replace(':', '.');
+}
+
+/** ISO dari server (sudah WIB) → "08.30". */
+export function formatIsoClock(iso: string): string {
+    return formatClock(iso.slice(11, 16));
 }
 
 /** "YYYY-MM-DD" → "24 Agu 2026". */

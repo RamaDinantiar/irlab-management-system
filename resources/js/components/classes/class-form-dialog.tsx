@@ -28,6 +28,7 @@ import { Spinner } from '@/components/ui/spinner';
 import { DAY_NAMES } from '@/lib/days';
 import type { AssistantOption, ClassRow, SelectOption } from '@/types';
 import type { RouteFormDefinition } from '@/wayfinder';
+import { TimeField } from '@/components/pickers/time-field';
 
 function SelectField({
     id,
@@ -175,6 +176,25 @@ export function ClassFormDialog({
                                     <InputError message={errors.quota} />
                                 </div>
                             </div>
+                            <div className="grid gap-2">
+                                <Label htmlFor="class-lecturer">
+                                    Nama dosen
+                                </Label>
+                                <Input
+                                    id="class-lecturer"
+                                    name="lecturer"
+                                    required
+                                    maxLength={150}
+                                    defaultValue={klass?.lecturer ?? ''}
+                                    placeholder="Mis. Dine Tiara Kusuma, ST., M.Kom"
+                                    aria-invalid={!!errors.lecturer}
+                                />
+                                <p className="text-xs text-muted-foreground">
+                                    Tampil di kolom Nama Dosen pada laporan
+                                    kegiatan harian (Word).
+                                </p>
+                                <InputError message={errors.lecturer} />
+                            </div>
                             <div className="grid gap-5 sm:grid-cols-3">
                                 <SelectField
                                     id="class-day"
@@ -189,13 +209,13 @@ export function ClassFormDialog({
                                     <Label htmlFor="class-start">
                                         Jam mulai
                                     </Label>
-                                    <Input
+                                    <TimeField
                                         id="class-start"
                                         name="start_time"
-                                        type="time"
                                         required
-                                        defaultValue={klass?.startTime}
-                                        aria-invalid={!!errors.start_time}
+                                        defaultValue={klass?.startTime ?? ''}
+                                        invalid={!!errors.start_time}
+                                        label="Jam mulai"
                                     />
                                     <InputError message={errors.start_time} />
                                 </div>
@@ -203,13 +223,13 @@ export function ClassFormDialog({
                                     <Label htmlFor="class-end">
                                         Jam selesai
                                     </Label>
-                                    <Input
+                                    <TimeField
                                         id="class-end"
                                         name="end_time"
-                                        type="time"
                                         required
-                                        defaultValue={klass?.endTime}
-                                        aria-invalid={!!errors.end_time}
+                                        defaultValue={klass?.endTime ?? ''}
+                                        invalid={!!errors.end_time}
+                                        label="Jam selesai"
                                     />
                                     <InputError message={errors.end_time} />
                                 </div>

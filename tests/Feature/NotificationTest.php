@@ -3,12 +3,14 @@
 namespace Tests\Feature;
 
 use App\Actions\Announcement\NotifyAnnouncements;
+use App\Actions\Schedule\NotifyScheduleChange;
 use App\Actions\Task\RemindDeadlines;
 use App\Enums\Position;
 use App\Models\Announcement;
 use App\Models\Enrollment;
 use App\Models\Grade;
 use App\Models\LabClass;
+use App\Models\Meeting;
 use App\Models\Room;
 use App\Models\Semester;
 use App\Models\Shift;
@@ -19,6 +21,7 @@ use App\Models\TaskTarget;
 use App\Models\User;
 use App\Notifications\LabNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Notification;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\TestCase;
@@ -66,11 +69,12 @@ class NotificationTest extends TestCase
         $this->travelTo(now()->setDate(2026, 10, 5)->setTime(12, 0));
         Semester::factory()->active()->create();
         $asisten = User::factory()->asisten()->create();
-        $sekretaris = User::factory()->asisten(Position::Sekretaris)->create();
+        $sekretaris = User::factory()->asisten(Position::SekretarisBendahara)->create();
 
         $this->actingAs($asisten)->post(route('asisten.reports.store'), [
-            'date' => '2026-10-05', 'start_time' => '07:20', 'end_time' => '09:50', 'activity' => 'Jaga Lab', 'present_count' => 10,
-            'lab_condition' => 'baik', 'notes' => 'Kegiatan berjalan lancar.', 'assistant_ids' => [$asisten->id], 'submit' => true,
+            'date' => '2026-10-05', 'start_time' => '07:20', 'end_time' => '09:50', 'class_id' => LabClass::factory()->create()->id,
+            'activity' => 'Jaga Lab', 'material' => 'OLAP', 'notes' => 'Kegiatan berjalan lancar.', 'assistant_ids' => [$asisten->id],
+            'photo' => UploadedFile::fake()->image('dokumentasi.jpg'), 'submit' => true,
         ])->assertSessionHasNoErrors();
 
         $this->assertSame('report', $sekretaris->notifications()->sole()->data['kind']);
@@ -123,7 +127,7 @@ class NotificationTest extends TestCase
         $asisten = User::factory()->asisten()->create();
         $mine = LabClass::factory()->create(['semester_id' => Semester::factory()->active()->create()->id]);
         $mine->assistants()->attach($asisten);
-        $this->actingAs($asisten)->post(route('asisten.classes.announcements.store', $mine), ['title' => 'Modul baru', 'body' => 'Sudah rilis.'])->assertSessionHasNoErrors();
+        $this->actingAs($asisten)->post(route('asisten.classes.announcements.store', $mine), ['title' => 'Topik baru', 'body' => 'Sudah rilis.'])->assertSessionHasNoErrors();
         $this->actingAs($asisten)->post(route('asisten.classes.announcements.store', LabClass::factory()->create()), ['title' => 'x', 'body' => 'y'])->assertForbidden();
     }
 
@@ -146,5 +150,35 @@ class NotificationTest extends TestCase
 
         $this->post(route('notifications.read-all'));
         $this->assertSame(0, $user->unreadNotifications()->count());
+    }
+
+    public function test_schedule_changes_notify_enrolled_students()
+    {
+        $asisten = User::factory()->asisten()->create();
+        $class = LabClass::factory()->create(['start_time' => '07:20:00', 'end_time' => '09:50:00']);
+        $class->assistants()->attach($asisten);
+        $student = Enrollment::factory()->for($class, 'labClass')->create()->user;
+        $meeting = Meeting::create(['class_id' => $class->id, 'number' => 3, 'date' => now()->addWeek()->toDateString()]);
+        $payload = ['number' => 3, 'date' => now()->addWeeks(2)->toDateString(), 'topic' => 'Regresi', 'responsible_assistant_id' => $asisten->id];
+
+        // FR-PS-04: tanggal & asisten pertemuan berubah → satu notifikasi.
+        $this->actingAs($asisten)->put(route('asisten.meetings.update', $meeting), $payload)->assertSessionHasNoErrors();
+        $notification = $student->notifications()->sole();
+        $this->assertSame('Pertemuan 3 berubah', $notification->data['title']);
+        $this->assertStringContainsString("asisten penanggung jawab kini {$asisten->name}", $notification->data['body']);
+
+        // Simpan ulang tanpa perubahan jadwal (hanya materi) → tidak ada notifikasi baru.
+        $this->put(route('asisten.meetings.update', $meeting), [...$payload, 'topic' => 'Regresi Linear']);
+        $this->assertSame(1, $student->notifications()->count());
+
+        // Jam "07:20" sama dengan "07:20:00"; ruang/jam yang benar-benar berubah memicu notifikasi.
+        $notify = app(NotifyScheduleChange::class);
+        $class->update(['start_time' => '07:20', 'end_time' => '09:50']);
+        $notify->forClass($class);
+        $this->assertSame(1, $student->notifications()->count());
+
+        $class->update(['start_time' => '08:00', 'end_time' => '09:40']);
+        $notify->forClass($class);
+        $this->assertSame(['Jadwal kelas berubah', 'Pertemuan 3 berubah'], $student->notifications()->get()->pluck('data.title')->sort()->values()->all());
     }
 }

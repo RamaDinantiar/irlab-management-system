@@ -73,7 +73,7 @@ class CourseController extends Controller
 
     public function update(CourseRequest $request, Course $course): RedirectResponse
     {
-        $before = [...$course->only(['code', 'name', 'credits', 'weight_pretest', 'weight_posttest', 'weight_report']), 'assistant_ids' => $course->assistants()->pluck('users.id')->all()];
+        $before = [...$course->only(['code', 'name', 'color', 'credits', 'weight_pretest', 'weight_posttest', 'weight_report']), 'assistant_ids' => $course->assistants()->pluck('users.id')->all()];
 
         $course->update($request->safe()->except('assistant_ids'));
         $course->assistants()->sync($request->validated('assistant_ids', []));

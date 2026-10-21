@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Announcement;
 use App\Support\Announcements\AnnouncementData;
+use App\Support\SafeRedirect;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Notifications\DatabaseNotification;
@@ -37,7 +38,7 @@ class NotificationController extends Controller
         $notification->markAsRead();
         $url = $notification->data['url'] ?? null;
 
-        return is_string($url) && str_starts_with($url, '/') && ! str_starts_with($url, '//') ? redirect($url) : back();
+        return SafeRedirect::isInternalPath($url) ? redirect()->to($url) : back();
     }
 
     public function readAll(Request $request): RedirectResponse
