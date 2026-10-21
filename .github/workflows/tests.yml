@@ -31,6 +31,13 @@ jobs:
         with:
           node-version: '22'
 
+      # Runner tidak punya MySQL: pakai SQLite untuk migrasi saat setup (test sendiri memakai SQLite in-memory).
+      - name: Prepare Environment
+        run: |
+          cp .env.example .env
+          touch database/database.sqlite
+          sed -i "s|^DB_CONNECTION=.*|DB_CONNECTION=sqlite|; s|^DB_DATABASE=.*|DB_DATABASE=$PWD/database/database.sqlite|" .env
+
       - name: Setup Application
         run: composer setup
 
