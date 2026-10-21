@@ -14,7 +14,7 @@ flowchart LR
         R[React 19 + Inertia<br/>TypeScript, Tailwind]
     end
 
-    subgraph Server["Server (PHP 8.3+)"]
+    subgraph Server["Server (PHP 8.4+)"]
         MW[Middleware<br/>auth · role · aktif · ganti password<br/>header keamanan]
         C[Controller per peran<br/>Admin / Asisten / Praktikan]
         A[Actions<br/>logika bisnis]

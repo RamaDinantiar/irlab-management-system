@@ -6,7 +6,7 @@
 di Laboratorium Information Retrieval ITPLN.**
 
 ![Laravel](https://img.shields.io/badge/Laravel-13-FF2D20?logo=laravel&logoColor=white)
-![PHP](https://img.shields.io/badge/PHP-8.3%2B-777BB4?logo=php&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.4%2B-777BB4?logo=php&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Inertia](https://img.shields.io/badge/Inertia-3-9553E9)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)
@@ -99,7 +99,7 @@ Galeri lengkap per peran ada di [panduan pengguna](docs/09-user-guide/).
 
 | Lapisan   | Teknologi                                                                                   |
 | --------- | ------------------------------------------------------------------------------------------- |
-| Back-end  | Laravel 13 (PHP 8.3+), Fortify (autentikasi), antrean & cache berbasis database             |
+| Back-end  | Laravel 13 (PHP 8.4+), Fortify (autentikasi), antrean & cache berbasis database             |
 | Front-end | React 19 + Inertia 3, TypeScript, Tailwind CSS 4, Radix UI, Wayfinder (route bertipe)       |
 | Database  | MySQL 8 (SQLite in-memory untuk test)                                                       |
 | Dokumen   | PhpWord (laporan Word), OpenSpout (Excel/CSV), PDF.js (pratinjau PDF), TipTap (editor soal) |
@@ -107,7 +107,7 @@ Galeri lengkap per peran ada di [panduan pengguna](docs/09-user-guide/).
 
 ## Quick start
 
-Butuh PHP 8.3+, Composer 2, Node.js 20+, dan MySQL 8 dengan database `ir_lab` yang sudah dibuat
+Butuh PHP 8.4+, Composer 2, Node.js 20+, dan MySQL 8 dengan database `ir_lab` yang sudah dibuat
 (lihat [instalasi](docs/07-installation.md)).
 
 ```bash

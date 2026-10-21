@@ -7,7 +7,7 @@ Untuk instalasi di komputer sendiri, lihat [07 · Instalasi](07-installation.md)
 
 ## 1. Kebutuhan server
 
-- [ ] PHP 8.3+ dengan ekstensi: `pdo_mysql`, `mbstring`, `xml`, `dom`, `fileinfo`, `zip`, `gd`, `intl`
+- [ ] PHP 8.4+ dengan ekstensi: `pdo_mysql`, `mbstring`, `xml`, `dom`, `fileinfo`, `zip`, `gd`, `intl`
 - [ ] MySQL 8 (buat database & user khusus, bukan `root`)
 - [ ] Composer 2; Node.js 20+ hanya untuk build aset (boleh di mesin lain)
 - [ ] HTTPS aktif (sertifikat, mis. Let's Encrypt)

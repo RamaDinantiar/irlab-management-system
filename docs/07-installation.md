@@ -6,7 +6,7 @@
 
 | Perangkat lunak | Versi | Catatan                                                                                                   |
 | --------------- | ----- | --------------------------------------------------------------------------------------------------------- |
-| PHP             | 8.3+  | Ekstensi: `pdo_mysql`, `mbstring`, `xml`, `dom`, `fileinfo`, `zip`, `gd`, `intl`; `pdo_sqlite` untuk test |
+| PHP             | 8.4+  | Ekstensi: `pdo_mysql`, `mbstring`, `xml`, `dom`, `fileinfo`, `zip`, `gd`, `intl`; `pdo_sqlite` untuk test |
 | Composer        | 2.x   |                                                                                                           |
 | Node.js         | 20+   | Beserta npm                                                                                               |
 | MySQL           | 8.x   |                                                                                                           |

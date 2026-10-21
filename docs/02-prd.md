@@ -546,7 +546,7 @@ Indeks wajib: `submissions(task_target_id, user_id)`, `grades(status)`, `task_ta
 
 ### 6.2 Arsitektur aplikasi
 
-- **Pola:** monolit **Laravel 13** (PHP 8.3+) + **Inertia 3 + React 19 + TypeScript**. Routing, autentikasi (Fortify), dan validasi tetap di Laravel; tidak ada SPA + token terpisah. **Wayfinder** membuat fungsi route bertipe untuk TypeScript.
+- **Pola:** monolit **Laravel 13** (PHP 8.4+) + **Inertia 3 + React 19 + TypeScript**. Routing, autentikasi (Fortify), dan validasi tetap di Laravel; tidak ada SPA + token terpisah. **Wayfinder** membuat fungsi route bertipe untuk TypeScript.
 - **Styling:** Tailwind CSS 4 dengan design token dari Bagian 7; komponen headless Radix UI.
 - **Rich text:** TipTap (output JSON, dirender sebagai elemen React, tanpa `innerHTML`). **Code viewer:** highlight.js/lowlight read-only. **PDF viewer:** PDF.js (`isEvalSupported` dimatikan).
 - **Tabel:** komponen tabel sendiri (inline editing, navigasi keyboard).
